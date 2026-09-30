@@ -1,7 +1,7 @@
 /* Demo platform data. Every MP, seat, person, phone number and domain here is fictional.
    Only tenant "ndp3" (ড. তাহমিনা নূর) has a full public site in this demo (../demo-mp/). */
 window.PLATFORM = {
-  root: 'jonoshetu.example',
+  root: 'jonoprotinidhi.example',
   tenants: [
     {id:'ndp3', name:'ড. তাহমিনা নূর', seat:'নদীপুর-৩', role:'সংসদ সদস্য', sub:'ndp3', custom:'tahmina-noor.example', status:'live', plan:'পূর্ণ', since:'১ মার্চ ২০২৬', lastPost:2, posts:12, cmpMonth:112, visitors:42310, admins:5, demo:true},
     {id:'sbp1', name:'মো. রফিকুল আলম', seat:'সবুজপুর-১', role:'মন্ত্রী, কাল্পনিক মন্ত্রণালয়', sub:'sbp1', custom:'', status:'live', plan:'পূর্ণ', since:'১৫ মার্চ ২০২৬', lastPost:1, posts:31, cmpMonth:208, visitors:88940, admins:7},
@@ -11,15 +11,15 @@ window.PLATFORM = {
     {id:'ksb5', name:'মাহমুদা বেগম', seat:'কাশবন-৫', role:'সংসদ সদস্য', sub:'ksb5', custom:'', status:'suspended', plan:'মৌলিক', since:'১০ মে ২০২৬', lastPost:48, posts:5, cmpMonth:0, visitors:1210, admins:2, note:'চুক্তি নবায়ন বাকি। পাবলিক সাইটে "সাময়িকভাবে বন্ধ" পেজ দেখাচ্ছে, ডেটা সংরক্ষিত।'}
   ],
   domains: [
-    {host:'ndp3.jonoshetu.example', tenant:'ndp3', type:'sub', dns:'ok', ssl:'ok', sslExp:'২৮ ডিসেম্বর ২০২৬'},
+    {host:'ndp3.jonoprotinidhi.example', tenant:'ndp3', type:'sub', dns:'ok', ssl:'ok', sslExp:'২৮ ডিসেম্বর ২০২৬'},
     {host:'tahmina-noor.example', tenant:'ndp3', type:'custom', dns:'ok', ssl:'ok', sslExp:'১৪ ডিসেম্বর ২০২৬', primary:true},
-    {host:'sbp1.jonoshetu.example', tenant:'sbp1', type:'sub', dns:'ok', ssl:'ok', sslExp:'২ জানুয়ারি ২০২৭', primary:true},
-    {host:'mgp2.jonoshetu.example', tenant:'mgp2', type:'sub', dns:'ok', ssl:'ok', sslExp:'৯ ডিসেম্বর ২০২৬'},
+    {host:'sbp1.jonoprotinidhi.example', tenant:'sbp1', type:'sub', dns:'ok', ssl:'ok', sslExp:'২ জানুয়ারি ২০২৭', primary:true},
+    {host:'mgp2.jonoprotinidhi.example', tenant:'mgp2', type:'sub', dns:'ok', ssl:'ok', sslExp:'৯ ডিসেম্বর ২০২৬'},
     {host:'shamima-akter.example', tenant:'mgp2', type:'custom', dns:'ok', ssl:'warn', sslExp:'১২ অক্টোবর ২০২৬', primary:true},
-    {host:'phl4.jonoshetu.example', tenant:'phl4', type:'sub', dns:'ok', ssl:'ok', sslExp:'১৮ ডিসেম্বর ২০২৬', primary:true},
-    {host:'tcr2.jonoshetu.example', tenant:'tcr2', type:'sub', dns:'ok', ssl:'ok', sslExp:'২১ ডিসেম্বর ২০২৬', primary:true},
-    {host:'anwar-kabir.example', tenant:'tcr2', type:'custom', dns:'pending', ssl:'none', sslExp:'—', token:'jonoshetu-verify=7f3a9c21'},
-    {host:'ksb5.jonoshetu.example', tenant:'ksb5', type:'sub', dns:'ok', ssl:'ok', sslExp:'৩ জানুয়ারি ২০২৭', primary:true}
+    {host:'phl4.jonoprotinidhi.example', tenant:'phl4', type:'sub', dns:'ok', ssl:'ok', sslExp:'১৮ ডিসেম্বর ২০২৬', primary:true},
+    {host:'tcr2.jonoprotinidhi.example', tenant:'tcr2', type:'sub', dns:'ok', ssl:'ok', sslExp:'২১ ডিসেম্বর ২০২৬', primary:true},
+    {host:'anwar-kabir.example', tenant:'tcr2', type:'custom', dns:'pending', ssl:'none', sslExp:'—', token:'jonoprotinidhi-verify=7f3a9c21'},
+    {host:'ksb5.jonoprotinidhi.example', tenant:'ksb5', type:'sub', dns:'ok', ssl:'ok', sslExp:'৩ জানুয়ারি ২০২৭', primary:true}
   ],
   staff: [
     {name:'নাফিসা রহমান', email:'nafisa@octagram.example', role:'Super Admin', tfa:'Authenticator app', last:'আজ, সকাল ১০:১২'},

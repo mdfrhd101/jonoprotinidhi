@@ -1,4 +1,4 @@
-# 08 · Security, privacy & compliance — Jonoshetu
+# 08 · Security, privacy & compliance — Jonoprotinidhi
 
 Posture: security-first (Octagram). Principles: least privilege, defense in depth, fail closed, data
 minimisation, privacy by default, everything audited, nothing secret in code. Target: **OWASP ASVS 4.0 L2**.

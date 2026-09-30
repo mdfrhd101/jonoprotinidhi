@@ -47,7 +47,7 @@ export function Shell({ brand, nav, banner, roleLabel, children, siteUrl, notifi
 
   useEffect(() => { setOpen(false); }, [loc.pathname]);
   useEffect(() => {
-    document.title = `${cur.label ? `${cur.label} · ` : ''}${brand.title} · জনসেতু`;
+    document.title = `${cur.label ? `${cur.label} · ` : ''}${brand.title} · জনপ্রতিনিধি`;
   }, [cur.label, brand.title]);
   useEffect(() => {
     if (!open) return;
@@ -88,7 +88,7 @@ export function Shell({ brand, nav, banner, roleLabel, children, siteUrl, notifi
         </nav>
         <div className="side-foot">
           <button type="button" className="side-collapse" aria-pressed={collapsed} aria-label={collapsed ? 'মেনু বড় করুন' : 'মেনু ছোট করুন'} onClick={toggleCollapsed}><Icon name={collapsed ? 'expand' : 'collapse'} size={19} /><span>মেনু ছোট করুন</span></button>
-          <div className="side-by">জনসেতু · Octagram Limited</div>
+          <div className="side-by">জনপ্রতিনিধি · Octagram Limited</div>
         </div>
       </aside>
       <div className={`scrim${open ? ' open' : ''}`} onClick={() => setOpen(false)} aria-hidden />

@@ -1,4 +1,4 @@
-# Jonoshetu admin: design system
+# Jonoprotinidhi admin: design system
 
 A calm, warm "control room": ink sidebar, paper background, white cards (14 px radius, 1 px border, soft layered shadow), brass as the single accent, Bangla-first typography. Everything you need to build a page is exported from one barrel:
 

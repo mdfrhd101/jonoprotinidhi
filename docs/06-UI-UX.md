@@ -1,4 +1,4 @@
-# 06 · UI / UX — Jonoshetu
+# 06 · UI / UX — Jonoprotinidhi
 
 The demos are the living spec. When this doc and a demo disagree, ask the owner; the demo usually wins
 for visuals, this doc wins for behaviour and rules.

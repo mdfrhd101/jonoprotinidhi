@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Turnstile from './Turnstile';
 import { IconCheck } from './icons';
-import { isValidBdMobile, normalizeBdPhone, toBn, toEn } from '@jonoshetu/shared/src/bangla.js';
+import { isValidBdMobile, normalizeBdPhone, toBn, toEn } from '@jonoprotinidhi/shared/src/bangla.js';
 import { COMPLAINT_STATUS, bnDateSafe, joinParts } from '@/lib/format';
 import type { TrackResult, Upazila } from '@/lib/types';
 

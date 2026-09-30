@@ -1,9 +1,9 @@
-# Jonoshetu (জনসেতু) — Portfolio and public-engagement platform for MPs and ministers
+# Jonoprotinidhi (জনপ্রতিনিধি) — Portfolio and public-engagement platform for MPs and ministers
 ### Handoff document · last updated: 30 September 2026 (new admin design, full CMS, public website, GitHub)
 
 > To continue this work on another PC or with another Claude, read this whole file first.
 > Tell Claude: **"Read HANDOFF.md and continue from the 'Next steps' section. Talk to me in Bangla."**
-> The name "Jonoshetu" is still a proposal, not final.
+> The name "Jonoprotinidhi" (জনপ্রতিনিধি) was chosen on 30 Sep 2026 (previously "Jonoshetu").
 
 ---
 
@@ -220,7 +220,7 @@ post composer (PR sends for approval, MP publishes; rejection needs a reason; sc
 view, assign, status, notes, SMS templates, CSV without identity; identity only for the assigned officer and logged);
 promises (reason mandatory when late); banners and home page; settings; team and roles; audit log.
 
-**Link to the public demo:** panels and public demo share localStorage (`jonoshetu-demo-cms`, `-audit`, `-platform`,
+**Link to the public demo:** panels and public demo share localStorage (`jonoprotinidhi-demo-cms`, `-audit`, `-platform`,
 `-cmp-admin`, `-tickets`, `-role`); `applyOverlay` at the top of `demo-mp/assets/app.js` merges it into the site (escaped).
 
 ### State of the real product (30 September 2026)
@@ -271,14 +271,14 @@ model and API for the CMS.
 **Bug tracking:** `bugs/README.md` (formula RPN = severity × occurrence × detectability), `node scripts/bugs.mjs
 add|status|check --gate`. Release gate: no release while any P0/P1 is open.
 
-**GitHub:** https://github.com/mdfrhd101/jonoshetu (branch `main`), made **public** on 30 Sep at the user's request.
+**GitHub:** https://github.com/mdfrhd101/jonoprotinidhi (branch `main`), made **public** on 30 Sep at the user's request.
 `.env` files, the credentials file, uploads, `.claude/` and `client-demo/mirza-abbas/` (a real politician's name) are kept
 out on purpose. Commit messages must not contain any Claude/AI co-author line (user request).
 
 ### How to view the static demo
 No build needed; plain static files. Photos load from Wikimedia, so internet is needed.
 ```bash
-python -m http.server 8765 --bind 127.0.0.1 --directory "D:/AI/Jonoshetu/client-demo"
+python -m http.server 8765 --bind 127.0.0.1 --directory "D:/AI/Jonoprotinidhi/client-demo"
 ```
 Then open `http://localhost:8765/demo-mp/` (public demo) and `http://localhost:8765/admin/` (admin demo).
 
@@ -298,7 +298,7 @@ Then open `http://localhost:8765/demo-mp/` (public demo) and `http://localhost:8
 
 ## 11. Decisions
 **Made** (30 Sep 2026, see `adr/`):
-- Project name: **Jonoshetu (জনসেতু)**
+- Project name: **Jonoprotinidhi (জনপ্রতিনিধি)** — renamed from "Jonoshetu (জনসেতু)" on 30 Sep 2026 at the user's request (code, UI, docs, packages `@jonoprotinidhi/*`, dev domain `*.jonoprotinidhi.localhost`, database `jonoprotinidhi_dev`, GitHub repo). The local folder is still `D:\AI\Jonoshetu`.
 - Tech stack: **MERN** (public site Next.js)
 - OTP for complaints: **optional**; an MP can make it mandatory in their settings. Anonymous complaints always work.
 - Other developers: **both Claude Code and claude.ai**, hence `CLAUDE.md` in the repo and `HANDOFF_BUNDLE.md` for claude.ai.

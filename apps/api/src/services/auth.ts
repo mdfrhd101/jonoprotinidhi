@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { normalizeBdPhone, toE164Bd, isValidBdMobile } from '@jonoshetu/shared';
+import { normalizeBdPhone, toE164Bd, isValidBdMobile } from '@jonoprotinidhi/shared';
 import type { Deps } from '../deps.js';
 import { ApiError } from '../errors.js';
 import { User, Membership, Tenant, type UserDoc } from '../models/index.js';

@@ -1,4 +1,4 @@
-# 01 · Product Requirements (PRD) — Jonoshetu
+# 01 · Product Requirements (PRD) — Jonoprotinidhi
 
 Requirement IDs (`FR-…`, `NFR-…`, `MIS-…`) are referenced by the architecture, API, tasks and tests.
 Priority uses MoSCoW: **M** must (MVP), **S** should (MVP if time), **C** could (later), **W** won't (v1).

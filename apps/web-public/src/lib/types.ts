@@ -1,6 +1,6 @@
 /* Shapes returned by the public API (apps/api/src/routes/public.ts + services). Page data types come from the shared
    zod schemas so they follow the CMS automatically. */
-import type { PageData, PageKey } from '@jonoshetu/shared';
+import type { PageData, PageKey } from '@jonoprotinidhi/shared';
 
 export type { PageKey };
 export type LayoutPage = PageData<'layout'>;

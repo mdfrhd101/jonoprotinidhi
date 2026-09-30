@@ -1,4 +1,4 @@
-# 04 · API — Jonoshetu (`/api/v1`)
+# 04 · API — Jonoprotinidhi (`/api/v1`)
 
 ## 1. Conventions
 

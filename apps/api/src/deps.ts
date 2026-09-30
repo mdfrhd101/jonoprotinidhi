@@ -17,7 +17,7 @@ export interface DomainProvider {
 export class DnsDomainProvider implements DomainProvider {
   async verifyTxt(host: string, expected: string) {
     try {
-      const rows = await resolveTxt(`_jonoshetu.${host}`);
+      const rows = await resolveTxt(`_jonoprotinidhi.${host}`);
       return rows.some((r) => r.join('') === expected);
     } catch {
       return false;

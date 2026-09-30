@@ -23,7 +23,7 @@ describe('creating a tenant (FR-SA-02, MIS-07: no site without the office\'s wri
     expect(t!.trackingPrefix).toBe('NDP3');
     expect(t!.consent.documentRef).toBe('সম্মতিপত্র-২০২৬-০১১');
     expect(unwrapKey(env.deps.master, t!.dek!.wrapped)).toHaveLength(32); // data key is stored wrapped, never raw
-    expect((await Domain.findOne({ tenantId: t!._id }))!.host).toBe('ndp3.jonoshetu.test');
+    expect((await Domain.findOne({ tenantId: t!._id }))!.host).toBe('ndp3.jonoprotinidhi.test');
     expect(env.sms.outbox.at(-1)!.text).toContain('/invite/');
     expect((await AuditLog.findOne({ action: 'tenant.create' }))!.diff!.after).toMatchObject({ consentRef: 'সম্মতিপত্র-২০২৬-০১১' });
   });
@@ -107,7 +107,7 @@ describe('going live, suspending (FR-SA-03, FR-PUB-12)', () => {
 
   it('a setup tenant is not publicly reachable at all', async () => {
     await create();
-    expect((await api(env).get('/api/v1/public/site').set('Host', 'ndp3.jonoshetu.test')).status).toBe(404);
+    expect((await api(env).get('/api/v1/public/site').set('Host', 'ndp3.jonoprotinidhi.test')).status).toBe(404);
   });
 
   it('a suspended tenant\'s admin panel still works for the owner (data kept, nothing deleted)', async () => {
@@ -142,7 +142,7 @@ describe('act-as (FR-SA-05, MIS-06)', () => {
     const expired = signAccess(env.config.JWT_SECRET, { sub: me.body.user.id, sid: sess!.sessions[0]!.sid, act: { tenantId: t.id }, ttlSec: 60 });
     expect((await api(env).get(admin(t, '/posts')).set(bearer(expired))).status).toBe(200);
     const jwt = (await import('jsonwebtoken')).default;
-    const past = jwt.sign({ sub: me.body.user.id, sid: sess!.sessions[0]!.sid, typ: 'access', act: { tenantId: t.id } }, env.config.JWT_SECRET, { algorithm: 'HS256', expiresIn: -10, issuer: 'jonoshetu', audience: 'jonoshetu-api' });
+    const past = jwt.sign({ sub: me.body.user.id, sid: sess!.sessions[0]!.sid, typ: 'access', act: { tenantId: t.id } }, env.config.JWT_SECRET, { algorithm: 'HS256', expiresIn: -10, issuer: 'jonoprotinidhi', audience: 'jonoprotinidhi-api' });
     expect((await api(env).get(admin(t, '/posts')).set(bearer(past))).status).toBe(401);
   });
 

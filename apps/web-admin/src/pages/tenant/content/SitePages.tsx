@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { PageKey } from '@jonoshetu/shared';
+import type { PageKey } from '@jonoprotinidhi/shared';
 import { useTenant, publicPageUrl } from '../../../tenant';
 import { Badge, Button, Card, EmptyState, Icon, PageHead, PillOf, ProgressBar, SectionHeader, Skeleton, useToast, type IconName } from '../../../components';
 import { bnAgo, bnDateTime, toBn } from '../../../format';

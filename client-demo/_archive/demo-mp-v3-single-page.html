@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<title>ড. তাহমিনা নূর · জনসেতু ডেমো</title>
+<title>ড. তাহমিনা নূর · জনপ্রতিনিধি ডেমো</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wdth,wght@62.5..100,300..900&family=Noto+Serif+Bengali:wght@500..900&display=swap">
@@ -785,8 +785,8 @@ fFiles.addEventListener('change',()=>{
 fAnon.addEventListener('change',()=>{$('#identity').hidden=fAnon.checked;if(fAnon.checked)setErr('ePhone','',fPhone)});
 const normPhone=v=>toEn(v).replace(/[\s-]/g,'').replace(/^\+?88/,'');
 let store={};
-try{store=JSON.parse(localStorage.getItem('jonoshetu-demo-tickets')||'{}')||{}}catch(e){store={}}
-const saveStore=()=>{try{localStorage.setItem('jonoshetu-demo-tickets',JSON.stringify(store))}catch(e){}};
+try{store=JSON.parse(localStorage.getItem('jonoprotinidhi-demo-tickets')||'{}')||{}}catch(e){store={}}
+const saveStore=()=>{try{localStorage.setItem('jonoprotinidhi-demo-tickets',JSON.stringify(store))}catch(e){}};
 $('#cmpForm').addEventListener('submit',e=>{
   e.preventDefault();
   let ok=true, first=null;
@@ -848,7 +848,7 @@ $('#hbars').innerHTML=CMP_STATS.map(([t,n])=>`<div class="hbar"><span>${t}</span
 
 /* ---------- credits ---------- */
 const credits=[...new Set(Object.values(IMG).map(i=>i.credit).filter(Boolean))];
-$('#credits').textContent='এটি জনসেতু প্ল্যাটফর্মের ডেমো। সব নাম, আসন, সংখ্যা ও ঘটনা কাল্পনিক; ছবিগুলো কাল্পনিক ঘটনার দৃশ্য বোঝাতে ব্যবহৃত। ছবি (Wikimedia Commons): '+credits.join(' · ');
+$('#credits').textContent='এটি জনপ্রতিনিধি প্ল্যাটফর্মের ডেমো। সব নাম, আসন, সংখ্যা ও ঘটনা কাল্পনিক; ছবিগুলো কাল্পনিক ঘটনার দৃশ্য বোঝাতে ব্যবহৃত। ছবি (Wikimedia Commons): '+credits.join(' · ');
 
 /* ---------- reveal + count-up ---------- */
 function countUp(el){

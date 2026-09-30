@@ -1,5 +1,5 @@
 {
-  "name": "@jonoshetu/api",
+  "name": "@jonoprotinidhi/api",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@jonoshetu/shared": "*",
+    "@jonoprotinidhi/shared": "*",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "express": "^4.21.1",

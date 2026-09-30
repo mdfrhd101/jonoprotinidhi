@@ -1,4 +1,4 @@
-# Jonoshetu (জনসেতু) — Handoff bundle
+# Jonoprotinidhi (জনপ্রতিনিধি) — Handoff bundle
 Generated 2026-09-30 by scripts/build-bundle.py. Upload this single file to a claude.ai Project as knowledge, then use section 2 of KICKOFF_PROMPT.md.
 Contents: CLAUDE.md, KICKOFF_PROMPT.md, HANDOFF.md, docs/00-START-HERE.md, docs/01-PRD.md, docs/02-ARCHITECTURE.md, docs/03-DATA-MODEL.md, docs/04-API.md, docs/05-DESIGN-PATTERNS.md, docs/06-UI-UX.md, docs/07-TASKS.md, docs/08-SECURITY.md, docs/09-BUILD-BRIEF.md, adr/0000-template.md, adr/0001-multi-tenant-platform.md, adr/0002-mern-stack.md, adr/0003-tenant-isolation.md, adr/0004-complainant-pii-protection.md, adr/0005-content-approval-workflow.md, adr/0006-domains-and-tls.md, adr/0007-complaint-otp-optional.md, adr/0008-content-and-legal-guardrails.md, adr/README.md.
 The runnable demos live in `client-demo/` (not included here, only listed at the end). They are the visual and UX spec: fetch them from the repository.
@@ -8,7 +8,7 @@ The runnable demos live in `client-demo/` (not included here, only listed at the
 <!-- FILE: CLAUDE.md -->
 ==============================================================================
 
-# Jonoshetu (জনসেতু) — Claude context
+# Jonoprotinidhi (জনপ্রতিনিধি) — Claude context
 
 Portfolio + CMS + citizen complaint platform for Bangladeshi MPs/ministers (multi-tenant, run by the user's company).
 
@@ -22,7 +22,7 @@ Portfolio + CMS + citizen complaint platform for Bangladeshi MPs/ministers (mult
 - **Media + rich text:** post `body` is sanitised HTML (`apps/api/src/lib/richtext.ts`, allow-list; length limit counts visible text via `packages/shared/src/richtext.ts`). Uploads go through `apps/api/src/lib/media.ts` (sharp re-encode to WebP, EXIF stripped, SVG/GIF refused, 40 MP cap) into `MediaStorage`; URLs are built by `lib/mediaUrl.ts` and only own-tenant upload URLs or `MEDIA_HOSTS` are accepted in posts/banners. Admin UI: `components/RichEditor.tsx` (Tiptap), `ImagePicker.tsx`, `RichText.tsx` (DOMPurify on read). New tenant routes must be added to the isolation crawler table.
 - **Public site** `apps/web-public` (Next.js 14, React 18, port 3000): renders only from the public API; tenant from Host (dev fallback `TENANT_HOST`). It sends `X-Site-Token`/`X-Client-IP` (shared `SITE_SERVER_TOKEN` in both `.env` files) so rate limits stay per visitor. Every visible text must come from the CMS.
 - **CMS content model:** `packages/shared/src/content.ts` (page keys + zod schemas, events/gallery/videos, `parseYouTubeId`); services `apps/api/src/services/{pages,collections,media}.ts`; admin editors in `apps/web-admin/src/pages/tenant/content/`; design system rules in `apps/web-admin/DESIGN.md`. Build brief for parallel agents: `docs/09-BUILD-BRIEF.md`.
-- **GitHub:** PUBLIC `mdfrhd101/jonoshetu` (owner made it public 30 Sep 2026), branch `main` — every push is world-readable. Commit messages must NOT contain a `Co-Authored-By: Claude` (or any AI attribution) trailer (owner request). Never commit `.env*`, `.seed-credentials.local`, uploads, `client-demo/mirza-abbas/`; scan for secrets before every push.
+- **GitHub:** PUBLIC `mdfrhd101/jonoprotinidhi` (owner made it public 30 Sep 2026), branch `main` — every push is world-readable. Commit messages must NOT contain a `Co-Authored-By: Claude` (or any AI attribution) trailer (owner request). Never commit `.env*`, `.seed-credentials.local`, uploads, `client-demo/mirza-abbas/`; scan for secrets before every push.
 - Test gotchas: tenant-scoped models need `runInTenant` (await inside it); rate limits are disabled in tests unless `setDisabled(false)`; e2e needs a reseed (`SEED_RESET=1`) each run.
 - Demo preview: `python -m http.server 8765 --bind 127.0.0.1 --directory client-demo` → `http://localhost:8765/demo-mp/` (public site) and `http://localhost:8765/admin/` (Super Admin + MP Admin panels; they share localStorage with the public site).
 - Security rules that apply to all code: every tenant query scoped; no PII in logs; no secrets in git; audit every admin write (`docs/05`, `docs/08`).
@@ -33,7 +33,7 @@ Portfolio + CMS + citizen complaint platform for Bangladeshi MPs/ministers (mult
 <!-- FILE: KICKOFF_PROMPT.md -->
 ==============================================================================
 
-# Kickoff prompts — Jonoshetu (জনসেতু)
+# Kickoff prompts — Jonoprotinidhi (জনপ্রতিনিধি)
 
 Copy one of these as the **first message** in a new Claude session. Replace the bracketed parts.
 
@@ -43,7 +43,7 @@ Copy one of these as the **first message** in a new Claude session. Replace the 
 
 ```
 Read CLAUDE.md, then docs/00-START-HERE.md, HANDOFF.md, and skim docs/01..08 and adr/.
-You are joining the Jonoshetu project (multi-tenant MP portfolio + CMS + complaint platform, MERN,
+You are joining the Jonoprotinidhi project (multi-tenant MP portfolio + CMS + complaint platform, MERN,
 decisions already made in adr/). Reply to me in [Bangla | English].
 
 Before writing code:
@@ -61,13 +61,13 @@ Then work on task [T0.1 / next open task]. Rules:
 
 ## 2. claude.ai (chat / Project)
 
-1. Create a **Project** named "Jonoshetu".
+1. Create a **Project** named "Jonoprotinidhi".
 2. Upload `HANDOFF_BUNDLE.md` as project knowledge (it contains CLAUDE.md, HANDOFF.md, docs 00–08 and the
    ADRs in one file). Regenerate it after doc changes: `python scripts/build-bundle.py`.
 3. First message:
 
 ```
-You are joining the Jonoshetu project. The project knowledge contains the full handoff bundle. Read it all.
+You are joining the Jonoprotinidhi project. The project knowledge contains the full handoff bundle. Read it all.
 Reply in [Bangla | English].
 
 Give me: (a) a 10-line summary of the product, current state and fixed decisions, (b) the next 3 tasks
@@ -129,12 +129,12 @@ doc, and regenerate HANDOFF_BUNDLE.md.
 <!-- FILE: HANDOFF.md -->
 ==============================================================================
 
-# Jonoshetu (জনসেতু) — Portfolio and public-engagement platform for MPs and ministers
+# Jonoprotinidhi (জনপ্রতিনিধি) — Portfolio and public-engagement platform for MPs and ministers
 ### Handoff document · last updated: 30 September 2026 (new admin design, full CMS, public website, GitHub)
 
 > To continue this work on another PC or with another Claude, read this whole file first.
 > Tell Claude: **"Read HANDOFF.md and continue from the 'Next steps' section. Talk to me in Bangla."**
-> The name "Jonoshetu" is still a proposal, not final.
+> The name "Jonoprotinidhi" (জনপ্রতিনিধি) was chosen on 30 Sep 2026 (previously "Jonoshetu").
 
 ---
 
@@ -351,7 +351,7 @@ post composer (PR sends for approval, MP publishes; rejection needs a reason; sc
 view, assign, status, notes, SMS templates, CSV without identity; identity only for the assigned officer and logged);
 promises (reason mandatory when late); banners and home page; settings; team and roles; audit log.
 
-**Link to the public demo:** panels and public demo share localStorage (`jonoshetu-demo-cms`, `-audit`, `-platform`,
+**Link to the public demo:** panels and public demo share localStorage (`jonoprotinidhi-demo-cms`, `-audit`, `-platform`,
 `-cmp-admin`, `-tickets`, `-role`); `applyOverlay` at the top of `demo-mp/assets/app.js` merges it into the site (escaped).
 
 ### State of the real product (30 September 2026)
@@ -402,14 +402,14 @@ model and API for the CMS.
 **Bug tracking:** `bugs/README.md` (formula RPN = severity × occurrence × detectability), `node scripts/bugs.mjs
 add|status|check --gate`. Release gate: no release while any P0/P1 is open.
 
-**GitHub:** https://github.com/mdfrhd101/jonoshetu (branch `main`), made **public** on 30 Sep at the user's request.
+**GitHub:** https://github.com/mdfrhd101/jonoprotinidhi (branch `main`), made **public** on 30 Sep at the user's request.
 `.env` files, the credentials file, uploads, `.claude/` and `client-demo/mirza-abbas/` (a real politician's name) are kept
 out on purpose. Commit messages must not contain any Claude/AI co-author line (user request).
 
 ### How to view the static demo
 No build needed; plain static files. Photos load from Wikimedia, so internet is needed.
 ```bash
-python -m http.server 8765 --bind 127.0.0.1 --directory "D:/AI/Jonoshetu/client-demo"
+python -m http.server 8765 --bind 127.0.0.1 --directory "D:/AI/Jonoprotinidhi/client-demo"
 ```
 Then open `http://localhost:8765/demo-mp/` (public demo) and `http://localhost:8765/admin/` (admin demo).
 
@@ -429,7 +429,7 @@ Then open `http://localhost:8765/demo-mp/` (public demo) and `http://localhost:8
 
 ## 11. Decisions
 **Made** (30 Sep 2026, see `adr/`):
-- Project name: **Jonoshetu (জনসেতু)**
+- Project name: **Jonoprotinidhi (জনপ্রতিনিধি)** — renamed from "Jonoshetu (জনসেতু)" on 30 Sep 2026 at the user's request (code, UI, docs, packages `@jonoprotinidhi/*`, dev domain `*.jonoprotinidhi.localhost`, database `jonoprotinidhi_dev`, GitHub repo). The local folder is still `D:\AI\Jonoshetu`.
 - Tech stack: **MERN** (public site Next.js)
 - OTP for complaints: **optional**; an MP can make it mandatory in their settings. Anonymous complaints always work.
 - Other developers: **both Claude Code and claude.ai**, hence `CLAUDE.md` in the repo and `HANDOFF_BUNDLE.md` for claude.ai.
@@ -466,7 +466,7 @@ Then open `http://localhost:8765/demo-mp/` (public demo) and `http://localhost:8
 <!-- FILE: docs/00-START-HERE.md -->
 ==============================================================================
 
-# 00 · START HERE — Jonoshetu (জনসেতু)
+# 00 · START HERE — Jonoprotinidhi (জনপ্রতিনিধি)
 
 > Read this file first, then follow the reading order below. Everything a new developer (or their Claude)
 > needs is in this repo; nothing lives only in someone's head.
@@ -474,7 +474,7 @@ Then open `http://localhost:8765/demo-mp/` (public demo) and `http://localhost:8
 
 ## 1. What we are building (one paragraph)
 
-**Jonoshetu** is a multi-tenant platform, hosted and operated by our company, that gives each Bangladeshi
+**Jonoprotinidhi** is a multi-tenant platform, hosted and operated by our company, that gives each Bangladeshi
 Member of Parliament (MP) or minister a **premium public website** plus a **CMS / admin panel** and a
 **citizen complaint box**. The site builds the MP's image through *real work, transparency and
 accountability* — activities, a public promise tracker with progress and delay reasons, constituency data,
@@ -520,7 +520,7 @@ The product is a fresh build following docs 01–08.
 | D6 | Sites served on `<slug>.<platform-domain>`; optional custom domain per MP, routed by `Host` header, TLS via Cloudflare for SaaS | ADR-0006 |
 | D7 | Complaint OTP is **optional by default, and each MP can make it mandatory**; anonymous complaints always allowed | ADR-0007 |
 | D8 | Invented content never goes under a real politician's name; full-content demos use the fictional MP only | ADR-0008 |
-| D9 | Project name: **জনসেতু (Jonoshetu)** | — |
+| D9 | Project name: **জনপ্রতিনিধি (Jonoprotinidhi)** | — |
 | D10 | Other devs may use Claude Code (repo + `CLAUDE.md`) or claude.ai (upload `HANDOFF_BUNDLE.md`) | — |
 
 **Still open** (ask the owner; don't guess): party colours/symbol policy, first real client and their
@@ -582,7 +582,7 @@ python -m http.server 8765 --bind 127.0.0.1 --directory client-demo
 - Public site: <http://localhost:8765/demo-mp/>
 - Admin panels: <http://localhost:8765/admin/> (role switcher in the MP panel top bar; "reset demo" on the
   entry page). An approved post, a promise update or a homepage change in the admin shows on the public demo
-  immediately (shared `localStorage`, key `jonoshetu-demo-cms`).
+  immediately (shared `localStorage`, key `jonoprotinidhi-demo-cms`).
 
 ## 8. Glossary
 
@@ -615,7 +615,7 @@ python -m http.server 8765 --bind 127.0.0.1 --directory client-demo
 <!-- FILE: docs/01-PRD.md -->
 ==============================================================================
 
-# 01 · Product Requirements (PRD) — Jonoshetu
+# 01 · Product Requirements (PRD) — Jonoprotinidhi
 
 Requirement IDs (`FR-…`, `NFR-…`, `MIS-…`) are referenced by the architecture, API, tasks and tests.
 Priority uses MoSCoW: **M** must (MVP), **S** should (MVP if time), **C** could (later), **W** won't (v1).
@@ -811,7 +811,7 @@ M5 super admin & ops → M6 hardening, pen-test and pilot with the first consent
 <!-- FILE: docs/02-ARCHITECTURE.md -->
 ==============================================================================
 
-# 02 · Architecture — Jonoshetu
+# 02 · Architecture — Jonoprotinidhi
 
 ## 1. System context
 
@@ -971,7 +971,7 @@ audit log → PII endpoints refuse act-as tokens.
 <!-- FILE: docs/03-DATA-MODEL.md -->
 ==============================================================================
 
-# 03 · Data model (MongoDB) — Jonoshetu
+# 03 · Data model (MongoDB) — Jonoprotinidhi
 
 Conventions
 - All tenant-owned collections have `tenantId: ObjectId` (required, indexed first in every compound index)
@@ -1005,7 +1005,7 @@ Indexes: `{ slug: 1 }` unique, `{ status: 1 }`.
 | Field | Type | Notes |
 |---|---|---|
 | `tenantId` | ObjectId | |
-| `host` | string, unique, lowercase | `ndp3.jonoshetu.example`, `tahmina-noor.example` |
+| `host` | string, unique, lowercase | `ndp3.jonoprotinidhi.example`, `tahmina-noor.example` |
 | `type` | `'platform'\|'custom'` | |
 | `primary` | boolean | exactly one primary per tenant (canonical URL) |
 | `verification` | `{ txtName, txtValue, verifiedAt }` | |
@@ -1160,7 +1160,7 @@ creation happens in migrations (not `autoIndex` in production).
 <!-- FILE: docs/04-API.md -->
 ==============================================================================
 
-# 04 · API — Jonoshetu (`/api/v1`)
+# 04 · API — Jonoprotinidhi (`/api/v1`)
 
 ## 1. Conventions
 
@@ -1302,7 +1302,7 @@ Registry lives in `packages/shared/permissions.ts`; per-membership overrides all
 <!-- FILE: docs/05-DESIGN-PATTERNS.md -->
 ==============================================================================
 
-# 05 · Design patterns & code conventions — Jonoshetu
+# 05 · Design patterns & code conventions — Jonoprotinidhi
 
 These are rules, not suggestions. A pull request that breaks §3 (tenant scoping) or §6 (PII) is rejected.
 
@@ -1487,7 +1487,7 @@ CI fails under 80 % service-layer coverage or any failure in isolation/PII suite
 <!-- FILE: docs/06-UI-UX.md -->
 ==============================================================================
 
-# 06 · UI / UX — Jonoshetu
+# 06 · UI / UX — Jonoprotinidhi
 
 The demos are the living spec. When this doc and a demo disagree, ask the owner; the demo usually wins
 for visuals, this doc wins for behaviour and rules.
@@ -1602,7 +1602,7 @@ Plain, factual Bangla; numbers with sources and dates; admit delays with reasons
 <!-- FILE: docs/07-TASKS.md -->
 ==============================================================================
 
-# 07 · Tasks & milestones — Jonoshetu
+# 07 · Tasks & milestones — Jonoprotinidhi
 
 Estimates are ideal developer-days for one mid/senior MERN developer working with Claude; add 30 % for
 reviews and surprises. Every task's **Done** means: code + tests + docs updated + `HANDOFF.md` entry.
@@ -1720,7 +1720,7 @@ Requirement IDs refer to `docs/01-PRD.md`.
 <!-- FILE: docs/08-SECURITY.md -->
 ==============================================================================
 
-# 08 · Security, privacy & compliance — Jonoshetu
+# 08 · Security, privacy & compliance — Jonoprotinidhi
 
 Posture: security-first (Octagram). Principles: least privilege, defense in depth, fail closed, data
 minimisation, privacy by default, everything audited, nothing secret in code. Target: **OWASP ASVS 4.0 L2**.
@@ -1899,7 +1899,7 @@ Read this first if you are a sub-agent. It is the shared context for everyone wo
 
 ## 0. Ground rules
 
-- Product: **Jonoshetu (জনসেতু)**, multi-tenant portfolio + CMS + complaint platform for Bangladeshi MPs. Repo root `D:\AI\Jonoshetu`,
+- Product: **Jonoprotinidhi (জনপ্রতিনিধি)**, multi-tenant portfolio + CMS + complaint platform for Bangladeshi MPs. Repo root `D:\AI\Jonoprotinidhi`,
   npm workspaces: `apps/api` (Express 4 + Mongoose 8 + zod), `apps/web-admin` (React 18 + Vite + react-query + react-router),
   `packages/shared` (zod schemas, permissions, Bangla helpers), `client-demo/` (static visual spec), later `apps/web-public` (Next.js).
 - Machine: **Windows 11 on ARM64**, Git Bash. Use `MSYS_NO_PATHCONV=1` when a bash argument starts with `/`. Keep files under `D:\`.
@@ -1986,7 +1986,7 @@ Dashboard (`GET /dashboard`) response contract (role-filtered: send a section on
 
 ## 3. Design language (admin panels)
 
-Goal: a premium, calm, modern control room – think Linear/Stripe dashboards, but Bangla-first and in the Jonoshetu brand.
+Goal: a premium, calm, modern control room – think Linear/Stripe dashboards, but Bangla-first and in the Jonoprotinidhi brand.
 
 - Brand tokens (keep): ink `#0C1117`, brass `#C7A35A` / deep brass `#9C7A2E`, paper `#F5F1EA`. Add a modern neutral scale, one info-blue, green, amber, red.
 - Surfaces: warm light background, white cards, 14 px radius, 1 px border + soft layered shadow, 24 px gaps, generous padding.
@@ -2038,7 +2038,7 @@ Playwright (Python, Edge) is installed. `e2e/smoke.py` shows how to log in (read
 - Video item: `{ id, title, description, date, kind: 'youtube'|'upload', youtubeId, mediaId, fileUrl, posterUrl, embedUrl, duration, order, featured, status }`.
   Create youtube: `{ title, kind:'youtube', youtube:'<any YouTube URL>' , ...}`; create upload: first `POST /media/video?name=` with the raw
   file (Content-Type video/mp4|video/webm, ≤150 MB default), then `{ title, kind:'upload', mediaId }`. `parseYouTubeId` is exported from
-  `@jonoshetu/shared` for instant client-side preview (thumbnail `https://i.ytimg.com/vi/<id>/hqdefault.jpg`, embed `https://www.youtube-nocookie.com/embed/<id>`).
+  `@jonoprotinidhi/shared` for instant client-side preview (thumbnail `https://i.ytimg.com/vi/<id>/hqdefault.jpg`, embed `https://www.youtube-nocookie.com/embed/<id>`).
 - Pages: `GET /pages/:key` → `{ key, label, draft, live, status: 'empty'|'draft'|'published', hasUnpublishedChanges, version, updatedAt, publishedAt }`.
   `PUT /pages/:key` with the full page object (+ `version`) → same shape; 409 `VERSION_CONFLICT` on stale version; 400 with zod `details.fieldErrors`
   (paths are flattened to the top-level key only – show a general error plus field-level ones where the key matches).
@@ -2046,7 +2046,7 @@ Playwright (Python, Edge) is installed. `e2e/smoke.py` shows how to log in (read
   `profile` has `portrait: { url, credit }` (own upload or allow-listed host).
 - Site config (`GET/PUT /site-config`, owner only): `{ slogan, accent: 'brass'|'river'|'maroon', banners: [{ url, caption, title?, subtitle?, ctaLabel?, ctaHref? }] (≤6),
   sections: [{ key, on }] }` with keys `stats, about, activities, office, promises, area, gallery, videos, events, cta` (order = display order).
-- Public API (Host header selects the tenant; dev host `ndp3.jonoshetu.localhost`): `/site`, `/pages/:key` → `{ key, published, data }` (data always fully
+- Public API (Host header selects the tenant; dev host `ndp3.jonoprotinidhi.localhost`): `/site`, `/pages/:key` → `{ key, published, data }` (data always fully
   defaulted), `/profile`, `/posts?category=&upazila=&page=&limit=`, `/posts/:slug`, `/promises`, `/events?limit=`, `/gallery?album=&featured=1&page=&limit=`,
   `/gallery/albums`, `/videos?featured=1`, `/complaint-stats`, `/complaint-form`, `POST /complaints`, complaint tracking (see `routes/public.ts`).
   Media files: `/api/v1/public/media/<tenantId>/<id>.<webp|mp4|webm>` (Range supported).

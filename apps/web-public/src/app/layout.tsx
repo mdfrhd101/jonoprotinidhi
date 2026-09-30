@@ -21,7 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const name = site?.mp.name ?? '';
   const title = bnText(site?.mp.title);
   return {
-    title: { default: [name, title].filter(Boolean).join(' · ') || 'জনসেতু', template: name ? `%s · ${name}` : '%s' },
+    title: { default: [name, title].filter(Boolean).join(' · ') || 'জনপ্রতিনিধি', template: name ? `%s · ${name}` : '%s' },
     description: layout?.tagline || site?.slogan || undefined,
     robots: process.env.NODE_ENV === 'production' ? undefined : { index: false, follow: false },
     openGraph: { type: 'website', locale: 'bn_BD', siteName: name || undefined },

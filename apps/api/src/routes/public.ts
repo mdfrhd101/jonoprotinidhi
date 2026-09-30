@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { bdMobile } from '@jonoshetu/shared';
+import { bdMobile } from '@jonoprotinidhi/shared';
 import type { Deps } from '../deps.js';
 import type { Services } from '../services/index.js';
 import { wrap, limit, byIp } from '../middleware/auth.js';

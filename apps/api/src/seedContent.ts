@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { Readable } from 'node:stream';
-import { toEn, MONTHS_BN } from '@jonoshetu/shared';
+import { toEn, MONTHS_BN } from '@jonoprotinidhi/shared';
 import type { Services } from './services/index.js';
 
 /* Demo content for every editable part of the public site, for the FICTIONAL MP only (ড. তাহমিনা নূর, নদীপুর-৩).
@@ -53,7 +53,7 @@ export async function seedSiteContent(s: Services, S: any, people: { owner: Acto
     tagline: M.slogan,
     notice: { on: true, text: 'শুক্রবার ২ অক্টোবর সকাল ১০টায় চরকান্দিতে গণশুনানি, সবাই আমন্ত্রিত', link: '/contact' },
     footerAbout: `${M.title}। ${M.roleLine}`,
-    footerNote: 'এটি জনসেতু প্ল্যাটফর্মের ডেমো সাইট। নাম, আসন, সংখ্যা ও ঘটনা সবই কাল্পনিক।',
+    footerNote: 'এটি জনপ্রতিনিধি প্ল্যাটফর্মের ডেমো সাইট। নাম, আসন, সংখ্যা ও ঘটনা সবই কাল্পনিক।',
     photoCredit: 'ছবি: উইকিমিডিয়া কমন্স (প্রতিটি ছবির নিচে লাইসেন্স ও আলোকচিত্রীর নাম দেওয়া আছে)। নমুনা ভিডিও: Blender Foundation, CC BY।',
     copyright: '© ২০২৬ সংসদ সদস্যের কার্যালয়, নদীপুর-৩',
     social: [
@@ -181,7 +181,7 @@ export async function seedSiteContent(s: Services, S: any, people: { owner: Acto
     const f = path.join(assetsDir, file);
     if (!fs.existsSync(f)) continue;
     const buf = fs.readFileSync(f);
-    const up = await s.media.uploadVideo(Readable.from([buf]), 'video/webm', buf.length, { name: file, credit: 'জনসেতু ডেমো' }, people.editor);
+    const up = await s.media.uploadVideo(Readable.from([buf]), 'video/webm', buf.length, { name: file, credit: 'জনপ্রতিনিধি ডেমো' }, people.editor);
     await s.videos.create({ title, description: 'কার্যালয় থেকে আপলোড করা ভিডিও (ডেমো টাইটেল কার্ড)।', date: dateOf(date), kind: 'upload', mediaId: up.id, duration: dur, order: vOrder++, featured: vOrder === 1 }, owner, true);
   }
   for (const [id, title, date, dur, feat] of yt) {

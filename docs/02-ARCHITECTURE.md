@@ -1,4 +1,4 @@
-# 02 · Architecture — Jonoshetu
+# 02 · Architecture — Jonoprotinidhi
 
 ## 1. System context
 

@@ -1,7 +1,7 @@
-import { toE164Bd, PAGE_KEYS, PAGE_LABELS } from '@jonoshetu/shared';
+import { toE164Bd, PAGE_KEYS, PAGE_LABELS } from '@jonoprotinidhi/shared';
 import { z } from 'zod';
 import type { Types } from 'mongoose';
-import type { tenantCreateSchema } from '@jonoshetu/shared';
+import type { tenantCreateSchema } from '@jonoprotinidhi/shared';
 import type { Deps } from '../deps.js';
 import { ApiError } from '../errors.js';
 import {
@@ -78,7 +78,7 @@ export class TenantService {
       await SiteConfig.create({});
       await PageContent.create({ key: 'profile', draft: {}, status: 'draft', version: 1 }); // the profile page exists from day one
     });
-    await this.d.sms.send({ tenantId: tenant._id, to: phone, text: `জনসেতু: আপনার সাইট প্রস্তুত। পাসওয়ার্ড দিতে লিংক: https://admin.${this.d.config.PLATFORM_DOMAIN}/invite/${token}`, purpose: 'invite' });
+    await this.d.sms.send({ tenantId: tenant._id, to: phone, text: `জনপ্রতিনিধি: আপনার সাইট প্রস্তুত। পাসওয়ার্ড দিতে লিংক: https://admin.${this.d.config.PLATFORM_DOMAIN}/invite/${token}`, purpose: 'invite' });
     await audit({ action: 'tenant.create', tenantId: tenant._id, entity: { type: 'tenant', id: tenant._id, label: input.mpName }, diff: { after: { slug: input.slug, plan: input.plan, consentRef: input.consent.documentRef } } });
     return { tenant, inviteToken: this.d.config.isProd ? undefined : token };
   }
@@ -312,8 +312,8 @@ export class TenantService {
     const t = await Tenant.findById(tenantId);
     if (!t) throw ApiError.notFound();
     if (await Domain.exists({ host })) throw ApiError.conflict('DOMAIN_TAKEN', 'এই ডোমেইন আগে থেকেই যুক্ত');
-    const value = 'jonoshetu-verify=' + randomToken(6);
-    const dom = await Domain.create({ tenantId: t._id, host, type: 'custom', dnsStatus: 'pending', sslStatus: 'pending', verification: { txtName: `_jonoshetu.${host}`, txtValue: value } });
+    const value = 'jonoprotinidhi-verify=' + randomToken(6);
+    const dom = await Domain.create({ tenantId: t._id, host, type: 'custom', dnsStatus: 'pending', sslStatus: 'pending', verification: { txtName: `_jonoprotinidhi.${host}`, txtValue: value } });
     await audit({ action: 'domain.add', tenantId: t._id, entity: { type: 'domain', id: dom._id, label: host } });
     return dom;
   }

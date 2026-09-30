@@ -1,4 +1,4 @@
-# 03 · Data model (MongoDB) — Jonoshetu
+# 03 · Data model (MongoDB) — Jonoprotinidhi
 
 Conventions
 - All tenant-owned collections have `tenantId: ObjectId` (required, indexed first in every compound index)
@@ -32,7 +32,7 @@ Indexes: `{ slug: 1 }` unique, `{ status: 1 }`.
 | Field | Type | Notes |
 |---|---|---|
 | `tenantId` | ObjectId | |
-| `host` | string, unique, lowercase | `ndp3.jonoshetu.example`, `tahmina-noor.example` |
+| `host` | string, unique, lowercase | `ndp3.jonoprotinidhi.example`, `tahmina-noor.example` |
 | `type` | `'platform'\|'custom'` | |
 | `primary` | boolean | exactly one primary per tenant (canonical URL) |
 | `verification` | `{ txtName, txtValue, verifiedAt }` | |

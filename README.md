@@ -1,4 +1,4 @@
-# Jonoshetu (জনসেতু)
+# Jonoprotinidhi (জনপ্রতিনিধি)
 
 Multi-tenant portfolio + CMS + citizen complaint platform for Bangladeshi MPs and ministers.
 Start with `HANDOFF.md` (owner's project log, English) and `docs/00-START-HERE.md`.

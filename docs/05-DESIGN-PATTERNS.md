@@ -1,4 +1,4 @@
-# 05 · Design patterns & code conventions — Jonoshetu
+# 05 · Design patterns & code conventions — Jonoprotinidhi
 
 These are rules, not suggestions. A pull request that breaks §3 (tenant scoping) or §6 (PII) is rejected.
 

@@ -1,4 +1,4 @@
-# 07 · Tasks & milestones — Jonoshetu
+# 07 · Tasks & milestones — Jonoprotinidhi
 
 Estimates are ideal developer-days for one mid/senior MERN developer working with Claude; add 30 % for
 reviews and surprises. Every task's **Done** means: code + tests + docs updated + `HANDOFF.md` entry.

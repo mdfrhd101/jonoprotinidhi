@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseYouTubeId, PAGE_SCHEMAS } from '@jonoshetu/shared';
+import { parseYouTubeId, PAGE_SCHEMAS } from '@jonoprotinidhi/shared';
 import { normaliseHost, resolveTenantHost, isLocalHost } from '../src/lib/host';
 import { bnDateSafe, bnMonthLabel, bnNumber, bnText, clampPct, dateParts, joinParts, parseNumber, sectorsOf, splitYear } from '../src/lib/format';
 import { counterLabel, featuredFirst, keyToAction, nearbyIndexes, pageList, stepIndex, swipeDirection, wrapIndex } from '../src/lib/slider';
@@ -11,11 +11,11 @@ import { activeNav } from '../src/lib/nav';
 import { defaultedPage } from '../src/lib/pages';
 
 describe('host resolution', () => {
-  const FB = 'ndp3.jonoshetu.localhost';
+  const FB = 'ndp3.jonoprotinidhi.localhost';
   it('uses the request host in production-like cases', () => {
     expect(resolveTenantHost('tahmina-noor.example', FB)).toBe('tahmina-noor.example');
-    expect(resolveTenantHost('NDP3.Jonoshetu.com:443', FB)).toBe('ndp3.jonoshetu.com');
-    expect(resolveTenantHost('ndp3.jonoshetu.localhost:3000', FB)).toBe('ndp3.jonoshetu.localhost');
+    expect(resolveTenantHost('NDP3.Jonoprotinidhi.com:443', FB)).toBe('ndp3.jonoprotinidhi.com');
+    expect(resolveTenantHost('ndp3.jonoprotinidhi.localhost:3000', FB)).toBe('ndp3.jonoprotinidhi.localhost');
   });
   it('falls back for local and invalid hosts', () => {
     for (const h of ['localhost', 'localhost:3000', '127.0.0.1:3000', '127.1.2.3', '[::1]:3000', '0.0.0.0', '', null, undefined, 'evil host', 'a..b', 'x'.repeat(300)]) {
@@ -155,12 +155,12 @@ describe('links and sanitiser', () => {
 
 describe('CSP', () => {
   it('nonce + strict-dynamic, YouTube nocookie frames, API media, no inline script', () => {
-    const csp = buildCsp({ nonce: 'abc', dev: false, mediaOrigins: ['https://api.jonoshetu.com/x'], imageHosts: ['upload.wikimedia.org', 'thumb.wikimedia.org', 'bad host'], turnstile: false });
+    const csp = buildCsp({ nonce: 'abc', dev: false, mediaOrigins: ['https://api.jonoprotinidhi.com/x'], imageHosts: ['upload.wikimedia.org', 'thumb.wikimedia.org', 'bad host'], turnstile: false });
     expect(csp).toContain("script-src 'self' 'nonce-abc' 'strict-dynamic'");
     expect(csp).not.toContain("'unsafe-eval'");
     expect(csp).toContain('frame-src https://www.youtube-nocookie.com');
-    expect(csp).toContain('img-src \'self\' data: blob: https://i.ytimg.com https://upload.wikimedia.org https://thumb.wikimedia.org https://api.jonoshetu.com');
-    expect(csp).toContain('media-src \'self\' blob: https://api.jonoshetu.com');
+    expect(csp).toContain('img-src \'self\' data: blob: https://i.ytimg.com https://upload.wikimedia.org https://thumb.wikimedia.org https://api.jonoprotinidhi.com');
+    expect(csp).toContain('media-src \'self\' blob: https://api.jonoprotinidhi.com');
     expect(csp).toContain("frame-ancestors 'none'");
     expect(csp).toContain('upgrade-insecure-requests');
     expect(csp).not.toContain('bad host');
@@ -222,8 +222,8 @@ import { httpRequest } from '../src/lib/http';
 describe('server-to-API headers (BUG-2026-020)', () => {
   const H = (o: Record<string, string>) => ({ get: (k: string) => o[k.toLowerCase()] ?? null });
   it('with the site token: x-site-token + x-client-ip, no x-forwarded-for', () => {
-    const h = serverHeaders({ host: 'ndp3.jonoshetu.com', ip: '203.0.113.9', token: 't'.repeat(40) });
-    expect(h).toEqual({ accept: 'application/json', host: 'ndp3.jonoshetu.com', 'x-forwarded-host': 'ndp3.jonoshetu.com', 'x-site-token': 't'.repeat(40), 'x-client-ip': '203.0.113.9' });
+    const h = serverHeaders({ host: 'ndp3.jonoprotinidhi.com', ip: '203.0.113.9', token: 't'.repeat(40) });
+    expect(h).toEqual({ accept: 'application/json', host: 'ndp3.jonoprotinidhi.com', 'x-forwarded-host': 'ndp3.jonoprotinidhi.com', 'x-site-token': 't'.repeat(40), 'x-client-ip': '203.0.113.9' });
   });
   it('without a token: X-Forwarded-For fallback; never an invalid IP', () => {
     expect(serverHeaders({ host: 'a.example', ip: '2001:db8::1' })['x-forwarded-for']).toBe('2001:db8::1');
@@ -244,9 +244,9 @@ describe('server-to-API headers (BUG-2026-020)', () => {
     const srv = http.createServer((q, r) => { r.setHeader('content-type', 'application/json'); r.end(JSON.stringify({ host: q.headers.host, tok: q.headers['x-site-token'] ?? null })); });
     await new Promise<void>((ok) => srv.listen(0, '127.0.0.1', ok));
     const port = (srv.address() as { port: number }).port;
-    const r = await httpRequest(`http://127.0.0.1:${port}/x`, { headers: serverHeaders({ host: 'ndp3.jonoshetu.com', ip: '1.2.3.4', token: 'k'.repeat(32) }) });
+    const r = await httpRequest(`http://127.0.0.1:${port}/x`, { headers: serverHeaders({ host: 'ndp3.jonoprotinidhi.com', ip: '1.2.3.4', token: 'k'.repeat(32) }) });
     srv.close();
     expect(r.status).toBe(200);
-    expect(JSON.parse(r.text)).toEqual({ host: 'ndp3.jonoshetu.com', tok: 'k'.repeat(32) });
+    expect(JSON.parse(r.text)).toEqual({ host: 'ndp3.jonoprotinidhi.com', tok: 'k'.repeat(32) });
   });
 });

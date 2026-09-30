@@ -92,7 +92,7 @@ const NAV=()=>[
   ...(can.team()?[{grp:'অফিস'},{path:'/team',label:'টিম ও ভূমিকা',icon:'users'},{path:'/audit',label:'অডিট লগ',icon:'log'}]:[])
 ];
 const sh=shell({
-  brand:`<small>জনসেতু · MP অ্যাডমিন</small><b>${S.mp.name}</b><span>${S.mp.title}</span>`,
+  brand:`<small>জনপ্রতিনিধি · MP অ্যাডমিন</small><b>${S.mp.name}</b><span>${S.mp.title}</span>`,
   nav:NAV,crumbRoot:'নদীপুর-৩',
   who:`<span class="av">${R().av}</span><div><b>${R().who}</b><small>${R().t}</small></div>`,
   impersonating:AS_SUPER?`<div class="imp">${ic('eye',16)} <span><b>Super Admin হিসেবে</b> নদীপুর-৩-এর প্যানেলে আছেন। এখানে যা বদলাবেন, অডিট লগে "Super Admin" নামে লেখা থাকবে।</span><a href="super.html#/tenants/ndp3">Super Admin প্যানেলে ফিরুন →</a></div>`:''
@@ -279,7 +279,7 @@ function complaintsView(selId){
       :mine?`<div class="pii"><span class="lock">${ic('lock')}</span><span>নাম ও নম্বর encrypted অবস্থায় আছে।</span><button class="btn btn-g btn-s" id="rv" style="margin-left:auto">${ic('eye')}দেখুন (লগ হবে)</button></div>`
       :`<div class="pii"><span class="lock">${ic('lock')}</span><span>নাম ও নম্বর শুধু দায়িত্বপ্রাপ্ত কর্মকর্তা${c.officer?' ('+esc(c.officer)+')':''} দেখতে পারেন।${role==='super'?' Super Admin-ও দেখতে পারেন না।':''}</span></div>`;
     const officers=PL.team.filter(t=>t.role==='officer');
-    const tpl={verify:'আপনার অভিযোগ {id} যাচাই করা হচ্ছে। - নদীপুর-৩ এলাকা অফিস',progress:'আপনার অভিযোগ {id} সংশ্লিষ্ট দপ্তরে পাঠানো হয়েছে, কাজ চলছে।',solved:'আপনার অভিযোগ {id}-এর সমাধান হয়েছে। মতামত দিন: jonoshetu.example/f/{id}',closed:'আপনার অভিযোগ {id} বন্ধ করা হয়েছে। ধন্যবাদ।',new:'আপনার অভিযোগ {id} গ্রহণ করা হয়েছে।'};
+    const tpl={verify:'আপনার অভিযোগ {id} যাচাই করা হচ্ছে। - নদীপুর-৩ এলাকা অফিস',progress:'আপনার অভিযোগ {id} সংশ্লিষ্ট দপ্তরে পাঠানো হয়েছে, কাজ চলছে।',solved:'আপনার অভিযোগ {id}-এর সমাধান হয়েছে। মতামত দিন: jonoprotinidhi.example/f/{id}',closed:'আপনার অভিযোগ {id} বন্ধ করা হয়েছে। ধন্যবাদ।',new:'আপনার অভিযোগ {id} গ্রহণ করা হয়েছে।'};
     box.innerHTML=`<div class="card">
       <div class="sec-t" style="margin-bottom:6px"><span class="muted num" style="font-size:13.5px">${esc(c.id)} · ${esc(c.channel)}</span>${pill(...CST[c.st])}</div>
       <h2 class="h2" style="font-size:1.3rem">${esc(c.title)}</h2>
@@ -399,7 +399,7 @@ function settingsView(){
       <label class="check"><input type="checkbox" id="otp"${cms().otpRequired?' checked':''}><span>মোবাইল নম্বর OTP দিয়ে যাচাই বাধ্যতামূলক<small class="muted" style="display:block">বন্ধ থাকলে OTP ঐচ্ছিক; বেনামী অভিযোগ সবসময় চলবে।</small></span></label>
       <div class="field"><label for="sla">লক্ষ্য: কত দিনে নিষ্পত্তি</label><div class="suffix" style="max-width:200px"><input type="number" id="sla" min="1" max="30" value="${cms().slaDays||7}"><span>দিন</span></div></div>
       <div class="field"><span class="lab">SMS প্রেরকের নাম</span><input type="text" value="NADIPUR3" disabled><p class="hint">SMS gateway-র অনুমোদিত নাম; বদলাতে প্ল্যাটফর্ম টিমকে জানান।</p></div></div></div>
-      <div class="card"><h2 class="h2" style="margin-bottom:10px">সাইটের ঠিকানা</h2><dl class="dl"><dt>প্রধান</dt><dd>tahmina-noor.example</dd><dt>সাবডোমেইন</dt><dd>ndp3.jonoshetu.example</dd><dt>SSL</dt><dd>${pill('সক্রিয়','ok')}</dd></dl></div></div>
+      <div class="card"><h2 class="h2" style="margin-bottom:10px">সাইটের ঠিকানা</h2><dl class="dl"><dt>প্রধান</dt><dd>tahmina-noor.example</dd><dt>সাবডোমেইন</dt><dd>ndp3.jonoprotinidhi.example</dd><dt>SSL</dt><dd>${pill('সক্রিয়','ok')}</dd></dl></div></div>
   </div>
   <div class="form-foot" style="margin-top:16px"><button class="btn btn-b" id="ss">${ic('check')}সংরক্ষণ করুন</button></div>`;
   const rc=()=>{$('#cl').innerHTML=cats.map((t,i)=>`<div class="rowi"><div class="grow">${esc(t)}</div><button class="x" data-rm="${i}" aria-label="${esc(t)} মুছুন">${ic('x')}</button></div>`).join('');$$('[data-rm]').forEach(b=>b.addEventListener('click',()=>{if(cats.length<=2){toast('অন্তত দুটো বিষয় রাখতে হবে');return}cats.splice(+b.dataset.rm,1);rc()}))};

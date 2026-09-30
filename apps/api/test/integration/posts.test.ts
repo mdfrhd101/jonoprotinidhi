@@ -173,7 +173,7 @@ describe('validation and safety', () => {
     for (const url of ['javascript:alert(1)', 'http://upload.wikimedia.org/a.jpg', 'https://evil.example/a.jpg']) {
       expect((await create(t.owner, good({ media: [{ url }] }))).status).toBeGreaterThanOrEqual(400);
     }
-    expect((await create(t.owner, good({ media: [{ url: 'https://cdn.jonoshetu.test/a.webp' }] }))).status).toBe(201);
+    expect((await create(t.owner, good({ media: [{ url: 'https://cdn.jonoprotinidhi.test/a.webp' }] }))).status).toBe(201);
   });
 
   it('stores markup as inert text; nothing is interpreted server-side', async () => {

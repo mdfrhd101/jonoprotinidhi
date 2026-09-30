@@ -1,4 +1,4 @@
-import { siteConfigSchema, tenantSettingsSchema, toBn } from '@jonoshetu/shared';
+import { siteConfigSchema, tenantSettingsSchema, toBn } from '@jonoprotinidhi/shared';
 import { z } from 'zod';
 import { ApiError } from '../errors.js';
 import { SiteConfig, Tenant, Post, PromiseItem, Complaint, type TenantDoc } from '../models/index.js';

@@ -1,7 +1,7 @@
 import mongoose, { Schema, type InferSchemaType, type HydratedDocument } from 'mongoose';
 import { tenantScoped } from '../plugins/tenantScoped.js';
 import { appendOnly } from '../plugins/appendOnly.js';
-import { COMPLAINT_STATUSES } from '@jonoshetu/shared';
+import { COMPLAINT_STATUSES } from '@jonoprotinidhi/shared';
 
 const { models, model } = mongoose;
 type Scoped<T> = T & { tenantId: mongoose.Types.ObjectId };

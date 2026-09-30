@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { postInputSchema, postDraftSchema, postPatchSchema, nextPostStatus, type PostAction, type PostStatus, type PostInput } from '@jonoshetu/shared';
+import { postInputSchema, postDraftSchema, postPatchSchema, nextPostStatus, type PostAction, type PostStatus, type PostInput } from '@jonoprotinidhi/shared';
 import type { Types } from 'mongoose';
 import { ApiError } from '../errors.js';
 import { Post, PostVersion, Tenant, type PostDoc } from '../models/index.js';

@@ -14,7 +14,7 @@ from playwright.sync_api import sync_playwright
 ROOT = Path(__file__).resolve().parents[3]
 SITE = os.environ.get('PUBLIC_URL', 'http://127.0.0.1:3000')
 API = os.environ.get('API_URL', 'http://127.0.0.1:4000')
-HOST = os.environ.get('TENANT_HOST', 'ndp3.jonoshetu.localhost')
+HOST = os.environ.get('TENANT_HOST', 'ndp3.jonoprotinidhi.localhost')
 SHOTS = Path(sys.argv[sys.argv.index('--shots') + 1]) if '--shots' in sys.argv else None
 SKIP_WRITE = '--skip-write' in sys.argv
 if SHOTS: SHOTS.mkdir(parents=True, exist_ok=True)

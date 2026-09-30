@@ -1,5 +1,5 @@
 /* Which tenant does this request belong to? The public API selects the tenant by Host header.
-   In production the incoming Host (the MP's own domain or <slug>.jonoshetu.com) is forwarded as-is. On a developer
+   In production the incoming Host (the MP's own domain or <slug>.jonoprotinidhi.com) is forwarded as-is. On a developer
    machine the site is opened on localhost / 127.0.0.1, which is not a tenant host, so we fall back to TENANT_HOST. */
 
 const LOCAL = new Set(['localhost', '127.0.0.1', '0.0.0.0', '::1', '[::1]']);

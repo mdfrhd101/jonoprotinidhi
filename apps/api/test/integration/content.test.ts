@@ -244,7 +244,7 @@ describe('public API and platform hardening', () => {
 
   it('a JWT signed with another secret, an "alg: none" token and a tampered payload are all refused', async () => {
     const jwt = (await import('jsonwebtoken')).default;
-    const forged = jwt.sign({ sub: '000000000000000000000000', sid: 'x', typ: 'access' }, 'another-secret-another-secret-123456', { issuer: 'jonoshetu', audience: 'jonoshetu-api' });
+    const forged = jwt.sign({ sub: '000000000000000000000000', sid: 'x', typ: 'access' }, 'another-secret-another-secret-123456', { issuer: 'jonoprotinidhi', audience: 'jonoprotinidhi-api' });
     expect((await api(env).get('/api/v1/auth/me').set(bearer(forged))).status).toBe(401);
     const none = Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' })).toString('base64url') + '.' + Buffer.from(JSON.stringify({ sub: 'x', sid: 'x', typ: 'access' })).toString('base64url') + '.';
     expect((await api(env).get('/api/v1/auth/me').set(bearer(none))).status).toBe(401);

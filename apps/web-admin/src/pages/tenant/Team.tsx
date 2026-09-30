@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { inviteSchema } from '@jonoshetu/shared';
+import { inviteSchema } from '@jonoprotinidhi/shared';
 import { ApiFail } from '../../api';
 import { useTenant } from '../../tenant';
 import { Avatar, Button, DataTable, Dialog, EmptyState, ErrorBox, Field, Icon, Loading, PageHead, Pager, Pill, RowActions, useToast, fieldMessages, type Column } from '../../components';

@@ -22,7 +22,7 @@ export const mfaCodeSchema = z
   .refine((v) => !!v.code !== !!v.recoveryCode, { message: 'provide either code or recoveryCode' });
 export const mfaTokenOnlySchema = z.object({ mfaToken: z.string().min(10) }).strict();
 
-const COMMON_PASSWORDS = new Set(['password123', 'password1234', '1234567890', 'qwertyuiop', 'bangladesh123', 'jonoshetu123', 'admin12345', 'letmein1234']);
+const COMMON_PASSWORDS = new Set(['password123', 'password1234', '1234567890', 'qwertyuiop', 'bangladesh123', 'jonoprotinidhi123', 'admin12345', 'letmein1234']);
 export const passwordSchema = z
   .string()
   .min(10, 'কমপক্ষে ১০ অক্ষর')

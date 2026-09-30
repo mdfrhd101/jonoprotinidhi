@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { Outlet, useParams, Link, Navigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { hasPermission, type Perm } from '@jonoshetu/shared';
+import { hasPermission, type Perm } from '@jonoprotinidhi/shared';
 import { tenantApi, getActAs, setActAs, type TenantApi } from './api';
 import { Shell, type NavItem, type ShellNotification } from './components/Shell';
 import type { IconName } from './components/Icon';
@@ -135,7 +135,7 @@ export function TenantLayout() {
   ) : undefined;
   return (
     <TenantProvider id={tenantId} info={info}>
-      <Shell brand={{ small: 'জনসেতু · অ্যাডমিন', title: info.tenant.mpName, sub: info.tenant.status === 'live' ? 'সাইট লাইভ' : 'সাইট এখনো প্রকাশিত নয়', live: info.tenant.status === 'live' }}
+      <Shell brand={{ small: 'জনপ্রতিনিধি · অ্যাডমিন', title: info.tenant.mpName, sub: info.tenant.status === 'live' ? 'সাইট লাইভ' : 'সাইট এখনো প্রকাশিত নয়', live: info.tenant.status === 'live' }}
         nav={nav} banner={banner} roleLabel={ROLE_LABEL[info.role] ?? info.role} siteUrl={publicSiteUrl(info.tenant.slug)} notifications={notifications}
         cta={can('posts.create') ? { label: 'নতুন পোস্ট', to: `/t/${tenantId}/posts/new` } : undefined}>
         <Outlet />

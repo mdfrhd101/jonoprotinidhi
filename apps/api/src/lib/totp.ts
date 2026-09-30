@@ -49,6 +49,6 @@ export function verifyTotp(secretB32: string, code: string, atMs = Date.now(), w
   return null;
 }
 
-export function otpauthUri(secretB32: string, account: string, issuer = 'Jonoshetu'): string {
+export function otpauthUri(secretB32: string, account: string, issuer = 'Jonoprotinidhi'): string {
   return `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(account)}?secret=${secretB32}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
 }

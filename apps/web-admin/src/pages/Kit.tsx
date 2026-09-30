@@ -22,7 +22,7 @@ export default function Kit() {
   const [page, setPage] = useState(2);
   return (
     <div className="kit" style={{ maxWidth: 1240, margin: '0 auto', padding: '32px 24px 96px' }}>
-      <div className="row" style={{ marginBottom: 24 }}><BrandMark /><h1 style={{ fontFamily: 'var(--f-display)' }}>জনসেতু · কম্পোনেন্ট কিট</h1></div>
+      <div className="row" style={{ marginBottom: 24 }}><BrandMark /><h1 style={{ fontFamily: 'var(--f-display)' }}>জনপ্রতিনিধি · কম্পোনেন্ট কিট</h1></div>
       <PageHead kicker="স্টাইল গাইড" title="PageHead: শিরোনাম" sub="সাবটাইটেল এখানে। DESIGN.md-তে প্রতিটি কম্পোনেন্টের props আছে।" actions={<><Button variant="ghost" icon="download">এক্সপোর্ট</Button><Button variant="accent" icon="plus">নতুন</Button></>} meta={<><Pill label="প্রকাশিত" tone="ok" /><Badge tone="brass" icon="star">বিশেষ</Badge></>} />
 
       <div className="stack">

@@ -1,7 +1,7 @@
 import type { Model } from 'mongoose';
 import {
   eventInputSchema, eventPatchSchema, galleryInputSchema, galleryPatchSchema, videoInputSchema, videoPatchSchema, parseYouTubeId,
-} from '@jonoshetu/shared';
+} from '@jonoprotinidhi/shared';
 import type { Config } from '../config.js';
 import { ApiError } from '../errors.js';
 import { ctx } from '../context.js';

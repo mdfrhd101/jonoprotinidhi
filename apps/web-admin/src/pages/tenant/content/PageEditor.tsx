@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { PAGE_KEYS, PAGE_LABELS, PAGE_SCHEMAS, type PageKey } from '@jonoshetu/shared';
+import { PAGE_KEYS, PAGE_LABELS, PAGE_SCHEMAS, type PageKey } from '@jonoprotinidhi/shared';
 import { ApiFail } from '../../../api';
 import { useTenant, publicPageUrl } from '../../../tenant';
 import { Badge, Button, Card, Dialog, EmptyState, Icon, PageHead, SaveBar, Skeleton, Switch, useToast } from '../../../components';

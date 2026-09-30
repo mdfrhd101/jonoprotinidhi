@@ -15,7 +15,7 @@ export default function Switch() {
   return (
     <div className="entry">
       <div className="in">
-        <div className="auth-logo" style={{ marginBottom: 28 }}><BrandMark /><div><small>জনসেতু</small><b>অ্যাডমিন</b></div></div>
+        <div className="auth-logo" style={{ marginBottom: 28 }}><BrandMark /><div><small>জনপ্রতিনিধি</small><b>অ্যাডমিন</b></div></div>
         <h1>কোন প্যানেলে ঢুকবেন?</h1>
         <div className="doors" style={{ marginTop: 24 }}>
           {staff && <Link className="door" to="/super"><small>প্ল্যাটফর্ম</small><b>{ROLE_LABEL[me.user.platformRole!]} প্যানেল</b><p>সব MP-র সাইট, ডোমেইন, অডিট।</p><span className="go">ঢুকুন<Icon name="arrowRight" /></span></Link>}

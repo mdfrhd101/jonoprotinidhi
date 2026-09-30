@@ -1,4 +1,4 @@
-/* Jonoshetu demo — shared shell + page renderers.
+/* Jonoprotinidhi demo — shared shell + page renderers.
    Every page is a thin HTML file with <body data-page="…">; content comes from window.SITE (assets/data.js),
    the same shape the real CMS will serve. */
 (function(){
@@ -9,7 +9,7 @@ const page=document.body.dataset.page||'home';
 /* ---------- demo CMS overlay ----------
    The admin demo (../admin/) saves approved posts, promise updates and homepage settings in this browser's
    localStorage. In the real product the same data comes from the CMS API; here we merge it into SITE. */
-const CMS=(()=>{try{return JSON.parse(localStorage.getItem('jonoshetu-demo-cms')||'null')||{}}catch(e){return {}}})();
+const CMS=(()=>{try{return JSON.parse(localStorage.getItem('jonoprotinidhi-demo-cms')||'null')||{}}catch(e){return {}}})();
 (function applyOverlay(){
   const e=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const now=Date.now();
@@ -625,7 +625,7 @@ function complaintLogic(){
   });
   fAnon.addEventListener('change',()=>{$('#identity').hidden=fAnon.checked;if(fAnon.checked)setErr('ePhone','',fPhone)});
   const normPhone=v=>toEn(v).replace(/[\s-]/g,'').replace(/^\+?88/,'');
-  const KEY='jonoshetu-demo-tickets';
+  const KEY='jonoprotinidhi-demo-tickets';
   let store={};
   try{store=JSON.parse(localStorage.getItem(KEY)||'{}')||{}}catch(e){store={}}
   const saveStore=()=>{try{localStorage.setItem(KEY,JSON.stringify(store))}catch(e){}};

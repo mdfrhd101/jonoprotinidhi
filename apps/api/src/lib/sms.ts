@@ -1,4 +1,4 @@
-import { smsSegments } from '@jonoshetu/shared';
+import { smsSegments } from '@jonoprotinidhi/shared';
 import { SmsLog } from '../models/index.js';
 import { hmacPhone } from './crypto.js';
 import { logger } from './logger.js';

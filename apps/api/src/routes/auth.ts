@@ -1,5 +1,5 @@
 import { Router, type Response, type Request } from 'express';
-import { loginSchema, mfaCodeSchema, mfaTokenOnlySchema, acceptInviteSchema } from '@jonoshetu/shared';
+import { loginSchema, mfaCodeSchema, mfaTokenOnlySchema, acceptInviteSchema } from '@jonoprotinidhi/shared';
 import type { Deps } from '../deps.js';
 import type { AuthService, Tokens } from '../services/auth.js';
 import { ApiError } from '../errors.js';

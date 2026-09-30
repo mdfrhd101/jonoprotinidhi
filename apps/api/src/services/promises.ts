@@ -1,4 +1,4 @@
-import { promiseInputSchema, promiseUpdateSchema, PROMISE_STATUSES } from '@jonoshetu/shared';
+import { promiseInputSchema, promiseUpdateSchema, PROMISE_STATUSES } from '@jonoprotinidhi/shared';
 import { ApiError } from '../errors.js';
 import { PromiseItem } from '../models/index.js';
 import { audit } from '../lib/audit.js';

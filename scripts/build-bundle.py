@@ -26,7 +26,7 @@ demo_files = sorted(
 )
 
 parts = [
-    "# Jonoshetu (জনসেতু) — Handoff bundle\n",
+    "# Jonoprotinidhi (জনপ্রতিনিধি) — Handoff bundle\n",
     f"Generated {datetime.date.today().isoformat()} by scripts/build-bundle.py. "
     "Upload this single file to a claude.ai Project as knowledge, then use section 2 of KICKOFF_PROMPT.md.\n",
     "Contents: " + ", ".join(ordered) + ".\n",

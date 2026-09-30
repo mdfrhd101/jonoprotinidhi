@@ -4,7 +4,7 @@ Read this first if you are a sub-agent. It is the shared context for everyone wo
 
 ## 0. Ground rules
 
-- Product: **Jonoshetu (জনসেতু)**, multi-tenant portfolio + CMS + complaint platform for Bangladeshi MPs. Repo root `D:\AI\Jonoshetu`,
+- Product: **Jonoprotinidhi (জনপ্রতিনিধি)**, multi-tenant portfolio + CMS + complaint platform for Bangladeshi MPs. Repo root `D:\AI\Jonoprotinidhi`,
   npm workspaces: `apps/api` (Express 4 + Mongoose 8 + zod), `apps/web-admin` (React 18 + Vite + react-query + react-router),
   `packages/shared` (zod schemas, permissions, Bangla helpers), `client-demo/` (static visual spec), later `apps/web-public` (Next.js).
 - Machine: **Windows 11 on ARM64**, Git Bash. Use `MSYS_NO_PATHCONV=1` when a bash argument starts with `/`. Keep files under `D:\`.
@@ -91,7 +91,7 @@ Dashboard (`GET /dashboard`) response contract (role-filtered: send a section on
 
 ## 3. Design language (admin panels)
 
-Goal: a premium, calm, modern control room – think Linear/Stripe dashboards, but Bangla-first and in the Jonoshetu brand.
+Goal: a premium, calm, modern control room – think Linear/Stripe dashboards, but Bangla-first and in the Jonoprotinidhi brand.
 
 - Brand tokens (keep): ink `#0C1117`, brass `#C7A35A` / deep brass `#9C7A2E`, paper `#F5F1EA`. Add a modern neutral scale, one info-blue, green, amber, red.
 - Surfaces: warm light background, white cards, 14 px radius, 1 px border + soft layered shadow, 24 px gaps, generous padding.
@@ -143,7 +143,7 @@ Playwright (Python, Edge) is installed. `e2e/smoke.py` shows how to log in (read
 - Video item: `{ id, title, description, date, kind: 'youtube'|'upload', youtubeId, mediaId, fileUrl, posterUrl, embedUrl, duration, order, featured, status }`.
   Create youtube: `{ title, kind:'youtube', youtube:'<any YouTube URL>' , ...}`; create upload: first `POST /media/video?name=` with the raw
   file (Content-Type video/mp4|video/webm, ≤150 MB default), then `{ title, kind:'upload', mediaId }`. `parseYouTubeId` is exported from
-  `@jonoshetu/shared` for instant client-side preview (thumbnail `https://i.ytimg.com/vi/<id>/hqdefault.jpg`, embed `https://www.youtube-nocookie.com/embed/<id>`).
+  `@jonoprotinidhi/shared` for instant client-side preview (thumbnail `https://i.ytimg.com/vi/<id>/hqdefault.jpg`, embed `https://www.youtube-nocookie.com/embed/<id>`).
 - Pages: `GET /pages/:key` → `{ key, label, draft, live, status: 'empty'|'draft'|'published', hasUnpublishedChanges, version, updatedAt, publishedAt }`.
   `PUT /pages/:key` with the full page object (+ `version`) → same shape; 409 `VERSION_CONFLICT` on stale version; 400 with zod `details.fieldErrors`
   (paths are flattened to the top-level key only – show a general error plus field-level ones where the key matches).
@@ -151,7 +151,7 @@ Playwright (Python, Edge) is installed. `e2e/smoke.py` shows how to log in (read
   `profile` has `portrait: { url, credit }` (own upload or allow-listed host).
 - Site config (`GET/PUT /site-config`, owner only): `{ slogan, accent: 'brass'|'river'|'maroon', banners: [{ url, caption, title?, subtitle?, ctaLabel?, ctaHref? }] (≤6),
   sections: [{ key, on }] }` with keys `stats, about, activities, office, promises, area, gallery, videos, events, cta` (order = display order).
-- Public API (Host header selects the tenant; dev host `ndp3.jonoshetu.localhost`): `/site`, `/pages/:key` → `{ key, published, data }` (data always fully
+- Public API (Host header selects the tenant; dev host `ndp3.jonoprotinidhi.localhost`): `/site`, `/pages/:key` → `{ key, published, data }` (data always fully
   defaulted), `/profile`, `/posts?category=&upazila=&page=&limit=`, `/posts/:slug`, `/promises`, `/events?limit=`, `/gallery?album=&featured=1&page=&limit=`,
   `/gallery/albums`, `/videos?featured=1`, `/complaint-stats`, `/complaint-form`, `POST /complaints`, complaint tracking (see `routes/public.ts`).
   Media files: `/api/v1/public/media/<tenantId>/<id>.<webp|mp4|webm>` (Range supported).

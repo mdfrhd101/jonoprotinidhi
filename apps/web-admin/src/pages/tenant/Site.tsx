@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { siteConfigSchema, tenantSettingsSchema } from '@jonoshetu/shared';
+import { siteConfigSchema, tenantSettingsSchema } from '@jonoprotinidhi/shared';
 import { ApiFail } from '../../api';
 import { useTenant, publicPageUrl } from '../../tenant';
 import { Button, EmptyState, ErrorBox, Field, FormSection, Icon, Loading, PageHead, SaveBar, Switch, useToast } from '../../components';

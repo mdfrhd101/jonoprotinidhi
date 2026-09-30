@@ -1,4 +1,4 @@
-import { toE164Bd } from '@jonoshetu/shared';
+import { toE164Bd } from '@jonoprotinidhi/shared';
 import type { Deps } from '../deps.js';
 import { ApiError } from '../errors.js';
 import { Membership, User, type TenantDoc } from '../models/index.js';
@@ -30,7 +30,7 @@ export class TeamService {
     const token = randomToken(24);
     const fields = { role: input.role, scope: { upazilas: input.role === 'officer' ? input.upazilas : [] }, status: 'invited' as const, invitedBy: invitedBy as never, inviteTokenHash: sha256(token), inviteExpiresAt: new Date(this.now() + 72 * 3600_000) };
     const m = existing ? await Membership.findOneAndUpdate({ _id: existing._id }, { $set: fields }, { new: true }) : await Membership.create({ userId: user._id, tenantId: tenant._id, ...fields });
-    await this.d.sms.send({ tenantId: tenant._id, to: phone, text: `জনসেতু: আপনাকে ${tenant.mp.name}-এর সাইটে যোগ করা হয়েছে। লিংক: https://admin.${this.d.config.PLATFORM_DOMAIN}/invite/${token}`, purpose: 'invite' });
+    await this.d.sms.send({ tenantId: tenant._id, to: phone, text: `জনপ্রতিনিধি: আপনাকে ${tenant.mp.name}-এর সাইটে যোগ করা হয়েছে। লিংক: https://admin.${this.d.config.PLATFORM_DOMAIN}/invite/${token}`, purpose: 'invite' });
     await audit({ action: 'team.invite', tenantId: tenant._id, entity: { type: 'membership', id: m!._id, label: input.name }, diff: { after: { role: input.role, upazilas: input.upazilas } } });
     return { id: String(m!._id), inviteToken: this.d.config.isProd ? undefined : token };
   }

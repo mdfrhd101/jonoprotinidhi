@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction, RequestHandler } from 'express';
-import { hasAnyPermission, permissionsFor, ROLE_PERMS, type Perm, type PanelRole, type PlatformRole } from '@jonoshetu/shared';
+import { hasAnyPermission, permissionsFor, ROLE_PERMS, type Perm, type PanelRole, type PlatformRole } from '@jonoprotinidhi/shared';
 import type { Deps } from '../deps.js';
 import { ApiError } from '../errors.js';
 import { verifyAccess } from '../lib/tokens.js';

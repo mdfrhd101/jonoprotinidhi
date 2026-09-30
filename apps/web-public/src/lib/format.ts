@@ -1,5 +1,5 @@
 /* Presentation helpers: Bangla digits, dates in Asia/Dhaka, labels for enum values the API returns. Pure functions. */
-import { toBn, toEn, bnDate, MONTHS_BN, groupIndian } from '@jonoshetu/shared/src/bangla.js';
+import { toBn, toEn, bnDate, MONTHS_BN, groupIndian } from '@jonoprotinidhi/shared/src/bangla.js';
 
 export { toBn, toEn, bnDate, MONTHS_BN };
 

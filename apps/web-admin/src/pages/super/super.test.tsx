@@ -32,7 +32,7 @@ const Where = () => { const l = useLocation(); return <p data-testid="where">{l.
 const tenant = (over: Partial<TenantRow>): TenantRow => ({
   id: 'a'.repeat(24), slug: 'ndp3', mpName: 'ড. তাহমিনা নূর', seat: 'নদীপুর-3', seatName: 'নদীপুর', seatNumber: 3, role: 'mp', ministry: '', status: 'live', plan: 'full',
   createdAt: '2026-09-01T00:00:00Z', publishedPosts: 12, postsLast30d: 4, daysSinceLastPost: 2, stale: false, complaintsLast30d: 10, openComplaints: 3, overdue: 0, slaPct: 90,
-  promises: 5, ownerActive: true, lastActivityAt: '2026-09-29T00:00:00Z', domains: [{ id: 'd1', host: 'ndp3.jonoshetu.localhost', type: 'platform', primary: true, dnsStatus: 'active' }], ...over,
+  promises: 5, ownerActive: true, lastActivityAt: '2026-09-29T00:00:00Z', domains: [{ id: 'd1', host: 'ndp3.jonoprotinidhi.localhost', type: 'platform', primary: true, dnsStatus: 'active' }], ...over,
 });
 const series = Array.from({ length: 30 }, (_, i) => ({ date: `2026-09-${String(i + 1).padStart(2, '0')}`, received: i === 29 ? 4 : 0, solved: i === 29 ? 1 : 0 }));
 const dash = (over: Partial<SuperDash> = {}): SuperDash => ({
@@ -141,7 +141,7 @@ describe('new tenant wizard (consent required)', () => {
   });
 
   it('walks the steps, refuses to continue without consent, creates and shows the one-time invite link', async () => {
-    m.get.mockImplementation(route({ '/super/slug-available': { available: true, host: 'sa-e2e-x1.jonoshetu.localhost' } }));
+    m.get.mockImplementation(route({ '/super/slug-available': { available: true, host: 'sa-e2e-x1.jonoprotinidhi.localhost' } }));
     m.post.mockResolvedValue({ id: 'n'.repeat(24), slug: 'sa-e2e-x1', status: 'setup', inviteToken: 'TOKEN123' });
     renderApp(<NewTenant />, '/super/tenants/new');
     const next = () => userEvent.click(screen.getByRole('button', { name: 'পরের ধাপ' }));
@@ -152,7 +152,7 @@ describe('new tenant wizard (consent required)', () => {
     await userEvent.type(screen.getByLabelText(/আসনের নাম/), full.seatName);
     await userEvent.type(screen.getByLabelText(/আসন নম্বর/), '9');
     await userEvent.type(screen.getByLabelText(/সাবডোমেইন/), full.slug);
-    expect(await screen.findByText(/খালি আছে: sa-e2e-x1\.jonoshetu\.localhost/)).toBeInTheDocument();
+    expect(await screen.findByText(/খালি আছে: sa-e2e-x1\.jonoprotinidhi\.localhost/)).toBeInTheDocument();
     await next();
     await userEvent.type(screen.getByLabelText(/MP-র মোবাইল/), full.ownerPhone);
     await next();
@@ -183,9 +183,9 @@ describe('tenant detail: domains and act-as', () => {
   const detail = {
     tenant: { id, slug: 'ndp3', status: 'live', plan: 'full', createdAt: '2026-09-01T00:00:00Z', mp: { name: 'ড. তাহমিনা নূর', role: 'mp', seatName: 'নদীপুর', seatNumber: 3 },
       settings: { slaDays: 7, otpRequired: false, complaintBoxEnabled: true, dailySmsCap: 500 }, consent: { documentRef: 'DOC-1', receivedAt: '2026-09-01T00:00:00Z' }, statusHistory: [] },
-    summary: tenant({}), dnsTarget: 'sites.jonoshetu.localhost',
-    domains: [{ _id: 'd1', host: 'ndp3.jonoshetu.localhost', type: 'platform', primary: true, dnsStatus: 'active', sslStatus: 'active' },
-      { _id: 'd2', host: 'noor.example', type: 'custom', primary: false, dnsStatus: 'pending', sslStatus: 'pending', verification: { txtName: '_jonoshetu.noor.example', txtValue: 'jonoshetu-verify=abc' } }],
+    summary: tenant({}), dnsTarget: 'sites.jonoprotinidhi.localhost',
+    domains: [{ _id: 'd1', host: 'ndp3.jonoprotinidhi.localhost', type: 'platform', primary: true, dnsStatus: 'active', sslStatus: 'active' },
+      { _id: 'd2', host: 'noor.example', type: 'custom', primary: false, dnsStatus: 'pending', sslStatus: 'pending', verification: { txtName: '_jonoprotinidhi.noor.example', txtValue: 'jonoprotinidhi-verify=abc' } }],
     team: { owner: { name: 'ড. তাহমিনা নূর', status: 'active' }, byRole: { owner: { active: 1, invited: 0 }, editor: { active: 1, invited: 1 }, officer: { active: 2, invited: 0 } } },
     content: { pages: [{ key: 'profile', label: 'পরিচিতি', ready: true }], gallery: 3, videos: 1, events: 2, publishedPosts: 12, promises: 5, readinessPct: 70 },
     usage: { imageBytes: 1024, videoBytes: 0, imageFiles: 1, videoFiles: 0, smsToday: 2, smsMonth: 40, smsDailyCap: 500 },
@@ -205,8 +205,8 @@ describe('tenant detail: domains and act-as', () => {
     expect(await screen.findByText('ডোমেইন যাচাই হয়েছে, SSL চালু')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'DNS নির্দেশনা' }));
     const dlg = await screen.findByRole('dialog', { name: 'DNS নির্দেশনা' });
-    expect(within(dlg).getByText('jonoshetu-verify=abc')).toBeInTheDocument();
-    expect(within(dlg).getByText('sites.jonoshetu.localhost')).toBeInTheDocument();
+    expect(within(dlg).getByText('jonoprotinidhi-verify=abc')).toBeInTheDocument();
+    expect(within(dlg).getByText('sites.jonoprotinidhi.localhost')).toBeInTheDocument();
     expect(within(dlg).getByRole('button', { name: 'TXT রেকর্ডের মান কপি করুন' })).toBeInTheDocument();
     expect(screen.getByText(/শুধু রেফারেন্স/)).toBeInTheDocument(); // consent shown as a reference only
   });

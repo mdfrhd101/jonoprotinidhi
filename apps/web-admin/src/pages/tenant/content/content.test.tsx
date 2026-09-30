@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router-dom';
-import { parsePage } from '@jonoshetu/shared';
+import { parsePage } from '@jonoprotinidhi/shared';
 import { ApiFail } from '../../../api';
 import { renderApp, fakeTenant, type FakeTenant } from '../../../test/utils';
 

@@ -31,9 +31,9 @@ export function makeEnv(overrides: Record<string, string> = {}, opts: { rateLimi
     JWT_SECRET: 'test-jwt-secret-at-least-32-characters-long',
     MASTER_KEY: generateKey().toString('base64'),
     PHONE_PEPPER: 'test-pepper-0123456789',
-    PLATFORM_DOMAIN: 'jonoshetu.test',
+    PLATFORM_DOMAIN: 'jonoprotinidhi.test',
     PW_MEMORY_KIB: '1024', PW_PASSES: '1',
-    MEDIA_HOSTS: 'upload.wikimedia.org,cdn.jonoshetu.test',
+    MEDIA_HOSTS: 'upload.wikimedia.org,cdn.jonoprotinidhi.test',
     ...overrides,
   });
   const clock = { now: Date.now() };
@@ -127,7 +127,7 @@ export async function makeTenant(env: TestEnv, superToken: string, slug: string,
     const st = await request(env.app).post(`/api/v1/super/tenants/${id}/status`).set(bearer(superToken)).send({ to: 'live', reason: 'সব যাচাই হয়েছে', contentChecked: true });
     if (st.status !== 200) throw new Error(`go live failed ${st.status} ${JSON.stringify(st.body)}`);
   }
-  return { id, slug, host: `${slug}.jonoshetu.test`, owner, editor, officer, officerId: me.body.user.id, phones };
+  return { id, slug, host: `${slug}.jonoprotinidhi.test`, owner, editor, officer, officerId: me.body.user.id, phones };
 }
 
 export const api = (env: TestEnv) => request(env.app);

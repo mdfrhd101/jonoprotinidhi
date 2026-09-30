@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { complaintTransitions, type ComplaintStatus } from '@jonoshetu/shared';
+import { complaintTransitions, type ComplaintStatus } from '@jonoprotinidhi/shared';
 import { ApiFail } from '../../api';
 import { useTenant } from '../../tenant';
 import { Button, Chips, DataTable, EmptyState, ErrorBox, Field, Icon, Loading, PageHead, Pager, PillOf, ReasonDialog, SearchInput, Timeline, useToast, type Column } from '../../components';

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { slugSchema, tenantCreateSchema, toEn } from '@jonoshetu/shared';
+import { slugSchema, tenantCreateSchema, toEn } from '@jonoprotinidhi/shared';
 import { ApiFail, papi } from '../../api';
 import { Badge, Button, Card, EmptyState, Field, Icon, PageHead, Stepper, useToast, useUnsavedGuard } from '../../components';
 import { CopyButton } from '../../components/CopyButton';

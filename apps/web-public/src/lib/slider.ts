@@ -1,5 +1,5 @@
 /* Index math shared by the hero, gallery and video sliders. Pure, so it is unit-tested. */
-import { toBn } from '@jonoshetu/shared/src/bangla.js';
+import { toBn } from '@jonoprotinidhi/shared/src/bangla.js';
 
 /** Wraps any integer into 0..n-1 (negative numbers too). n <= 0 gives 0. */
 export function wrapIndex(i: number, n: number): number {

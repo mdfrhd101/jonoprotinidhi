@@ -1,4 +1,4 @@
-# 00 · START HERE — Jonoshetu (জনসেতু)
+# 00 · START HERE — Jonoprotinidhi (জনপ্রতিনিধি)
 
 > Read this file first, then follow the reading order below. Everything a new developer (or their Claude)
 > needs is in this repo; nothing lives only in someone's head.
@@ -6,7 +6,7 @@
 
 ## 1. What we are building (one paragraph)
 
-**Jonoshetu** is a multi-tenant platform, hosted and operated by our company, that gives each Bangladeshi
+**Jonoprotinidhi** is a multi-tenant platform, hosted and operated by our company, that gives each Bangladeshi
 Member of Parliament (MP) or minister a **premium public website** plus a **CMS / admin panel** and a
 **citizen complaint box**. The site builds the MP's image through *real work, transparency and
 accountability* — activities, a public promise tracker with progress and delay reasons, constituency data,
@@ -52,7 +52,7 @@ The product is a fresh build following docs 01–08.
 | D6 | Sites served on `<slug>.<platform-domain>`; optional custom domain per MP, routed by `Host` header, TLS via Cloudflare for SaaS | ADR-0006 |
 | D7 | Complaint OTP is **optional by default, and each MP can make it mandatory**; anonymous complaints always allowed | ADR-0007 |
 | D8 | Invented content never goes under a real politician's name; full-content demos use the fictional MP only | ADR-0008 |
-| D9 | Project name: **জনসেতু (Jonoshetu)** | — |
+| D9 | Project name: **জনপ্রতিনিধি (Jonoprotinidhi)** | — |
 | D10 | Other devs may use Claude Code (repo + `CLAUDE.md`) or claude.ai (upload `HANDOFF_BUNDLE.md`) | — |
 
 **Still open** (ask the owner; don't guess): party colours/symbol policy, first real client and their
@@ -114,7 +114,7 @@ python -m http.server 8765 --bind 127.0.0.1 --directory client-demo
 - Public site: <http://localhost:8765/demo-mp/>
 - Admin panels: <http://localhost:8765/admin/> (role switcher in the MP panel top bar; "reset demo" on the
   entry page). An approved post, a promise update or a homepage change in the admin shows on the public demo
-  immediately (shared `localStorage`, key `jonoshetu-demo-cms`).
+  immediately (shared `localStorage`, key `jonoprotinidhi-demo-cms`).
 
 ## 8. Glossary
 

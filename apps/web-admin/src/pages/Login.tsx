@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import QRCode from 'qrcode';
 import { useEffect } from 'react';
-import { loginSchema, passwordSchema } from '@jonoshetu/shared';
+import { loginSchema, passwordSchema } from '@jonoprotinidhi/shared';
 import { api, ApiFail } from '../api';
 import { useSession, type LoginStep } from '../session';
 import { Field } from '../components/ui';
@@ -15,7 +15,7 @@ function Frame({ title, sub, children }: { title: string; sub?: string; children
   return (
     <div className="auth">
       <aside className="auth-brand">
-        <div className="auth-logo"><BrandMark /><div><small>জনসেতু</small><b>অ্যাডমিন প্যানেল</b></div></div>
+        <div className="auth-logo"><BrandMark /><div><small>জনপ্রতিনিধি</small><b>অ্যাডমিন প্যানেল</b></div></div>
         <div>
           <h2>জনগণের সাথে <em>সেতু</em> গড়ার কাজ, এক জায়গায়</h2>
           <p className="lead">পোস্ট, প্রতিশ্রুতি আর নাগরিকের অভিযোগ, সবকিছু নিরাপদে সামলান।</p>
@@ -25,11 +25,11 @@ function Frame({ title, sub, children }: { title: string; sub?: string; children
           <li><span className="chip-ico"><Icon name="lock" size={19} /></span><span><b>নাগরিকের তথ্য এনক্রিপ্ট করা</b><small>নাম-নম্বর শুধু দায়িত্বপ্রাপ্ত কর্মকর্তা দেখতে পারেন, প্রতিবার লগ হয়।</small></span></li>
           <li><span className="chip-ico"><Icon name="checkCircle" size={19} /></span><span><b>অনুমোদন ছাড়া প্রকাশ নয়</b><small>PR টিম লেখে, MP অনুমোদন দিলে তবেই সাইটে যায়।</small></span></li>
         </ul>
-        <p className="auth-foot">Octagram Limited · জনসেতু</p>
+        <p className="auth-foot">Octagram Limited · জনপ্রতিনিধি</p>
       </aside>
       <main className="auth-form">
         <div className="auth-card">
-          <p className="kick">জনসেতু · অ্যাডমিন</p>
+          <p className="kick">জনপ্রতিনিধি · অ্যাডমিন</p>
           <h1>{title}</h1>
           {sub && <p className="lead">{sub}</p>}
           <div className="panel">{children}</div>

@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, type DragEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { galleryPatchSchema } from '@jonoshetu/shared';
+import { galleryPatchSchema } from '@jonoprotinidhi/shared';
 import { useTenant, publicPageUrl } from '../../../tenant';
 import { Badge, Button, Chips, Dialog, Drawer, EmptyState, Field, Icon, PageHead, Pager, PillOf, SearchInput, Skeleton, Switch, useToast } from '../../../components';
 import { bnDate, toBn } from '../../../format';

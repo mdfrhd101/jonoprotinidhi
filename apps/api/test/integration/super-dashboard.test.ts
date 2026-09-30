@@ -124,7 +124,7 @@ describe('tenants list and detail (stats)', () => {
     await post(t, {});
     const [row] = (await get('/tenants')).body;
     expect(row).toMatchObject({ id: t.id, slug: 'ndp3', seatName: 'পরীক্ষাপুর', seatNumber: expect.any(Number), status: 'live', publishedPosts: 1, postsLast30d: 1, daysSinceLastPost: 2, stale: false, openComplaints: 1, complaintsLast30d: 1, ownerActive: true });
-    expect(row.domains).toEqual([expect.objectContaining({ host: 'ndp3.jonoshetu.test', type: 'platform', primary: true, dnsStatus: 'active' })]);
+    expect(row.domains).toEqual([expect.objectContaining({ host: 'ndp3.jonoprotinidhi.test', type: 'platform', primary: true, dnsStatus: 'active' })]);
     expect(new Date(row.lastActivityAt).getTime()).toBeGreaterThan(env.clock.now - DAY);
   });
 
@@ -134,7 +134,7 @@ describe('tenants list and detail (stats)', () => {
     await api(env).post(`/api/v1/super/tenants/${t.id}/act-as`).set(bearer(sa)).send({ reason: 'গোপন-কারণ: ব্যানার ঠিক করতে ঢুকছি' });
     const d = (await get(`/tenants/${t.id}`)).body;
     expect(d.tenant).toMatchObject({ id: t.id, slug: 'ndp3', consent: { documentRef: 'DOC-ndp3' } });
-    expect(d.dnsTarget).toBe('sites.jonoshetu.test');
+    expect(d.dnsTarget).toBe('sites.jonoprotinidhi.test');
     expect(d.team.byRole).toEqual({ owner: { active: 1, invited: 0 }, editor: { active: 1, invited: 0 }, officer: { active: 1, invited: 0 } });
     expect(d.team.owner).toMatchObject({ name: 'ড. পরীক্ষা ndp3', status: 'active' });
     expect(d.content.pages).toHaveLength(7);
@@ -151,7 +151,7 @@ describe('tenants list and detail (stats)', () => {
 describe('slug check and domains list', () => {
   it('slug-available: taken, free, invalid; super admin only', async () => {
     await makeTenant(env, sa, 'ndp3');
-    expect((await get('/slug-available?slug=ndp3')).body).toMatchObject({ available: false, host: 'ndp3.jonoshetu.test' });
+    expect((await get('/slug-available?slug=ndp3')).body).toMatchObject({ available: false, host: 'ndp3.jonoprotinidhi.test' });
     expect((await get('/slug-available?slug=NEW-seat')).body).toMatchObject({ slug: 'new-seat', available: true });
     expect((await get('/slug-available?slug=-x')).status).toBe(400);
     expect((await get('/slug-available?slug=ndp4', await makeSupport(env))).status).toBe(403);
@@ -163,10 +163,10 @@ describe('slug check and domains list', () => {
     const sup = await makeSupport(env);
     const r = await get('/domains', sup);
     expect(r.status).toBe(200);
-    expect(r.body.dnsTarget).toBe('sites.jonoshetu.test');
+    expect(r.body.dnsTarget).toBe('sites.jonoprotinidhi.test');
     const custom = r.body.items.find((x: { host: string }) => x.host === 'noor.example');
-    expect(custom).toMatchObject({ type: 'custom', dnsStatus: 'pending', tenantId: t.id, mpName: 'ড. পরীক্ষা ndp3', txtName: '_jonoshetu.noor.example' });
-    expect(custom.txtValue).toMatch(/^jonoshetu-verify=/);
+    expect(custom).toMatchObject({ type: 'custom', dnsStatus: 'pending', tenantId: t.id, mpName: 'ড. পরীক্ষা ndp3', txtName: '_jonoprotinidhi.noor.example' });
+    expect(custom.txtValue).toMatch(/^jonoprotinidhi-verify=/);
     expect(r.body.items.find((x: { type: string }) => x.type === 'platform').txtValue).toBeNull();
     expect((await api(env).post(`/api/v1/super/domains/${custom.id}/verify`).set(bearer(sup))).status).toBe(403);
     expect(await Domain.countDocuments()).toBe(2);

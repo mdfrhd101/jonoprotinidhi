@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { domainAddSchema } from '@jonoshetu/shared';
+import { domainAddSchema } from '@jonoprotinidhi/shared';
 import { ApiFail, papi } from '../../api';
 import {
   Badge, Button, Card, Dialog, EmptyState, ErrorBox, Field, Icon, PageHead, PillOf, ProgressBar, ProgressRing, ReasonDialog, Skeleton, SkeletonText, StatCard, Timeline, useToast,
@@ -224,8 +224,8 @@ function DetailBody({ d }: { d: Detail }) {
 /** The two DNS records the MP's registrar needs, each value with a copy button. */
 export function DnsInstructions({ host, target, txtName, txtValue }: { host: string; target: string; txtName?: string; txtValue?: string }) {
   const rows: Array<{ type: string; name: string; value: string; why: string }> = [
-    { type: 'TXT', name: txtName ?? `_jonoshetu.${host}`, value: txtValue ?? '—', why: 'ডোমেইনটি যে MP অফিসের, তা প্রমাণ করে' },
-    { type: 'CNAME', name: host, value: target, why: 'ভিজিটরদের জনসেতুর সার্ভারে পাঠায়' },
+    { type: 'TXT', name: txtName ?? `_jonoprotinidhi.${host}`, value: txtValue ?? '—', why: 'ডোমেইনটি যে MP অফিসের, তা প্রমাণ করে' },
+    { type: 'CNAME', name: host, value: target, why: 'ভিজিটরদের জনপ্রতিনিধির সার্ভারে পাঠায়' },
   ];
   return (
     <div className="stack">

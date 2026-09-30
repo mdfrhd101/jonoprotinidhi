@@ -5,7 +5,7 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 let server: MongoMemoryServer | null = null;
 
 export async function startDb(): Promise<void> {
-  server = await MongoMemoryServer.create({ instance: { dbName: 'jonoshetu_test' } });
+  server = await MongoMemoryServer.create({ instance: { dbName: 'jonoprotinidhi_test' } });
   await mongoose.connect(server.getUri());
   // make sure indexes (unique, partial) exist before tests rely on them
   await Promise.all(Object.values(mongoose.models).map((m) => m.init()));

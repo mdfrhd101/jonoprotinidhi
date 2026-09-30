@@ -4,8 +4,8 @@ import { ApiError } from '../errors.js';
 /* JWT access tokens (short, in memory on the client) and short MFA-step tokens. Algorithm pinned to HS256,
    issuer/audience checked, `typ` claim separates access from mfa tokens so one cannot be used as the other. */
 
-const ISS = 'jonoshetu';
-const AUD = 'jonoshetu-api';
+const ISS = 'jonoprotinidhi';
+const AUD = 'jonoprotinidhi-api';
 
 export type AccessClaims = { sub: string; sid: string; typ: 'access'; act?: { tenantId: string } };
 export type MfaClaims = { sub: string; typ: 'mfa' };

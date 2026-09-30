@@ -4,7 +4,7 @@ import vm from 'node:vm';
 import { randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import mongoose from 'mongoose';
-import { toEn, MONTHS_BN } from '@jonoshetu/shared';
+import { toEn, MONTHS_BN } from '@jonoprotinidhi/shared';
 import { loadConfig } from './config.js';
 import { buildDeps } from './bootstrap.js';
 import { createServices } from './services/index.js';

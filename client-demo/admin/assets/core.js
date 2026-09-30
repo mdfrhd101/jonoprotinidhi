@@ -1,4 +1,4 @@
-/* Jonoshetu admin — shared core: helpers, icons, demo store, shell, hash router, dialog, toast, audit, charts.
+/* Jonoprotinidhi admin — shared core: helpers, icons, demo store, shell, hash router, dialog, toast, audit, charts.
    Demo only: everything persists in this browser's localStorage. In the real product each of these calls
    is an authenticated API request scoped to one tenant. */
 (function(){
@@ -52,7 +52,7 @@ const store={
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},
   update(k,def,fn){const v=store.get(k,def);const r=fn(v);store.set(k,r===undefined?v:r);return r===undefined?v:r}
 };
-const KEYS={audit:'jonoshetu-demo-audit',platform:'jonoshetu-demo-platform',cms:'jonoshetu-demo-cms',tickets:'jonoshetu-demo-tickets',cmp:'jonoshetu-demo-cmp-admin',role:'jonoshetu-demo-role'};
+const KEYS={audit:'jonoprotinidhi-demo-audit',platform:'jonoprotinidhi-demo-platform',cms:'jonoprotinidhi-demo-cms',tickets:'jonoprotinidhi-demo-tickets',cmp:'jonoprotinidhi-demo-cmp-admin',role:'jonoprotinidhi-demo-role'};
 
 /* ---------- audit log (shared across panels; each entry carries its tenant) ---------- */
 function audit(entry){
@@ -85,7 +85,7 @@ function shell({brand,nav,who,crumbRoot,impersonating}){
   <aside class="side" id="side" aria-label="প্যানেলের মেনু">
     <div class="side-brand">${brand}</div>
     <nav id="sideNav"></nav>
-    <div class="side-foot">জনসেতু প্ল্যাটফর্ম · ডেমো<br><a href="index.html">প্যানেল বদলান</a> · <a href="../demo-mp/index.html" target="_blank" rel="noopener">পাবলিক সাইট</a></div>
+    <div class="side-foot">জনপ্রতিনিধি প্ল্যাটফর্ম · ডেমো<br><a href="index.html">প্যানেল বদলান</a> · <a href="../demo-mp/index.html" target="_blank" rel="noopener">পাবলিক সাইট</a></div>
   </aside>
   <div class="scrim" id="scrim"></div>
   <div class="main">

@@ -1,4 +1,4 @@
-/* Jonoshetu admin design system, part 2: shell + component library. Tokens are in base.css. Documented in DESIGN.md. */
+/* Jonoprotinidhi admin design system, part 2: shell + component library. Tokens are in base.css. Documented in DESIGN.md. */
 
 /* ================= shell ================= */
 .shell{display:grid;grid-template-columns:var(--side-w) minmax(0,1fr);min-height:100vh;transition:grid-template-columns .25s cubic-bezier(.2,.7,.2,1)}

@@ -1,4 +1,4 @@
-# Kickoff prompts — Jonoshetu (জনসেতু)
+# Kickoff prompts — Jonoprotinidhi (জনপ্রতিনিধি)
 
 Copy one of these as the **first message** in a new Claude session. Replace the bracketed parts.
 
@@ -8,7 +8,7 @@ Copy one of these as the **first message** in a new Claude session. Replace the 
 
 ```
 Read CLAUDE.md, then docs/00-START-HERE.md, HANDOFF.md, and skim docs/01..08 and adr/.
-You are joining the Jonoshetu project (multi-tenant MP portfolio + CMS + complaint platform, MERN,
+You are joining the Jonoprotinidhi project (multi-tenant MP portfolio + CMS + complaint platform, MERN,
 decisions already made in adr/). Reply to me in [Bangla | English].
 
 Before writing code:
@@ -26,13 +26,13 @@ Then work on task [T0.1 / next open task]. Rules:
 
 ## 2. claude.ai (chat / Project)
 
-1. Create a **Project** named "Jonoshetu".
+1. Create a **Project** named "Jonoprotinidhi".
 2. Upload `HANDOFF_BUNDLE.md` as project knowledge (it contains CLAUDE.md, HANDOFF.md, docs 00–08 and the
    ADRs in one file). Regenerate it after doc changes: `python scripts/build-bundle.py`.
 3. First message:
 
 ```
-You are joining the Jonoshetu project. The project knowledge contains the full handoff bundle. Read it all.
+You are joining the Jonoprotinidhi project. The project knowledge contains the full handoff bundle. Read it all.
 Reply in [Bangla | English].
 
 Give me: (a) a 10-line summary of the product, current state and fixed decisions, (b) the next 3 tasks

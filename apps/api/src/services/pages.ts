@@ -1,5 +1,5 @@
 import { isDeepStrictEqual } from 'node:util';
-import { PAGE_KEYS, PAGE_LABELS, parsePage, type PageKey } from '@jonoshetu/shared';
+import { PAGE_KEYS, PAGE_LABELS, parsePage, type PageKey } from '@jonoprotinidhi/shared';
 import { ZodError } from 'zod';
 import type { Config } from '../config.js';
 import { ApiError } from '../errors.js';

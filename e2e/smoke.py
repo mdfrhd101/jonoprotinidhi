@@ -104,7 +104,7 @@ with sync_playwright() as p:
     owner.get_by_role('button', name='অনুমোদন ও প্রকাশ').first.click()
     owner.wait_for_selector('text=প্রকাশ হয়েছে', timeout=10000)
     import urllib.request, json
-    req = urllib.request.Request(API + '/api/v1/public/posts?limit=50', headers={'Host': 'ndp3.jonoshetu.localhost'})
+    req = urllib.request.Request(API + '/api/v1/public/posts?limit=50', headers={'Host': 'ndp3.jonoprotinidhi.localhost'})
     titles = [i['title'] for i in json.load(urllib.request.urlopen(req))['items']]
     step('owner approves -> post is live on the public API', any('বন্যাসহনশীল' in t for t in titles))
 

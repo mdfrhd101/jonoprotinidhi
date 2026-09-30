@@ -1,5 +1,5 @@
 /* Page data defaults (pure, unit-tested). */
-import { PAGE_SCHEMAS } from '@jonoshetu/shared';
+import { PAGE_SCHEMAS } from '@jonoprotinidhi/shared';
 import type { PageKey, LayoutPage, HomePage, ProfilePage, HeroesPage, AreaPage, ContactPage, ComplaintPage } from './types';
 
 export type PageMap = { layout: LayoutPage; home: HomePage; profile: ProfilePage; heroes: HeroesPage; area: AreaPage; contact: ContactPage; complaint: ComplaintPage };

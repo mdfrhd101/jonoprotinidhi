@@ -1,5 +1,5 @@
 {
-  "name": "@jonoshetu/web-admin",
+  "name": "@jonoprotinidhi/web-admin",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@jonoshetu/shared": "*",
+    "@jonoprotinidhi/shared": "*",
     "@tanstack/react-query": "^5.59.0",
     "@tiptap/pm": "^3.31.3",
     "@tiptap/react": "^3.31.3",

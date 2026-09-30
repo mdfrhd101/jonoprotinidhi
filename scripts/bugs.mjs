@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* Jonoshetu bug tracker: register.json is the source of truth, BUGS.md is generated.
+/* Jonoprotinidhi bug tracker: register.json is the source of truth, BUGS.md is generated.
    Formula, lifecycle and rules are documented in bugs/README.md.
 
    usage:

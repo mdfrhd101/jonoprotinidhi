@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { parseYouTubeId, videoInputSchema, videoPatchSchema, VIDEO_UPLOAD_TYPES } from '@jonoshetu/shared';
+import { parseYouTubeId, videoInputSchema, videoPatchSchema, VIDEO_UPLOAD_TYPES } from '@jonoprotinidhi/shared';
 import { ApiFail } from '../../../api';
 import { useTenant, publicPageUrl } from '../../../tenant';
 import { Badge, Button, Chips, Dialog, EmptyState, Field, Icon, PageHead, PillOf, SearchInput, Skeleton, Switch, Tabs, TabPanel, useToast } from '../../../components';

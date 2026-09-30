@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { MONTHS_BN, eventInputSchema } from '@jonoshetu/shared';
+import { MONTHS_BN, eventInputSchema } from '@jonoprotinidhi/shared';
 import { useTenant, publicPageUrl } from '../../../tenant';
 import { Button, Dialog, EmptyState, Field, Icon, PageHead, PillOf, SearchInput, Skeleton, Tabs, useToast } from '../../../components';
 import { bnWeekday, toBn } from '../../../format';

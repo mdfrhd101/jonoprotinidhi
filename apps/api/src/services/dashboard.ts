@@ -1,4 +1,4 @@
-import { hasPermission, PAGE_KEYS, PAGE_LABELS } from '@jonoshetu/shared';
+import { hasPermission, PAGE_KEYS, PAGE_LABELS } from '@jonoprotinidhi/shared';
 import { AuditLog, Complaint, EventItem, GalleryItem, PageContent, Post, PostVersion, PromiseItem, User, VideoItem } from '../models/index.js';
 import { ctx } from '../context.js';
 import type { MemberCtx } from './complaints.js';

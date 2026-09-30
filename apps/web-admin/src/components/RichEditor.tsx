@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { plainTextLength, toBn } from '@jonoshetu/shared';
+import { plainTextLength, toBn } from '@jonoprotinidhi/shared';
 
 /* Rich-text editor (Tiptap, MIT licence, built on ProseMirror). It only offers what the public site can render:
    bold, italic, underline, two heading levels, lists, quote and links. The server re-sanitises everything, so this

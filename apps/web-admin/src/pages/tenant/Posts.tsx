@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { postDraftSchema, postInputSchema, postPatchSchema, POST_CATEGORIES, availablePostActions, type PostStatus } from '@jonoshetu/shared';
+import { postDraftSchema, postInputSchema, postPatchSchema, POST_CATEGORIES, availablePostActions, type PostStatus } from '@jonoprotinidhi/shared';
 import { ApiFail } from '../../api';
 import { useTenant } from '../../tenant';
 import {

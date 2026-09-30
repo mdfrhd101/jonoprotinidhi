@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { promiseInputSchema, PROMISE_SECTORS, PROMISE_STATUSES } from '@jonoshetu/shared';
+import { promiseInputSchema, PROMISE_SECTORS, PROMISE_STATUSES } from '@jonoprotinidhi/shared';
 import { ApiFail } from '../../api';
 import { useTenant } from '../../tenant';
 import { Button, Card, Dialog, EmptyState, ErrorBox, Field, Icon, Loading, PageHead, PillOf, ProgressBar, StatCard, useToast, fieldMessages } from '../../components';

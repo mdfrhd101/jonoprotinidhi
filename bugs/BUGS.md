@@ -125,7 +125,7 @@ Source of truth: `bugs/register.json`. Formula, lifecycle and rules: `bugs/READM
 - **Priority P1**, RPN 40 (severity 4, occurrence 5, detectability 2), status **fixed**, category functional, found in dev on 2026-09-30
 - Module: web-public/lib/api
 - **What:** Node's global fetch (undici) replaces a custom Host header with the URL host. The API resolves the tenant by Host in production (X-Forwarded-Host is honoured only outside production), so every public page would 404 in production while working in development.
-- **How to reproduce:** fetch('http://127.0.0.1:4000/...', {headers:{host:'ndp3.jonoshetu.com'}}) -> API sees host 127.0.0.1:4000
+- **How to reproduce:** fetch('http://127.0.0.1:4000/...', {headers:{host:'ndp3.jonoprotinidhi.com'}}) -> API sees host 127.0.0.1:4000
 - **Root cause:** undici fetch treats Host as a forbidden/overridden header
 - **Fix:** server-to-API calls use node:http(s) (src/lib/http.ts) which keeps the Host header; regression test in apps/web-public/test/helpers.test.ts (2026-09-30)
 

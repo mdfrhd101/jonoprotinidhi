@@ -43,7 +43,7 @@ describe('TOTP (RFC 4226 / 6238)', () => {
 
   it('builds an otpauth URI', () => {
     const u = otpauthUri('ABCDEF', 'user@x.com');
-    expect(u).toContain('otpauth://totp/Jonoshetu:user%40x.com');
+    expect(u).toContain('otpauth://totp/Jonoprotinidhi:user%40x.com');
     expect(u).toContain('secret=ABCDEF');
   });
 });

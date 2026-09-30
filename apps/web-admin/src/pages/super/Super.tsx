@@ -41,7 +41,7 @@ export function SuperLayout() {
     { key: 'setup', label: 'সেটআপ চলছে এমন সাইট', count: k?.tenants.setup ?? 0, to: '/super/tenants?status=setup', icon: 'rocket' },
   ];
   return (
-    <Shell brand={{ small: 'জনসেতু · SUPER ADMIN', title: 'প্ল্যাটফর্ম নিয়ন্ত্রণ', sub: 'সব MP-র সাইট এক জায়গা থেকে' }} roleLabel={ROLE_LABEL[role] ?? role}
+    <Shell brand={{ small: 'জনপ্রতিনিধি · SUPER ADMIN', title: 'প্ল্যাটফর্ম নিয়ন্ত্রণ', sub: 'সব MP-র সাইট এক জায়গা থেকে' }} roleLabel={ROLE_LABEL[role] ?? role}
       nav={nav} notifications={notifications} cta={role === 'super_admin' ? { label: 'নতুন MP যোগ করুন', to: '/super/tenants/new', icon: 'plus' } : undefined}>
       <Outlet />
     </Shell>

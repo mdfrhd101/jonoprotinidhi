@@ -17,8 +17,8 @@ from playwright.sync_api import sync_playwright, expect
 ROOT = Path(__file__).resolve().parent.parent
 BASE = os.environ.get('ADMIN_URL', 'http://localhost:5173')
 API = os.environ.get('API_URL', 'http://127.0.0.1:4000')
-HOST = os.environ.get('TENANT_HOST', 'ndp3.jonoshetu.localhost')
-SHOTS = Path(sys.argv[sys.argv.index('--shots') + 1]) if '--shots' in sys.argv else Path(tempfile.gettempdir()) / 'jonoshetu-cms-shots'
+HOST = os.environ.get('TENANT_HOST', 'ndp3.jonoprotinidhi.localhost')
+SHOTS = Path(sys.argv[sys.argv.index('--shots') + 1]) if '--shots' in sys.argv else Path(tempfile.gettempdir()) / 'jonoprotinidhi-cms-shots'
 SHOTS.mkdir(parents=True, exist_ok=True)
 TMP = Path(tempfile.mkdtemp(prefix='cms-e2e-'))
 

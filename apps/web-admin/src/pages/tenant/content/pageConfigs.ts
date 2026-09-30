@@ -1,4 +1,4 @@
-import type { PageKey } from '@jonoshetu/shared';
+import type { PageKey } from '@jonoprotinidhi/shared';
 import type { FieldCfg, SectionCfg } from './fields';
 
 /* Hand-written form layouts for every site page. Field keys and limits mirror the zod schemas in

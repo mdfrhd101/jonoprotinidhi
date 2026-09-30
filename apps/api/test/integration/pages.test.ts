@@ -4,7 +4,7 @@ import { startDb, stopDb, clearDb } from '../helpers/db.js';
 import { makeEnv, makeSuperAdmin, makeTenant, api, admin, bearer, type TestEnv, type Tenant } from '../helpers/env.js';
 import { AuditLog } from '../../src/models/index.js';
 import { runInTenant } from '../../src/context.js';
-import { PAGE_KEYS } from '@jonoshetu/shared';
+import { PAGE_KEYS } from '@jonoprotinidhi/shared';
 
 let env: TestEnv, sa: string, t: Tenant, t2: Tenant;
 beforeAll(startDb);

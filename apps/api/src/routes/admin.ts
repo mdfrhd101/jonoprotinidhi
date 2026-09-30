@@ -1,5 +1,5 @@
 import { Router, type Request } from 'express';
-import { approveSchema, rejectSchema, promiseUpdateSchema, noteSchema, piiViewSchema, smsSendSchema, inviteSchema, staffComplaintSchema, permissionsFor } from '@jonoshetu/shared';
+import { approveSchema, rejectSchema, promiseUpdateSchema, noteSchema, piiViewSchema, smsSendSchema, inviteSchema, staffComplaintSchema, permissionsFor } from '@jonoprotinidhi/shared';
 import { z } from 'zod';
 import express from 'express';
 import type { Deps } from '../deps.js';

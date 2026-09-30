@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type DragEvent, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { PageKey } from '@jonoshetu/shared';
+import type { PageKey } from '@jonoprotinidhi/shared';
 import { ApiFail, type TenantApi } from '../../../api';
 import { Button, Dialog, type IconName } from '../../../components';
 import { ImagePicker } from '../../../components/ImagePicker';

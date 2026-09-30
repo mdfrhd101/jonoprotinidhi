@@ -1,4 +1,4 @@
-import { bnDate, toBn, formatBn, MONTHS_BN } from '@jonoshetu/shared';
+import { bnDate, toBn, formatBn, MONTHS_BN } from '@jonoprotinidhi/shared';
 
 export { bnDate, toBn, formatBn };
 

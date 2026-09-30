@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { bnDateTime, daysSince, POST_STATUS_LABEL, COMPLAINT_STATUS_LABEL, PROMISE_STATUS_LABEL, TENANT_STATUS_LABEL, ROLE_LABEL } from './format';
-import { POST_STATUSES, COMPLAINT_STATUSES, PROMISE_STATUSES } from '@jonoshetu/shared';
+import { POST_STATUSES, COMPLAINT_STATUSES, PROMISE_STATUSES } from '@jonoprotinidhi/shared';
 
 describe('bnDateTime (Asia/Dhaka, Bangla digits, day-part words)', () => {
   it('formats dawn, morning, noon, afternoon, evening and night (BUG-2026-012: 3:30 pm is বিকেল, not দুপুর)', () => {

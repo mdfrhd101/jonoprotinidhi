@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import sharp from 'sharp';
 import { startDb, stopDb, clearDb } from '../helpers/db.js';
 import { makeEnv, makeSuperAdmin, makeTenant, api, admin, bearer, type TestEnv, type Tenant } from '../helpers/env.js';
-import { parseYouTubeId } from '@jonoshetu/shared';
+import { parseYouTubeId } from '@jonoprotinidhi/shared';
 import type { MemoryMediaStorage } from '../../src/lib/media.js';
 
 let env: TestEnv, sa: string, t: Tenant, t2: Tenant;

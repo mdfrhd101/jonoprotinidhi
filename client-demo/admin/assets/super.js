@@ -34,7 +34,7 @@ const NAV=()=>[
   {path:'/staff',label:'প্ল্যাটফর্ম টিম',icon:'gear'}
 ];
 const sh=shell({
-  brand:`<small>জনসেতু · SUPER ADMIN</small><b>প্ল্যাটফর্ম নিয়ন্ত্রণ</b><span>সব MP-র সাইট এক জায়গা থেকে</span>`,
+  brand:`<small>জনপ্রতিনিধি · SUPER ADMIN</small><b>প্ল্যাটফর্ম নিয়ন্ত্রণ</b><span>সব MP-র সাইট এক জায়গা থেকে</span>`,
   nav:NAV,crumbRoot:'Super Admin',
   who:`<span class="av">নার</span><div><b>${ME.name}</b><small>Super Admin · 2FA চালু</small></div>`
 });
@@ -173,7 +173,7 @@ function domainsView(){
   </tbody></table></div>`;
   const dnsBody=d=>`<p style="margin:0 0 12px">MP-র ডোমেইন যেখানে কেনা (registrar), সেখানে এই দুটো রেকর্ড যোগ করতে হবে:</p>
     <div class="tbl-wrap"><table class="tbl"><thead><tr><th>ধরন</th><th>নাম</th><th>মান</th></tr></thead><tbody>
-    <tr><td>CNAME</td><td>${esc(d.host)}</td><td>sites.${PL.root}</td></tr><tr><td>TXT</td><td>_jonoshetu.${esc(d.host)}</td><td>${esc(d.token)}</td></tr></tbody></table></div>
+    <tr><td>CNAME</td><td>${esc(d.host)}</td><td>sites.${PL.root}</td></tr><tr><td>TXT</td><td>_jonoprotinidhi.${esc(d.host)}</td><td>${esc(d.token)}</td></tr></tbody></table></div>
     <p class="muted" style="margin:12px 0 0;font-size:13.5px">DNS ছড়াতে কয়েক মিনিট থেকে কয়েক ঘণ্টা লাগতে পারে। যাচাই হলে SSL নিজে থেকে তৈরি হবে।</p>`;
   $$('[data-dns]').forEach(b=>b.addEventListener('click',()=>{const d=domains().find(x=>x.host===b.dataset.dns);dialog({title:'DNS নির্দেশনা',body:dnsBody(d),cancel:'',ok:'বুঝেছি'})}));
   $$('[data-ver]').forEach(b=>b.addEventListener('click',()=>{
@@ -187,7 +187,7 @@ function domainsView(){
     onOk:d=>{const h=$('#dH',d).value.trim().toLowerCase().replace(/^https?:\/\//,'').replace(/\/.*$/,'');
       const bad=!/^(?=.{4,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/.test(h)?'সঠিক ডোমেইন লিখুন, যেমন example.com':domains().some(x=>x.host===h)?'এই ডোমেইন আগে থেকেই যুক্ত।':'';
       if(bad){const e=$('#dErr',d);e.textContent=bad;e.hidden=false;return false}
-      const tok='jonoshetu-verify='+Math.random().toString(16).slice(2,10);
+      const tok='jonoprotinidhi-verify='+Math.random().toString(16).slice(2,10);
       savePS(s=>{s.domains.push({host:h,tenant:$('#dT',d).value,type:'custom',dns:'pending',ssl:'none',sslExp:'—',token:tok})});
       saLog($('#dT',d).value,'কাস্টম ডোমেইন যোগ করেছেন',h);sh.renderNav();domainsView();
       setTimeout(()=>dialog({title:'DNS নির্দেশনা',body:dnsBody({host:h,token:tok}),cancel:'',ok:'বুঝেছি'}),50)}}));

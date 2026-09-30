@@ -1,8 +1,8 @@
 'use client';
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { toBn, toEn } from '@jonoshetu/shared/src/bangla.js';
-import { groupIndian } from '@jonoshetu/shared/src/bangla.js';
+import { toBn, toEn } from '@jonoprotinidhi/shared/src/bangla.js';
+import { groupIndian } from '@jonoprotinidhi/shared/src/bangla.js';
 
 /* Page motion from the demo: reveal-on-scroll (.reveal), promise bars (.p-row), count-up numbers ([data-count]) and
    parallax photos ([data-px]). Everything is skipped when the visitor prefers reduced motion; content is visible

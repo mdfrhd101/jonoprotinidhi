@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { canComplaintTransition, complaintSubmitSchema, complaintPatchSchema, hasPermission, normalizeBdPhone, toE164Bd, type ComplaintStatus, type ComplaintSubmit, type Perm } from '@jonoshetu/shared';
+import { canComplaintTransition, complaintSubmitSchema, complaintPatchSchema, hasPermission, normalizeBdPhone, toE164Bd, type ComplaintStatus, type ComplaintSubmit, type Perm } from '@jonoprotinidhi/shared';
 import type { Deps } from '../deps.js';
 import { ApiError } from '../errors.js';
 import { Complaint, ComplaintEvent, Membership, Tenant, nextSeq, type TenantDoc } from '../models/index.js';
@@ -44,7 +44,7 @@ export class ComplaintService {
     const h = hmacPhone(this.d.config.PHONE_PEPPER, phone);
     for (const r of [this.d.rateLimiter.check('otpSend', `ip:${ip}`), this.d.rateLimiter.check('otpSend', `ph:${tenant._id}:${h}`)]) if (!r.allowed) throw ApiError.tooMany(r.retryAfterSec);
     const issued = this.d.otp.issue(`${tenant._id}:${h}`);
-    if (issued.ok) await this.d.sms.send({ tenantId: tenant._id, to: toE164Bd(phone), text: `জনসেতু যাচাই কোড: ${issued.code} (৫ মিনিট)`, purpose: 'otp', senderId: tenant.settings.smsSenderId, cap: tenant.settings.dailySmsCap });
+    if (issued.ok) await this.d.sms.send({ tenantId: tenant._id, to: toE164Bd(phone), text: `জনপ্রতিনিধি যাচাই কোড: ${issued.code} (৫ মিনিট)`, purpose: 'otp', senderId: tenant.settings.smsSenderId, cap: tenant.settings.dailySmsCap });
     // Same response whether or not a code was sent: no signal for enumeration or cooldown probing.
   }
 

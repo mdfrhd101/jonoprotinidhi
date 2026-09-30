@@ -1,7 +1,7 @@
 import mongoose, { Schema, type InferSchemaType, type HydratedDocument } from 'mongoose';
 import { tenantScoped } from '../plugins/tenantScoped.js';
 import { softDelete } from '../plugins/softDelete.js';
-import { POST_CATEGORIES, PROMISE_SECTORS, POST_STATUSES, PROMISE_STATUSES } from '@jonoshetu/shared';
+import { POST_CATEGORIES, PROMISE_SECTORS, POST_STATUSES, PROMISE_STATUSES } from '@jonoprotinidhi/shared';
 
 const { models, model } = mongoose;
 type Scoped<T> = T & { tenantId: mongoose.Types.ObjectId };

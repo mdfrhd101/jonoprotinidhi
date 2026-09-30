@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { tenantCreateSchema, tenantStatusSchema, actAsSchema, domainAddSchema, slugSchema, type PlatformRole } from '@jonoshetu/shared';
+import { tenantCreateSchema, tenantStatusSchema, actAsSchema, domainAddSchema, slugSchema, type PlatformRole } from '@jonoprotinidhi/shared';
 import type { Deps } from '../deps.js';
 import type { TenantService } from '../services/tenants.js';
 import { ApiError } from '../errors.js';
