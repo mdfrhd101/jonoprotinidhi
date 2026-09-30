@@ -1,0 +1,59 @@
+/* Form controls, rich-text editor and photo picker (design system part 3). Tokens live in base.css. */
+
+/* ---------- roomy form controls (owner request, BUG-2026-015) ---------- */
+/* most inputs in the app have no type attribute, so `input:not([type])` matters as much as the typed selectors */
+input:not([type]),input[type=text],input[type=email],input[type=tel],input[type=url],input[type=date],input[type=datetime-local],input[type=search],input[type=number],input[type=password],select{font:inherit;color:var(--text);background:#fff;border:1px solid var(--line-strong);width:100%;min-width:0;min-height:52px;font-size:16px;padding:13px 16px;border-radius:12px}
+input:not([type]):focus,input[type=text]:focus,input[type=email]:focus,input[type=tel]:focus,input[type=url]:focus,input[type=date]:focus,input[type=datetime-local]:focus,input[type=password]:focus,input[type=number]:focus,input[type=search]:focus,select:focus{outline:none;border-color:var(--brass-deep);box-shadow:var(--ring)}
+select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235B6370' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:42px}
+textarea{min-height:170px;font-size:16px;padding:14px 16px;line-height:1.75;border-radius:12px}
+textarea.short{min-height:112px}
+.field .lab,.field>label{font-size:15px}
+input[type=file]{font:inherit}
+
+/* ---------- rich text editor ---------- */
+.rte{border:1px solid var(--line-strong);border-radius:14px;background:#fff;overflow:clip}
+.rte:focus-within{border-color:var(--brass-deep);box-shadow:var(--ring)}
+.rte[data-invalid=true]{border-color:var(--late)}
+.rte-bar{display:flex;flex-wrap:wrap;gap:4px;padding:8px;border-bottom:1px solid var(--line-2);background:var(--n-50);position:sticky;top:var(--top-h);z-index:2}
+.rte-bar button{min-width:40px;height:40px;padding:0 12px;border:1px solid transparent;border-radius:9px;background:transparent;color:var(--text);font:inherit;font-size:15px;cursor:pointer;transition:background .12s,border-color .12s}
+.rte-bar button:hover{background:#fff;border-color:var(--line)}
+.rte-bar button[aria-pressed=true]{background:var(--ink);color:var(--paper)}
+.rte-bar button:disabled{opacity:.4;cursor:not-allowed}
+.rte-bar .sep{width:1px;background:var(--line);margin:6px 4px}
+.rte-link{display:flex;gap:8px;padding:10px;border-bottom:1px solid var(--line-2);background:var(--brass-s2);align-items:center;flex-wrap:wrap}
+.rte-link input{flex:1;min-width:200px;min-height:44px}
+.rte-body{padding:8px 22px}
+.rte-body .ProseMirror{min-height:320px;max-height:680px;overflow:auto;outline:none;font-size:16.5px;line-height:1.9;padding:12px 0}
+.rte-body .ProseMirror p{margin:0 0 1em}
+.rte-body .ProseMirror h2{font-family:var(--f-display);font-size:1.5rem;margin:1.2em 0 .4em}
+.rte-body .ProseMirror h3{font-family:var(--f-display);font-size:1.2rem;margin:1.1em 0 .4em}
+.rte-body .ProseMirror ul,.rte-body .ProseMirror ol{padding-left:1.5em;margin:0 0 1em}
+.rte-body .ProseMirror blockquote{margin:1em 0;padding:4px 0 4px 18px;border-left:3px solid var(--brass-deep);font-family:var(--f-display);font-size:1.1em}
+.rte-body .ProseMirror a{color:var(--brass-ink);text-decoration:underline}
+.rte-body .ProseMirror p.is-empty:first-child::before{content:attr(data-placeholder);color:var(--faint);float:left;height:0;pointer-events:none}
+
+/* ---------- photo picker ---------- */
+.pics{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
+.pic{border:1px solid var(--line);border-radius:14px;background:#fff;overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--sh-1)}
+.pic img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:var(--paper-2)}
+.pic .pic-b{padding:12px;display:grid;gap:10px}
+.pic input{min-height:44px;font-size:15px;padding:10px 12px;border-radius:10px}
+.pic-actions{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.drop{border:2px dashed var(--line-strong);border-radius:16px;padding:30px 18px;text-align:center;background:var(--n-50);cursor:pointer;display:grid;gap:6px;justify-items:center;transition:border-color .15s,background .15s}
+.drop:hover,.drop.over{border-color:var(--brass-deep);background:var(--brass-s2)}
+.drop strong{font-size:16px}
+.drop small{color:var(--muted)}
+.drop .btn{margin-top:4px}
+.lib{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;max-height:60vh;overflow:auto}
+.lib button{border:2px solid transparent;padding:0;background:none;cursor:pointer;border-radius:12px;overflow:hidden}
+.lib button:hover:not(:disabled),.lib button:focus-visible{border-color:var(--brass-deep);outline:none}
+.lib button:disabled{opacity:.4;cursor:not-allowed}
+.lib img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+dialog.wide{max-width:min(880px,calc(100vw - 32px))}
+
+/* ---------- small leftovers used by pages ---------- */
+.pull{margin:24px 0;padding:8px 0 8px 22px;border-left:3px solid var(--brass-deep)}
+.pull p{font-family:var(--f-display);font-weight:700;font-size:1.35rem;line-height:1.6}
+code{background:var(--n-100);padding:1px 7px;border-radius:6px;font-size:.9em}
+table.tbl small{display:block}
+button:disabled{cursor:not-allowed}

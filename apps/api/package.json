@@ -1,0 +1,44 @@
+{
+  "name": "@jonoshetu/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file=.env src/server.ts",
+    "start": "tsx --env-file=.env src/server.ts",
+    "seed": "tsx --env-file=.env src/seed.ts",
+    "test": "vitest run",
+    "test:unit": "vitest run test/unit",
+    "test:int": "vitest run test/integration",
+    "test:cov": "vitest run --coverage",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@jonoshetu/shared": "*",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "express": "^4.21.1",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.8.1",
+    "pino": "^9.5.0",
+    "sanitize-html": "^2.17.7",
+    "sharp": "^0.35.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.7",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^22.9.0",
+    "@types/sanitize-html": "^2.16.2",
+    "@types/supertest": "^6.0.2",
+    "@vitest/coverage-v8": "^2.1.4",
+    "mongodb-memory-server": "^10.1.2",
+    "supertest": "^7.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.4"
+  }
+}

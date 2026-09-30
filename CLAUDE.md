@@ -1,0 +1,16 @@
+# Jonoshetu (জনসেতু) — Claude context
+
+Portfolio + CMS + citizen complaint platform for Bangladeshi MPs/ministers (multi-tenant, run by the user's company).
+
+- **Read `HANDOFF.md` first** (owner's log, Bangla), then **`docs/00-START-HERE.md`** and the kit in `docs/01..08` + `adr/`.
+- Reply to the user in **Bangla**. Code, commits and docs in English; UI copy in Bangla.
+- **Decisions already made** (see `adr/`): one multi-tenant platform we host; **MERN** (Express + Mongoose API, React admin SPA, Next.js public sites); tenant isolation via fail-closed `tenantId` plugin; complainant PII encrypted, assigned-officer-only; Draft → Review → Publish with owner approval; complaint OTP optional (mandatory per tenant on request). Don't re-open without the owner.
+- Never put invented activities/news/stats/quotes under a real politician's name; full-content demos use the fictional MP in `client-demo/demo-mp/`. No real MP site without written office consent.
+- Product code **exists** (first vertical slice): `apps/api` (Express+Mongoose), `apps/web-admin` (React SPA), `packages/shared` (zod schemas, permissions). Run: `npm install`, `npm run seed`, `npm run dev:api`, `npm run dev:admin`. Test: `npm test`, `npm run typecheck`, `bash e2e/run.sh`. Seed credentials are in git-ignored `apps/api/.seed-credentials.local` (never paste them in chat). `client-demo/` remains the visual/UX spec (static, no backend).
+- **Bug tracking:** every defect goes into `bugs/register.json` via `node scripts/bugs.mjs` (RPN = S×O×D, see `bugs/README.md`); each fix needs a regression test that mentions the bug ID; `npm run bugs:check` must pass; open P0/P1 blocks release.
+- **2-step login is a switch:** `MFA_REQUIRED` in `apps/api/.env` (default `true`). Local `.env` has `false` (owner asked, 30 Sep 2026) so login is password-only; the API refuses to start with `false` in production. `e2e/smoke.py` needs `MFA_REQUIRED=true`. Turn it back on before any real client/pilot.
+- **Media + rich text:** post `body` is sanitised HTML (`apps/api/src/lib/richtext.ts`, allow-list; length limit counts visible text via `packages/shared/src/richtext.ts`). Uploads go through `apps/api/src/lib/media.ts` (sharp re-encode to WebP, EXIF stripped, SVG/GIF refused, 40 MP cap) into `MediaStorage`; URLs are built by `lib/mediaUrl.ts` and only own-tenant upload URLs or `MEDIA_HOSTS` are accepted in posts/banners. Admin UI: `components/RichEditor.tsx` (Tiptap), `ImagePicker.tsx`, `RichText.tsx` (DOMPurify on read). New tenant routes must be added to the isolation crawler table.
+- Test gotchas: tenant-scoped models need `runInTenant` (await inside it); rate limits are disabled in tests unless `setDisabled(false)`; e2e needs a reseed (`SEED_RESET=1`) each run.
+- Demo preview: `python -m http.server 8765 --bind 127.0.0.1 --directory client-demo` → `http://localhost:8765/demo-mp/` (public site) and `http://localhost:8765/admin/` (Super Admin + MP Admin panels; they share localStorage with the public site).
+- Security rules that apply to all code: every tenant query scoped; no PII in logs; no secrets in git; audit every admin write (`docs/05`, `docs/08`).
+- Update the dated header and "এখন পর্যন্ত যা তৈরি হয়েছে" / "পরের কাজ" sections of `HANDOFF.md` whenever work is done; keep docs in sync and regenerate `HANDOFF_BUNDLE.md` (`python scripts/build-bundle.py`).

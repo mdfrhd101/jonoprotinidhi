@@ -1,0 +1,29 @@
+{
+  "name": "@jonoshetu/web-public",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3000 -H 127.0.0.1",
+    "build": "next build",
+    "start": "next start -p 3000 -H 127.0.0.1",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "e2e": "python e2e/public_smoke.py"
+  },
+  "dependencies": {
+    "@jonoshetu/shared": "*",
+    "next": "14.2.35",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "sanitize-html": "^2.17.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@types/sanitize-html": "^2.16.2",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.4"
+  }
+}

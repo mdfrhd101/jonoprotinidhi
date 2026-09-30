@@ -1,0 +1,21 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+*.log
+.vite/
+.DS_Store
+.seed-credentials.local
+apps/api/uploads/
+# build output and tool caches
+.next/
+*.tsbuildinfo
+__pycache__/
+test-results/
+playwright-report/
+# local Claude/desktop state
+.claude/
+# Demo v2 uses a REAL politician's name (Wikipedia facts only); it must not be shared outside this machine (HANDOFF §9)
+client-demo/mirza-abbas/

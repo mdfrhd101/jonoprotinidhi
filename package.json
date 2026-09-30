@@ -1,0 +1,19 @@
+{
+  "name": "jonoshetu",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Jonoshetu: multi-tenant MP portfolio + CMS + citizen complaint platform",
+  "workspaces": ["apps/*", "packages/*"],
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dev:api": "npm run dev -w @jonoshetu/api",
+    "dev:admin": "npm run dev -w @jonoshetu/web-admin",
+    "dev:public": "npm run dev -w @jonoshetu/web-public",
+    "seed": "npm run seed -w @jonoshetu/api",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:unit": "npm run test:unit --workspaces --if-present",
+    "bugs": "node scripts/bugs.mjs",
+    "bugs:check": "node scripts/bugs.mjs check"
+  }
+}
