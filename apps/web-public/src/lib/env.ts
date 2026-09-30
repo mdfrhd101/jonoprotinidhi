@@ -10,6 +10,9 @@ export const env = {
   imageHosts: (process.env.MEDIA_HOSTS || 'upload.wikimedia.org,thumb.wikimedia.org,cdn.jonoshetu.example').split(',').map((s) => s.trim()).filter(Boolean),
   /** Cloudflare Turnstile site key (public by design). Empty in development: the API accepts any token there. */
   turnstileSiteKey: process.env.TURNSTILE_SITE_KEY || '',
+  /** Shared secret that lets the API trust X-Client-IP from this server (BUG-2026-020). Server only: never NEXT_PUBLIC_,
+      never passed to a client component; in a browser bundle it is always ''. */
+  siteServerToken: typeof window === 'undefined' ? process.env.SITE_SERVER_TOKEN || '' : '',
   /** Trust X-Forwarded-Host from a reverse proxy in front of this server. */
   trustProxy: process.env.TRUST_PROXY === '1',
 };

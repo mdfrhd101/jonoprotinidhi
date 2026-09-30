@@ -1,5 +1,5 @@
 # জনসেতু (Jonoshetu) — MP/মন্ত্রী পোর্টফোলিও ও জনসংযোগ প্ল্যাটফর্ম
-### হ্যান্ডঅফ ডকুমেন্ট · শেষ হালনাগাদ: ৩০ সেপ্টেম্বর ২০২৬ (আসল Admin panel + টেস্ট + bug register)
+### হ্যান্ডঅফ ডকুমেন্ট · শেষ হালনাগাদ: ৩০ সেপ্টেম্বর ২০২৬ (নতুন অ্যাডমিন ডিজাইন, পুরো CMS, পাবলিক ওয়েবসাইট, GitHub)
 
 > অন্য PC বা অন্য Claude-এ কাজ চালিয়ে যেতে প্রথমে এই ফাইলটা পুরো পড়ুন।
 > Claude-কে বলুন: **"HANDOFF.md পড়ে 'পরের কাজ' অংশ থেকে কাজ চালিয়ে যাও। আমার সাথে বাংলায় কথা বলবে।"**
@@ -258,7 +258,15 @@ npm run dev:admin                         # http://localhost:5173
 
 **ছবি আপলোড ও রিচ-টেক্সট (৩০ সেপ্টেম্বর ২০২৬):** পোস্টের "পুরো খবর" এখন Tiptap (MIT, ওপেন সোর্স) এডিটর: মোটা/বাঁকা/দাগ, হেডিং, তালিকা, উদ্ধৃতি, লিংক। সার্ভার `sanitize-html` দিয়ে HTML পরিষ্কার করে রাখে (script, handler, iframe, javascript: লিংক বাদ)। ছবি আপলোড: `POST /admin/tenants/:id/media` (JPG/PNG/WebP, সর্বোচ্চ ৮MB), সার্ভারে `sharp` দিয়ে decode + EXIF/GPS মুছে + WebP করে সংরক্ষণ (ডিস্কে `apps/api/uploads/`, git-ignored; `MediaStorage` interface, পরে S3), পাবলিক URL `/api/v1/public/media/<tenantId>/<id>.webp`। ছবি শুধু নিজের tenant-এর আপলোড বা অনুমোদিত হোস্টের হতে পারে; ব্যবহৃত ছবি মোছা যায় না। পোস্টে সর্বোচ্চ ৬টি ছবি, প্রতিটির ক্রেডিটসহ। ব্যানারে (Site পেজ) এখনো শুধু লিংক, আপলোড নেই।
 
-**এখনো তৈরি হয়নি:** WebAuthn, Redis/BullMQ (এখন in-memory), Next.js পাবলিক সাইট (M3), backup/restore UI, এলাকা/ইভেন্ট/অফিস/ভিডিও editor, আসল SMS gateway, git repo ও CI। `docs/07-TASKS.md`-এর শুরুতে অবস্থার সারাংশ আছে।
+**৩০ সেপ্টেম্বর ২০২৬ সন্ধ্যা পর্যন্ত যোগ হয়েছে:**
+- **GitHub:** private repo https://github.com/mdfrhd101/jonoshetu (branch `main`)। `.env`, পাসওয়ার্ড ফাইল, আপলোড আর `client-demo/mirza-abbas/` (বাস্তব রাজনীতিকের নাম) ইচ্ছা করে বাদ।
+- **পাবলিক ওয়েবসাইট (Next.js 14):** `apps/web-public`, চালু `npm run dev:public` → http://localhost:3000। সব লেখা ও ছবি CMS থেকে আসে (`/api/v1/public/pages/<key>` ইত্যাদি)। হিরো স্লাইডার (৩ সেকেন্ড, pause নেই, ফ্রেম-করা ছবি), গ্যালারি স্লাইডার + লাইটবক্স, ভিডিও স্লাইডার (YouTube লিংক ও আপলোড করা ভিডিও), অভিযোগ ফর্ম (API proxy)।
+- **CMS:** প্রতিটি পেজের প্রতিটি লেখা সম্পাদনযোগ্য: `layout, home, profile, heroes, area, contact, complaint` (খসড়া → MP প্রকাশ করেন), ব্যানার (ছবি আপলোড, শিরোনাম, বোতাম), গ্যালারি, ভিডিও (YouTube লিংক বা MP4/WebM আপলোড, ১৫০MB), ইভেন্ট, মিডিয়া লাইব্রেরি। নকশা ও API: `docs/09-BUILD-BRIEF.md`।
+- **অ্যাডমিন নতুন ডিজাইন:** design system (`apps/web-admin/DESIGN.md`, `/_kit`), আইকন সাইডবার, নতুন ড্যাশবোর্ড (চার্ট, অনুমোদন, অভিযোগ, সাইট প্রস্তুতি), Super Admin নতুন করে (ড্যাশবোর্ড, MP তালিকা/বিস্তারিত, ৫ ধাপের MP যোগ, অডিট, ডোমেইন)।
+- **ডেমো কনটেন্ট:** `npm run seed` সব পেজ, ১৮টি ছবি, ৭টি ভিডিও, ৫টি ইভেন্ট, MP-র ৩টি AI-নির্মিত ছবি (হিরো) দিয়ে সাজায় (`apps/api/src/seedContent.ts`, `apps/api/seed-assets/`)।
+- **নিরাপত্তা বাগ ঠিক:** BUG-018/019 (নাগরিকের IP/browser অডিট লগে দেখা যেত), BUG-020 (পাবলিক সাইট সার্ভারের জন্য `SITE_SERVER_TOKEN` + `X-Client-IP`, দুই `.env`-এ একই মান)।
+
+**এখনো তৈরি হয়নি:** WebAuthn, Redis/BullMQ (এখন in-memory), backup/restore, স্টাফ ম্যানেজমেন্ট, ভিজিটর পরিসংখ্যান, আসল SMS gateway, CI, প্রোডাকশন হোস্টিং। ছবিতে focal point (কোন অংশ দেখাবে) এখন সাইটে ক্রম অনুযায়ী ঠিক করা, CMS-এ ফিল্ড নেই। `docs/07-TASKS.md`-এর শুরুতে অবস্থার সারাংশ আছে।
 
 **বাগ ট্র্যাকিং:** `bugs/README.md` (ফর্মুলা RPN = তীব্রতা × ঘটার হার × ধরা কঠিনতা), `node scripts/bugs.mjs add|status|check --gate`। Release gate: খোলা P0/P1 থাকলে release নয়।
 
@@ -278,7 +286,8 @@ python -m http.server 8765 --bind 127.0.0.1 --directory "D:/AI/Jonoshetu/client-
    - `HANDOFF_BUNDLE.md` (claude.ai Project-এ upload করার জন্য এক ফাইলে সব)। docs বদলালে আবার বানাতে হবে: `python scripts/build-bundle.py`
    - ইউজার এখনো kit পড়ে দেখেননি। ফিডব্যাক অনুযায়ী বদলাতে হবে।
 5. ~~আসল প্রোডাক্ট: API + Admin panel~~ ✅ প্রথম slice (৩০ সেপ্টেম্বর ২০২৬), ইউজারের ফিডব্যাক বাকি।
-6. **পরের ধাপ:** (ক) Media upload pipeline + ছবির অনুমতি/credit, (খ) Next.js পাবলিক সাইট (M3) API থেকে, (গ) এলাকা/ইভেন্ট/অফিস/ভিডিও editor, (ঘ) Redis/BullMQ, (ঙ) backup/restore, (চ) git repo + CI (GitHub কোথায় হবে ইউজারকে জিজ্ঞেস করতে হবে), (ছ) BUG-2026-014 (e2e flake) কারণ খোঁজা।
+6. ~~Media, পাবলিক সাইট, সব পেজের CMS, গ্যালারি/ভিডিও/ইভেন্ট, GitHub~~ ✅ (৩০ সেপ্টেম্বর ২০২৬)। ইউজারের ফিডব্যাক বাকি।
+7. **পরের ধাপ:** (ক) CI (GitHub Actions: typecheck + test + bugs:check --gate), (খ) ব্যানার/ছবিতে focal point ফিল্ড, (গ) Redis/BullMQ, (ঘ) backup/restore ও স্টাফ ম্যানেজমেন্ট, (ঙ) আসল SMS gateway ও হোস্টিং (ইউজারকে জিজ্ঞেস), (চ) AI ছবির ভেতরের ভুল লেখা ("ঢাকা লোকনাথ", ফলকের লোগো) ঠিক করে নতুন ছবি, (ছ) BUG-2026-014 (e2e flake)।
 
 ## ১১. সিদ্ধান্ত
 **নেওয়া হয়েছে** (৩০ সেপ্টেম্বর ২০২৬, `adr/` দেখুন):

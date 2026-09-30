@@ -78,7 +78,7 @@ const office=S.offices[0];
 const credits=[...new Set(Object.values(S.img).map(i=>i.credit).filter(Boolean))];
 document.body.insertAdjacentHTML('beforeend',`<footer><div class="wrap foot-grid v4">
 <div>${logo}<p style="margin-top:16px;max-width:40ch">চরকান্দি, শালবাগান ও নতুনহাটের মানুষের জন্য। প্রতিটি অভিযোগের উত্তর, প্রতিটি প্রতিশ্রুতির হিসাব।</p></div>
-<div><h4>সাইট</h4><ul>${NAV.map(([k,h,t])=>`<li><a href="${h}">${t}</a></li>`).join('')}<li><a href="biography.html">জীবনপঞ্জি</a></li><li><a href="complaint.html">অভিযোগ বক্স</a></li></ul></div>
+<div><h4>সাইট</h4><ul class="site-links">${NAV.map(([k,h,t])=>`<li><a href="${h}">${t}</a></li>`).join('')}<li><a href="biography.html">জীবনপঞ্জি</a></li><li><a href="complaint.html">অভিযোগ বক্স</a></li></ul></div>
 <div><h4>${office.name}</h4><ul>${office.rows.map(r=>`<li>${r[1]}</li>`).join('')}</ul></div>
 <div><h4>অন্যান্য</h4><ul><li>ফেসবুক পেজ</li><li>ইউটিউব চ্যানেল</li><li>গোপনীয়তা নীতি</li><li>অভিযোগ নীতিমালা</li></ul></div>
 ${credits.length?`<details class="credits"><summary>ছবির কৃতজ্ঞতা ও লাইসেন্স</summary><p>${credits.map(esc).join(' · ')}</p></details>`:''}

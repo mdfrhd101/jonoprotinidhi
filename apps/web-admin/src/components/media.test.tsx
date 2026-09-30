@@ -78,6 +78,8 @@ describe('ImagePicker (photo upload field)', () => {
     expect(await screen.findByRole('button', { name: /ব্যবহৃত/ })).toBeDisabled();
     await userEvent.click(screen.getByRole('button', { name: /পুরনো/ }));
     expect(state()).toEqual([{ url: 'http://x/used.webp', credit: '' }, { url: 'http://x/old.webp', credit: 'ক্রেডিট' }]);
+    // BUG-2026-025: the library lists images only (uploaded videos live in the same media library)
+    expect(h.tenant!.api.get).toHaveBeenCalledWith(expect.stringMatching(/^\/media\?kind=image&/));
   });
 });
 

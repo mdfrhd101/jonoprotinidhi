@@ -40,7 +40,7 @@ export default function GallerySlider({ items, albums = [], filter = false, wall
   const start = useRef<{ x: number; y: number; id: number } | null>(null);
 
   useEffect(() => { const r = window.matchMedia('(prefers-reduced-motion: reduce)').matches; setReduce(r); if (r) setPlaying(false); }, []);
-  useEffect(() => { setCur(0); setSeen(new Set([0, 1])); }, [album]);
+  const pickAlbum = (a: string) => { setAlbum(a); setCur(0); setSeen(new Set([0, 1])); setAnnounce(true); };
   useEffect(() => { setSeen((s) => { const add = nearbyIndexes(cur, n).filter((i) => !s.has(i)); return add.length ? new Set([...s, ...add]) : s; }); }, [cur, n]);
 
   const go = useCallback((i: number) => { setCur(wrapIndex(i, n)); setAnnounce(true); }, [n]);
@@ -97,13 +97,13 @@ export default function GallerySlider({ items, albums = [], filter = false, wall
 
   const albumChips = filter && albums.length > 1 && (
     <div className="chips gs-filter" role="group" aria-label="অ্যালবাম বেছে নিন">
-      <button type="button" className="chip" aria-pressed={album === ALL} onClick={() => setAlbum(ALL)}>সব ছবি <span aria-hidden="true">({toBn(items.length)})</span></button>
-      {albums.map((a) => <button key={a.name} type="button" className="chip" aria-pressed={album === a.name} onClick={() => setAlbum(a.name)}>{a.name} <span aria-hidden="true">({toBn(a.count)})</span></button>)}
+      <button type="button" className="chip" aria-pressed={album === ALL} onClick={() => pickAlbum(ALL)}>সব ছবি <span aria-hidden="true">({toBn(items.length)})</span></button>
+      {albums.map((a) => <button key={a.name} type="button" className="chip" aria-pressed={album === a.name} onClick={() => pickAlbum(a.name)}>{a.name} <span aria-hidden="true">({toBn(a.count)})</span></button>)}
     </div>
   );
 
   if (!n) return <>{albumChips}<p className="gs-empty">এখনো কোনো ছবি প্রকাশ করা হয়নি।</p></>;
-  const it = list[cur]!;
+  const it = list[Math.min(cur, n - 1)]!;
 
   return (
     <div className="gs">

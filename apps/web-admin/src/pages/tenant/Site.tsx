@@ -10,7 +10,7 @@ import { CharCount, SingleImage, errText, issuesToErrors, useLeaveGuard, useReor
 
 /* "ব্যানার ও হোমপেজ সাজানো": hero banners (image + text + call to action), slogan, accent colour and the order/visibility of the
    homepage sections. Site config has no draft: saving publishes (owner only, `site.edit`).
-   The profile text moved to its own editor (site-pages/profile). BUG-2026-0xx: the old profile card here saved only three
+   The profile text moved to its own editor (site-pages/profile). BUG-2026-021: the old profile card here saved only three
    fields through PUT /profile and wiped the rest of the profile draft. */
 
 export const SECTION_LABEL: Record<string, string> = { stats: 'সংখ্যায় কাজ', about: 'পরিচিতি', activities: 'সাম্প্রতিক কাজ', office: 'সংসদে / দায়িত্ব', promises: 'প্রতিশ্রুতির হিসাব', area: 'নির্বাচনী এলাকা', gallery: 'গ্যালারি', videos: 'ভিডিও', events: 'আসন্ন কর্মসূচি', cta: 'অভিযোগ বক্সের আহ্বান' };
@@ -41,6 +41,7 @@ function SiteConfigEditor() {
   const [snap, setSnap] = useState('');
   const [errs, setErrs] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const up = (fn: (x: Cfg) => Cfg) => setF((x) => (x ? fn(x) : x));
   useEffect(() => { if (q.data && !f) { const n = normalise(q.data); setF(n); setSnap(JSON.stringify(n)); } }, [q.data]); // eslint-disable-line react-hooks/exhaustive-deps
   const dirty = !!f && JSON.stringify(f) !== snap;
   const guard = useLeaveGuard(dirty);
@@ -49,14 +50,14 @@ function SiteConfigEditor() {
   useEffect(() => {
     if (!f) return;
     const cur = f.sections.map((s) => s.key).join(',');
-    if (sec.order.join(',') !== cur && sec.order.length === f.sections.length) setF({ ...f, sections: sec.order.map((k) => f.sections.find((s) => s.key === k)!) });
+    if (sec.order.join(',') !== cur && sec.order.length === f.sections.length) up((f) => ({ ...f, sections: sec.order.map((k) => f.sections.find((s) => s.key === k)!) }));
   }, [sec.order]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (q.isLoading || (!f && !q.isError)) return <><PageHead kicker="সাইটের পাতা" icon="banners" title="ব্যানার ও হোমপেজ সাজানো" /><Loading /></>;
   if (q.isError || !f) return <><PageHead kicker="সাইটের পাতা" icon="banners" title="ব্যানার ও হোমপেজ সাজানো" /><ErrorBox error={q.error} retry={() => q.refetch()} /></>;
 
-  const setB = (i: number, patch: Partial<Banner>) => setF({ ...f, banners: f.banners.map((b, j) => (j === i ? { ...b, ...patch } : b)) });
-  const moveB = (i: number, d: number) => { const j = i + d; if (j < 0 || j >= f.banners.length) return; const b = [...f.banners]; [b[i], b[j]] = [b[j]!, b[i]!]; setF({ ...f, banners: b }); };
+  const setB = (i: number, patch: Partial<Banner>) => up((f) => ({ ...f, banners: f.banners.map((b, j) => (j === i ? { ...b, ...patch } : b)) }));
+  const moveB = (i: number, d: number) => up((f) => { const j = i + d; if (j < 0 || j >= f.banners.length) return f; const b = [...f.banners]; [b[i], b[j]] = [b[j]!, b[i]!]; return { ...f, banners: b }; });
 
   const save = async () => {
     const body = { ...f, banners: f.banners.map((b) => Object.fromEntries(Object.entries(b).filter(([k, v]) => k === 'url' || k === 'caption' || v !== ''))) };
@@ -91,7 +92,7 @@ function SiteConfigEditor() {
                 <span className="grow" />
                 <button type="button" className="icon-btn" aria-label={`ব্যানার ${toBn(i + 1)} ওপরে সরান`} disabled={i === 0} onClick={() => moveB(i, -1)}><Icon name="arrowUp" size={16} /></button>
                 <button type="button" className="icon-btn" aria-label={`ব্যানার ${toBn(i + 1)} নিচে সরান`} disabled={i === f.banners.length - 1} onClick={() => moveB(i, 1)}><Icon name="arrowDown" size={16} /></button>
-                <button type="button" className="icon-btn ct-del" aria-label={`ব্যানার ${toBn(i + 1)} মুছুন`} onClick={() => setF({ ...f, banners: f.banners.filter((_, j) => j !== i) })}><Icon name="trash" size={16} /></button>
+                <button type="button" className="icon-btn ct-del" aria-label={`ব্যানার ${toBn(i + 1)} মুছুন`} onClick={() => up((f) => ({ ...f, banners: f.banners.filter((_, j) => j !== i) }))}><Icon name="trash" size={16} /></button>
               </div>
               <div className="ct-banner-b">
                 <div className="ct-banner-l">
@@ -120,15 +121,15 @@ function SiteConfigEditor() {
           ))}
         </div>
         {errs.banners && <p className="err" role="alert">{errs.banners}</p>}
-        <div className="ct-list-f"><Button icon="plus" disabled={f.banners.length >= MAX_BANNERS} onClick={() => setF({ ...f, banners: [...f.banners, { url: '', caption: '', title: '', subtitle: '', ctaLabel: '', ctaHref: '' }] })}>ব্যানার যোগ করুন</Button>
+        <div className="ct-list-f"><Button icon="plus" disabled={f.banners.length >= MAX_BANNERS} onClick={() => up((f) => ({ ...f, banners: [...f.banners, { url: '', caption: '', title: '', subtitle: '', ctaLabel: '', ctaHref: '' }] }))}>ব্যানার যোগ করুন</Button>
           {f.banners.length >= MAX_BANNERS && <small className="muted">সর্বোচ্চ {toBn(MAX_BANNERS)}টি</small>}</div>
       </FormSection>
 
       <FormSection title="স্লোগান ও রং" icon="sparkles" description="নামের নিচে স্লোগান; রং বোতাম আর লিংকে ব্যবহার হয়।">
-        <Field label="স্লোগান" error={errs.slogan} hint="নামের নিচে দেখায়। ছোট আর সত্যি রাখুন।">{(p) => <><input {...p} maxLength={90} value={f.slogan} onChange={(e) => setF({ ...f, slogan: e.target.value })} /><div className="ct-meta"><span /><CharCount n={f.slogan.length} max={90} /></div></>}</Field>
+        <Field label="স্লোগান" error={errs.slogan} hint="নামের নিচে দেখায়। ছোট আর সত্যি রাখুন।">{(p) => <><input {...p} maxLength={90} value={f.slogan} onChange={(e) => up((f) => ({ ...f, slogan: e.target.value }))} /><div className="ct-meta"><span /><CharCount n={f.slogan.length} max={90} /></div></>}</Field>
         <fieldset className="field ct-accents"><legend className="lab">রং</legend>
           <div className="ct-accent-row">{ACCENTS.map(([k, l, c]) => (
-            <label key={k} className={`ct-accent${f.accent === k ? ' on' : ''}`}><input type="radio" name="accent" checked={f.accent === k} onChange={() => setF({ ...f, accent: k })} /><i style={{ background: c }} aria-hidden />{l}</label>
+            <label key={k} className={`ct-accent${f.accent === k ? ' on' : ''}`}><input type="radio" name="accent" checked={f.accent === k} onChange={() => up((f) => ({ ...f, accent: k }))} /><i style={{ background: c }} aria-hidden />{l}</label>
           ))}</div>
         </fieldset>
       </FormSection>
@@ -145,15 +146,17 @@ function SiteConfigEditor() {
               <span className="num ct-secn">{toBn(i + 1)}</span>
               <span className="grow"><b>{SECTION_LABEL[s.key] ?? s.key}</b>{!s.on && <small className="muted"> · বন্ধ</small>}</span>
               <Link className="ct-small ct-seclink" to={`/t/${id}/site-pages/home`}>লেখা বদলান</Link>
-              <Switch checked={s.on} label={`${SECTION_LABEL[s.key]} চালু`} onChange={(v) => setF({ ...f, sections: f.sections.map((x, j) => (j === i ? { ...x, on: v } : x)) })} />
+              <Switch checked={s.on} label={`${SECTION_LABEL[s.key]} চালু`} onChange={(v) => up((f) => ({ ...f, sections: f.sections.map((x, j) => (j === i ? { ...x, on: v } : x)) }))} />
             </li>
           ))}
         </ol>
       </FormSection>
 
+      <div className={`ct-sb${dirty ? ' active' : ''}`}>
       <SaveBar dirty={dirty} busy={busy} onSave={() => void save()} saveLabel="সংরক্ষণ ও প্রকাশ" saveIcon="rocket"
         onDiscard={() => { const n = JSON.parse(snap) as Cfg; setF(n); setErrs({}); }}
         status={dirty ? undefined : <><Icon name="checkCircle" size={16} />পাবলিক সাইটে যা দেখাচ্ছে, এখানেও তা-ই</>} />
+      </div>
       {guard}
     </>
   );

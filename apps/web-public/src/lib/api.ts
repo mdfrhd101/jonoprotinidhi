@@ -9,6 +9,8 @@ import { env } from './env';
 import { resolveTenantHost } from './host';
 import { defaultedPage, type PageMap } from './pages';
 import { TtlCache } from './ttlcache';
+import { serverHeaders, visitorIp } from './serverHeaders';
+import { httpRequest, type HttpResult } from './http';
 import type { Album, ComplaintForm, ComplaintStats, EventItem, GalleryItem, PageKey, Paged, Post, Promises, Site, VideoItem } from './types';
 
 export class ApiFetchError extends Error {
@@ -22,16 +24,11 @@ export function tenantHost(): string {
   return resolveTenantHost(raw, env.tenantHost);
 }
 
-/** Headers that tell the API which tenant (and, for writes, which client) this is. */
-export function apiHeaders(host: string, extra: Record<string, string> = {}): Record<string, string> {
-  // `host` works in production; the API also honours X-Forwarded-Host outside production (dev servers behind us)
-  return { accept: 'application/json', host, 'x-forwarded-host': host, ...extra };
+/** Headers for an API call made for the current visitor (tenant host + visitor IP + site token). */
+export function apiHeaders(host: string, ip: string, json = false): Record<string, string> {
+  return serverHeaders({ host, ip, token: env.siteServerToken, json });
 }
 
-/** The visitor's IP as seen by the hop in front of us (right-most X-Forwarded-For entry; left ones are client-supplied). */
-export function visitorIp(h: { get(name: string): string | null }): string {
-  return h.get('x-forwarded-for')?.split(',').map((s) => s.trim()).filter(Boolean).pop() ?? h.get('x-real-ip') ?? '';
-}
 
 const reads = new TtlCache(Number(process.env.API_CACHE_MS ?? 5_000));
 
@@ -42,18 +39,19 @@ function get<T>(path: string): Promise<T> {
 }
 
 async function fetchJson<T>(path: string, host: string, ip: string): Promise<T> {
-  let res: Response;
+  let res: HttpResult;
   try {
-    res = await fetch(`${env.apiUrl}/api/v1/public${path}`, { headers: apiHeaders(host, ip ? { 'x-forwarded-for': ip } : {}), cache: 'no-store', signal: AbortSignal.timeout(10_000) });
+    res = await httpRequest(`${env.apiUrl}/api/v1/public${path}`, { headers: apiHeaders(host, ip) });
   } catch {
     throw new ApiFetchError(503, 'API_UNREACHABLE', 'সার্ভারের সঙ্গে যোগাযোগ করা যাচ্ছে না');
   }
-  if (!res.ok) {
-    let code = 'HTTP_' + res.status, message = 'তথ্য আনা যায়নি';
-    try { const j = (await res.json()) as { error?: { code?: string; message?: string } }; code = j.error?.code ?? code; message = j.error?.message ?? message; } catch { /* not JSON */ }
-    throw new ApiFetchError(res.status, code, message);
+  let j: unknown = null;
+  try { j = res.text ? JSON.parse(res.text) : null; } catch { /* not JSON */ }
+  if (res.status < 200 || res.status >= 300) {
+    const e = (j as { error?: { code?: string; message?: string } } | null)?.error;
+    throw new ApiFetchError(res.status, e?.code ?? 'HTTP_' + res.status, e?.message ?? 'তথ্য আনা যায়নি');
   }
-  return (await res.json()) as T;
+  return j as T;
 }
 
 const qs = (o: Record<string, string | number | undefined | null | boolean>) => {

@@ -54,6 +54,7 @@
 @media (max-width:640px){
   .ct-item-h{flex-wrap:wrap;padding:6px}
   .ct-item-a{width:100%;justify-content:flex-end;padding:0 4px 4px}
+  .ct-item:not(.open)>.ct-item-h>.ct-item-a{display:none}
   .ct-item-b{padding:14px 12px 16px}
   .ct-f.changed::before{left:-8px}
 }
@@ -158,7 +159,7 @@
 [draggable="true"]{cursor:grab}
 [draggable="true"] button,[draggable="true"] a,[draggable="true"] input{cursor:pointer}
 @media (hover:none){.ct-grip{display:none}}
-@media (max-width:520px){.ct-grid{grid-template-columns:1fr 1fr;gap:12px}.ct-gact .btn span,.ct-gact .btn{font-size:0;padding:0;width:40px;min-height:40px}.ct-gact .btn svg{margin:0}.ct-gbody{padding:10px 10px 2px}}
+@media (max-width:520px){.ct-grid .ct-grip{display:none}.ct-gact{padding:6px}.ct-grid{grid-template-columns:1fr 1fr;gap:12px}.ct-grid .ct-gact .btn{font-size:0;padding:0;width:40px;min-height:40px}.ct-grid .ct-gact .btn svg{margin:0}.ct-gbody{padding:10px 10px 2px}}
 
 /* ---------- drawers ---------- */
 .ct-dfoot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:100%}
@@ -304,5 +305,19 @@
 @media (max-width:520px){.ct-seclink{display:none}.ct-secrows .rowi{padding:10px 12px}}
 .ct-gact .btn-s{padding:6px 9px;gap:6px}
 .ct-vcard .ct-gact{gap:2px;padding-left:6px}
-/* BUG-2026-TABS: <Tabs variant="pill"> renders class "tabs pill", which also matches the status-pill ".pill::before" dot */
+/* BUG-2026-022: <Tabs variant="pill"> renders class "tabs pill", which also matches the status-pill ".pill::before" dot */
 .tabs.pill::before{content:none;display:none}
+
+@media (max-width:520px){.ct-banner-h{padding:8px 8px 8px 14px}.ct-banner-h .pill{display:none}.ct-banner-h b{white-space:nowrap}}
+/* page editor on phones: the save bar only shows when there is something to save or publish; compact status card */
+.ct-sb{display:contents}
+@media (max-width:640px){
+  .ct-sb:not(.active) .savebar{display:none}
+  .ct-sb .savebar{padding:10px 12px;gap:8px}
+  .ct-sb .savebar-a{width:100%}
+  .ct-sb .savebar-a .btn{flex:1 1 auto;padding:8px 12px;font-size:14.5px}
+  .ct-status .card-h{display:none}
+  .ct-state{grid-template-columns:1fr 1fr;gap:12px}
+  .ct-diff-toggle{margin-top:12px;padding-top:12px}
+}
+@media (max-width:520px){.ct-bprev>small{display:none}.ct-bprev-t{max-width:100%}}

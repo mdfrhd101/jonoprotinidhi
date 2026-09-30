@@ -116,3 +116,59 @@ describe('act-as token routing', () => {
     expect(calls().map((c) => `${c.method} ${c.url}`)).toEqual(['GET /api/v1/admin/tenants/abc/x', 'POST /api/v1/admin/tenants/abc/x', 'PATCH /api/v1/admin/tenants/abc/x', 'PUT /api/v1/admin/tenants/abc/x', 'DELETE /api/v1/admin/tenants/abc/x']);
   });
 });
+
+/* uploadWithProgress (XMLHttpRequest, because fetch cannot report upload progress) */
+class FakeXHR {
+  static all: FakeXHR[] = [];
+  static script: Array<{ status: number; body: unknown }> = [];
+  method = ''; url = ''; headers: Record<string, string> = {}; sent: unknown = null; withCredentials = false;
+  status = 0; responseText = '';
+  upload: { onprogress: ((e: { lengthComputable: boolean; loaded: number; total: number }) => void) | null } = { onprogress: null };
+  onload: (() => void) | null = null; onerror: (() => void) | null = null; onabort: (() => void) | null = null;
+  constructor() { FakeXHR.all.push(this); }
+  open(m: string, u: string) { this.method = m; this.url = u; }
+  setRequestHeader(k: string, v: string) { this.headers[k] = v; }
+  abort() { this.onabort?.(); }
+  send(b: unknown) {
+    this.sent = b;
+    const next = FakeXHR.script.shift();
+    if (!next) return; // left pending (tests abort it)
+    setTimeout(() => { this.upload.onprogress?.({ lengthComputable: true, loaded: 5, total: 10 }); this.status = next.status; this.responseText = JSON.stringify(next.body); this.onload?.(); }, 0);
+  }
+}
+
+describe('uploadWithProgress', () => {
+  beforeEach(() => { FakeXHR.all = []; FakeXHR.script = []; vi.stubGlobal('XMLHttpRequest', FakeXHR); });
+
+  it('posts the raw file with its type and the bearer token, reports progress and returns the JSON', async () => {
+    setAccessToken('tok-9');
+    FakeXHR.script.push({ status: 201, body: { id: 'v1', url: '/m/v1.webm' } });
+    const seen: number[] = [];
+    const file = new File(['0123456789'], 'a.webm', { type: 'video/webm' });
+    const r = await tenantApi('T1').uploadProgress('/media/video?name=a.webm', file, (l, t) => seen.push(l / t));
+    expect(r).toEqual({ id: 'v1', url: '/m/v1.webm' });
+    const x = FakeXHR.all[0]!;
+    expect(x.method).toBe('POST'); expect(x.url).toBe('/api/v1/admin/tenants/T1/media/video?name=a.webm');
+    expect(x.headers['Content-Type']).toBe('video/webm'); expect(x.headers.Authorization).toBe('Bearer tok-9'); expect(x.withCredentials).toBe(true);
+    expect(x.sent).toBe(file);
+    expect(seen).toEqual([0.5, 1]);
+  });
+
+  it('refreshes once on 401 and retries; maps API errors to ApiFail; abort rejects with ABORTED', async () => {
+    document.cookie = 'jn_csrf=c1; path=/';
+    setAccessToken('old');
+    fetchMock.mockResolvedValueOnce(json(200, { accessToken: 'new' }));
+    FakeXHR.script.push({ status: 401, body: {} }, { status: 201, body: { ok: 1 } });
+    expect(await tenantApi('T1').uploadProgress('/media', new Blob(['x'], { type: 'image/png' }))).toEqual({ ok: 1 });
+    expect(FakeXHR.all[1]!.headers.Authorization).toBe('Bearer new');
+
+    FakeXHR.script.push({ status: 422, body: { error: { code: 'FILE_TOO_LARGE', message: 'ভিডিও সর্বোচ্চ ১৫০ মেগাবাইট' } } });
+    const e = await tenantApi('T1').uploadProgress('/media/video', new Blob(['x'], { type: 'video/mp4' })).catch((x) => x);
+    expect(e).toBeInstanceOf(ApiFail); expect(e).toMatchObject({ status: 422, code: 'FILE_TOO_LARGE' });
+
+    const ac = new AbortController();
+    const p = tenantApi('T1').uploadProgress('/media/video', new Blob(['x'], { type: 'video/mp4' }), undefined, ac.signal);
+    ac.abort();
+    await expect(p).rejects.toMatchObject({ code: 'ABORTED' });
+  });
+});

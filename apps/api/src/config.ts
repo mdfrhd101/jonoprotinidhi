@@ -37,6 +37,9 @@ const schema = z.object({
   PUBLIC_BASE_URL: z.string().url().default('http://127.0.0.1:4000'),
   MAX_UPLOAD_MB: z.coerce.number().min(1).max(25).default(8),
   MAX_VIDEO_MB: z.coerce.number().min(1).max(1024).default(150),
+  // Shared secret of our own server-rendered public site (apps/web-public). Only a request carrying it may name the real
+  // visitor IP (X-Client-IP), so rate limits stay per visitor instead of per site server (BUG-2026-020). Empty = feature off.
+  SITE_SERVER_TOKEN: z.string().refine((v) => v === '' || v.length >= 32, 'SITE_SERVER_TOKEN must be empty or at least 32 characters').default(''),
   RATE_LIMIT_DISABLED: z.enum(['true', 'false', '1', '0']).default('false').transform((v) => v === 'true' || v === '1'),
 });
 

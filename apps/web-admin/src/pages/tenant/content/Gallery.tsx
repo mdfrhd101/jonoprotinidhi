@@ -106,7 +106,7 @@ export default function Gallery() {
         <strong>একসঙ্গে অনেক ছবি এখানে টেনে এনে ছাড়ুন, বা ক্লিক করে বাছুন</strong>
         <small>JPG, PNG বা WebP · প্রতিটি সর্বোচ্চ {toBn(MAX_MB)} মেগাবাইট · নতুন ছবি খসড়া হিসেবে যোগ হয়{album ? ` · অ্যালবাম: ${album}` : ''}</small>
       </div>
-      {uploads.length > 0 && <div className="ct-ups" aria-live="polite">{uploads.map((u) => <UploadBar key={u.key} label={u.name} value={u.p} state={u.state} />)}</div>}
+      {uploads.length > 0 && <div className="ct-ups" aria-live="polite">{uploads.map((u) => <UploadBar key={u.key} label={u.msg ? `${u.name}: ${u.msg}` : u.name} value={u.p} state={u.state} />)}</div>}
 
       <div className="bar ct-gbar">
         <Chips label="অবস্থা" value={status} onChange={setStatus} options={[{ value: 'all', label: 'সব', count: counts.all }, { value: 'published', label: 'প্রকাশিত', count: counts.published }, { value: 'draft', label: 'খসড়া', count: counts.draft }]} />

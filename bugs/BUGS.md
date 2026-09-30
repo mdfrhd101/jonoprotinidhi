@@ -6,18 +6,17 @@ Source of truth: `bugs/register.json`. Formula, lifecycle and rules: `bugs/READM
 
 | Metric | Value |
 |---|---|
-| Total bugs | 20 |
-| Open | 3 (P0: 1, P1: 1, P2: 1, P3: 0) |
-| Sum of open RPN (risk load) | 140 |
+| Total bugs | 25 |
+| Open | 2 (P0: 0, P1: 1, P2: 1, P3: 0) |
+| Sum of open RPN (risk load) | 60 |
 | Mean days report → fix | 0.0 |
 | Defect escape rate (found in staging/production) | 0% |
-| Found by phase | unit-test: 6, integration-test: 4, dev: 2, e2e-test: 6, review: 2 |
+| Found by phase | unit-test: 6, integration-test: 4, dev: 3, e2e-test: 8, review: 4 |
 
 ## Open
 
 | ID | Prio | RPN (S×O×D) | Status | Category | Title | Module | Found in |
 |---|---|---|---|---|---|---|---|
-| BUG-2026-019 | P0 | 80 (4×4×5) | new | privacy | Tenant audit API returns the complainant's IP address and user agent to the owner (complaint.create rows) | api/routes/admin | review |
 | BUG-2026-020 | P1 | 48 (4×4×3) | new | reliability | API: public per-IP rate limit (120/min) throttles the whole server-rendered public site; media files share the same bucket | api/routes/public | e2e-test |
 | BUG-2026-014 | P2 | 12 (2×2×3) | triaged | reliability | E2E: officer login stuck once after fresh dev-server start (not reproduced in 3 later runs) | e2e/smoke | e2e-test |
 
@@ -25,20 +24,26 @@ Source of truth: `bugs/register.json`. Formula, lifecycle and rules: `bugs/READM
 
 | ID | Prio | RPN (S×O×D) | Status | Category | Title | Module | Found in |
 |---|---|---|---|---|---|---|---|
-| BUG-2026-018 | P0 | 80 (4×4×5) | fixed | privacy | Super Admin audit API returned the citizen's IP address and browser user agent for public complaint submissions (and officers' free-text reasons for identity views) | api/routes/super | review |
+| BUG-2026-018 | P0 | 80 (4×4×5) | verified | privacy | Super Admin audit API returned the citizen's IP address and browser user agent for public complaint submissions (and officers' free-text reasons for identity views) | api/routes/super | review |
+| BUG-2026-019 | P0 | 80 (4×4×5) | verified | privacy | Tenant audit API returns the complainant's IP address and user agent to the owner (complaint.create rows) | api/routes/admin | review |
 | BUG-2026-003 | P0 | 60 (4×3×5) | verified | data-integrity | Soft-delete aggregate filter appended after $group, deleted rows still counted | api/plugins/softDelete | unit-test |
 | BUG-2026-007 | P0 | 60 (4×3×5) | verified | security | RATE_LIMIT_DISABLED=false still disabled rate limiting | api/config | dev |
+| BUG-2026-021 | P0 | 60 (5×3×4) | verified | data-integrity | Saving the profile from the old Site page wiped portrait, milestones, education and every other profile field (PUT /profile replaced the whole draft with 3 fields) | web-admin/pages/tenant/Site.tsx + api/routes/admin.ts PUT /profile | review |
 | BUG-2026-005 | P1 | 48 (4×3×4) | verified | security | Tenant SMS cap overrode the platform cap, so the SMS cost limit did nothing | api/lib/sms | integration-test |
 | BUG-2026-010 | P1 | 40 (4×5×2) | verified | functional | Opening a second complaint navigated to a nested broken URL and bounced to the home page | web-admin/pages/Complaints | e2e-test |
+| BUG-2026-023 | P1 | 40 (4×5×2) | fixed | functional | Public site: server-side API calls lost the tenant Host header (Node fetch overrides Host), production tenant resolution would fail | web-public/lib/api | dev |
 | BUG-2026-002 | P1 | 36 (3×4×3) | verified | tenant-isolation | Tenant context lost when a lazy Mongoose Query is returned from the tenant runner | api/context | unit-test |
 | BUG-2026-009 | P1 | 36 (3×4×3) | verified | reliability | Auth rate limit was per IP (10 per 15 min): offices and mobile-carrier users get locked out | api/routes/auth | e2e-test |
 | BUG-2026-006 | P1 | 32 (4×2×4) | verified | security | Unverified custom domain served the MP's site | api/services/tenants | integration-test |
 | BUG-2026-004 | P1 | 30 (3×5×2) | verified | functional | PATCH /posts/:id demanded a title on every partial update | api/services/posts | integration-test |
 | BUG-2026-013 | P1 | 30 (3×5×2) | verified | functional | Save draft with only a title failed: empty form fields were sent as empty strings | web-admin/pages/Posts | unit-test |
+| BUG-2026-025 | P2 | 27 (3×3×3) | verified | functional | Photo picker's 'earlier uploads' library also listed uploaded videos (a .webm could be chosen as an image) | web-admin/components/ImagePicker.tsx | review |
 | BUG-2026-011 | P2 | 24 (2×4×3) | verified | privacy | Dashboard API sent complaint statistics to editors (and content data to officers) | api/routes/admin | e2e-test |
 | BUG-2026-016 | P2 | 20 (2×5×2) | verified | ui | Public site API showed the seat number with an English digit (নদীপুর-3) | api/services/site | integration-test |
 | BUG-2026-008 | P2 | 18 (3×3×2) | verified | validation | Valid Wikimedia image URLs with Bangla file names were rejected (500 char limit) | shared/schemas | dev |
+| BUG-2026-024 | P2 | 18 (3×2×3) | verified | functional | Banners page lost edits typed in quick succession (state updates built from a stale copy of the form) | web-admin/pages/tenant/Site.tsx | e2e-test |
 | BUG-2026-017 | P2 | 16 (2×2×4) | fixed | security | Public site: sanitiser produced mismatched </span> closing tags after an unsafe link in a post body | web-public/lib/sanitize | unit-test |
+| BUG-2026-022 | P2 | 16 (2×4×2) | verified | ui | Tabs variant=pill draws a stray status-pill dot before the tab list (class 'tabs pill' also matches .pill::before) | web-admin/components/navigation.tsx Tabs + base.css .pill | e2e-test |
 | BUG-2026-001 | P2 | 15 (3×5×1) | verified | reliability | SiteConfig/Profile tenantId index defined twice, model init fails | api/plugins/tenantScoped | unit-test |
 | BUG-2026-015 | P3 | 10 (2×5×1) | verified | ui | Form inputs without a type attribute were unstyled (about 21 px high, no padding): the CSS only matched typed inputs | web-admin/extra.css | e2e-test |
 | BUG-2026-012 | P3 | 6 (1×3×2) | verified | ui | Time of day: 3:30 pm was shown as দুপুর instead of বিকেল | web-admin/format | unit-test |
@@ -46,18 +51,22 @@ Source of truth: `bugs/register.json`. Formula, lifecycle and rules: `bugs/READM
 ## Details
 
 ### BUG-2026-018: Super Admin audit API returned the citizen's IP address and browser user agent for public complaint submissions (and officers' free-text reasons for identity views)
-- **Priority P0**, RPN 80 (severity 4, occurrence 4, detectability 5), status **fixed**, category privacy, found in review on 2026-09-30
+- **Priority P0**, RPN 80 (severity 4, occurrence 4, detectability 5), status **verified**, category privacy, found in review on 2026-09-30
 - Module: api/routes/super
 - **What:** GET /api/v1/super/audit returned raw AuditLog rows. audit() stores the request IP and user agent from the request context; for complaint.create written by the public complaint endpoint that is the complainant's IP and UA, and complaint.pii_view rows carry the officer's free-text purpose. Super admin and support must never see complainant identity (ADR-0004, docs/08).
 - **How to reproduce:** Submit a complaint on the public site, then GET /api/v1/super/audit as super admin or support: the complaint.create row has ip and userAgent.
 - **Root cause:** The route returned raw AuditLog documents (.lean()) and audit() records the request IP/UA even for unauthenticated public submissions.
 - **Fix:** GET /super/audit now maps rows through auditForStaff(): user agent never sent; complaint.* rows lose ip and reason; ip only for authenticated admin actions and only to super_admin (support never); tenant names joined. Regression test in apps/api/test/integration/super-dashboard.test.ts. (2026-09-30)
+- **Regression tests:** apps/api/test/integration/super-dashboard.test.ts
 
 ### BUG-2026-019: Tenant audit API returns the complainant's IP address and user agent to the owner (complaint.create rows)
-- **Priority P0**, RPN 80 (severity 4, occurrence 4, detectability 5), status **new**, category privacy, found in review on 2026-09-30
+- **Priority P0**, RPN 80 (severity 4, occurrence 4, detectability 5), status **verified**, category privacy, found in review on 2026-09-30
 - Module: api/routes/admin
 - **What:** GET /api/v1/admin/tenants/:id/audit (audit.view: owner, act-as super admin, support) returns raw AuditLog rows including ip and userAgent. complaint.create rows are written by the public complaint endpoint, so ip/userAgent are the citizen's. Owners and platform staff never have complaints.pii_view. Root-cause options: audit() should not store ip/UA when there is no authenticated actor, and/or the tenant route should project them out like auditForStaff() in routes/super.ts. Not fixed by the Super Admin agent (admin.ts / lib/audit.ts are outside its lane).
 - **How to reproduce:** Submit a complaint on the public site; GET /admin/tenants/:id/audit as the owner: the complaint.create row carries ip and userAgent.
+- **Root cause:** audit() copied request IP/UA for every action including public submissions, and the tenant audit route returned raw rows
+- **Fix:** lib/audit.ts no longer stores IP/user agent for unauthenticated (citizen) actions; tenant GET /audit selects out ip/userAgent and drops reasons on complaint.* rows; regression test in complaints.test.ts (mutation-checked) (2026-09-30)
+- **Regression tests:** apps/api/test/integration/complaints.test.ts
 
 ### BUG-2026-003: Soft-delete aggregate filter appended after $group, deleted rows still counted
 - **Priority P0**, RPN 60 (severity 4, occurrence 3, detectability 5), status **verified**, category data-integrity, found in unit-test on 2026-09-30 by dev (Claude)
@@ -76,6 +85,15 @@ Source of truth: `bugs/register.json`. Formula, lifecycle and rules: `bugs/READM
 - **Root cause:** z.coerce.boolean() converts any non-empty string, including 'false', to true.
 - **Fix:** flag parsed with an explicit enum (true/false/1/0) and unknown values are rejected at boot (2026-09-30)
 - **Regression tests:** apps/api/test/unit/lib.test.ts
+
+### BUG-2026-021: Saving the profile from the old Site page wiped portrait, milestones, education and every other profile field (PUT /profile replaced the whole draft with 3 fields)
+- **Priority P0**, RPN 60 (severity 5, occurrence 3, detectability 4), status **verified**, category data-integrity, found in review on 2026-09-30
+- Module: web-admin/pages/tenant/Site.tsx + api/routes/admin.ts PUT /profile
+- **What:** The legacy ProfileCard on the Site page sent only {headline, intro, story} to PUT /profile. The alias forwards to PageService.put, which parses with defaults and replaces the draft, so portrait, milestones, committees, education, profession, politics, awards, works, parliament and priorities were silently emptied; the owner's next publish would put a gutted biography of the MP on the public site.
+- **How to reproduce:** Open Site page as owner, edit the profile headline, save: GET /pages/profile shows empty milestones/portrait.
+- **Root cause:** The legacy alias forwarded a partial body to a replace-the-whole-draft service, and the old card only sent three fields.
+- **Fix:** PUT /profile now merges the partial body onto the current draft; the Site page no longer has a profile card (profile has its own full editor at site-pages/profile). Regression: apps/api/test/integration/pages.test.ts + web-admin content.test.tsx (BUG-2026-021). (2026-09-30)
+- **Regression tests:** apps/api/test/integration/pages.test.ts, apps/web-admin/src/pages/tenant/content/content.test.tsx
 
 ### BUG-2026-005: Tenant SMS cap overrode the platform cap, so the SMS cost limit did nothing
 - **Priority P1**, RPN 48 (severity 4, occurrence 3, detectability 4), status **verified**, category security, found in integration-test on 2026-09-30 by dev (Claude)
@@ -100,6 +118,14 @@ Source of truth: `bugs/register.json`. Formula, lifecycle and rules: `bugs/READM
 - **Root cause:** nav(c.id) is route-relative; from complaints/:cid it appended the new id to the current path (/complaints/<id1>/<id2>), which matches no route and fell through to the catch-all redirect.
 - **Fix:** single splat route complaints/* and absolute navigation to /t/<tenant>/complaints/<id> (2026-09-30)
 - **Regression tests:** apps/web-admin/src/pages/pages.test.tsx
+
+### BUG-2026-023: Public site: server-side API calls lost the tenant Host header (Node fetch overrides Host), production tenant resolution would fail
+- **Priority P1**, RPN 40 (severity 4, occurrence 5, detectability 2), status **fixed**, category functional, found in dev on 2026-09-30
+- Module: web-public/lib/api
+- **What:** Node's global fetch (undici) replaces a custom Host header with the URL host. The API resolves the tenant by Host in production (X-Forwarded-Host is honoured only outside production), so every public page would 404 in production while working in development.
+- **How to reproduce:** fetch('http://127.0.0.1:4000/...', {headers:{host:'ndp3.jonoshetu.com'}}) -> API sees host 127.0.0.1:4000
+- **Root cause:** undici fetch treats Host as a forbidden/overridden header
+- **Fix:** server-to-API calls use node:http(s) (src/lib/http.ts) which keeps the Host header; regression test in apps/web-public/test/helpers.test.ts (2026-09-30)
 
 ### BUG-2026-002: Tenant context lost when a lazy Mongoose Query is returned from the tenant runner
 - **Priority P1**, RPN 36 (severity 3, occurrence 4, detectability 3), status **verified**, category tenant-isolation, found in unit-test on 2026-09-30 by dev (Claude)
@@ -146,6 +172,15 @@ Source of truth: `bugs/register.json`. Formula, lifecycle and rules: `bugs/READM
 - **Fix:** empty fields are omitted from the payload (body/quote/upazila/place stay clearable when editing) (2026-09-30)
 - **Regression tests:** apps/web-admin/src/pages/pages.test.tsx
 
+### BUG-2026-025: Photo picker's 'earlier uploads' library also listed uploaded videos (a .webm could be chosen as an image)
+- **Priority P2**, RPN 27 (severity 3, occurrence 3, detectability 3), status **verified**, category functional, found in review on 2026-09-30
+- Module: web-admin/components/ImagePicker.tsx
+- **What:** GET /media without kind returned images and videos; videos showed as broken images and could be set as a post/portrait/banner photo.
+- **How to reproduce:** Upload a video, open any photo picker, click 'আগে আপলোড করা ছবি থেকে'.
+- **Root cause:** The media library gained videos; the picker's query predates that.
+- **Fix:** ImagePicker library requests /media?kind=image; regression in components/media.test.tsx. (2026-09-30)
+- **Regression tests:** apps/web-admin/src/components/media.test.tsx
+
 ### BUG-2026-011: Dashboard API sent complaint statistics to editors (and content data to officers)
 - **Priority P2**, RPN 24 (severity 2, occurrence 4, detectability 3), status **verified**, category privacy, found in e2e-test on 2026-09-30 by dev (Claude)
 - Module: api/routes/admin · Requirement: FR-CMS-10
@@ -173,6 +208,15 @@ Source of truth: `bugs/register.json`. Formula, lifecycle and rules: `bugs/READM
 - **Fix:** url limit raised to 1500 in mediaRefSchema and siteConfigSchema (2026-09-30)
 - **Regression tests:** apps/api/test/integration/posts.test.ts
 
+### BUG-2026-024: Banners page lost edits typed in quick succession (state updates built from a stale copy of the form)
+- **Priority P2**, RPN 18 (severity 3, occurrence 2, detectability 3), status **verified**, category functional, found in e2e-test on 2026-09-30
+- Module: web-admin/pages/tenant/Site.tsx
+- **What:** setF({...f, ...}) used the form object captured at render time; two edits before a re-render (autofill, fast typing, a finished upload plus an edit) overwrote each other, so a new banner was saved without its title and caption.
+- **How to reproduce:** e2e/cms_smoke.py banner step: fill title and caption right after adding a banner, save: title missing on GET /public/site.
+- **Root cause:** State built from the render-time copy of the form.
+- **Fix:** Site.tsx updates the form only through functional state updates (up(fn)); regression test in content.test.tsx. (2026-09-30)
+- **Regression tests:** apps/web-admin/src/pages/tenant/content/content.test.tsx
+
 ### BUG-2026-017: Public site: sanitiser produced mismatched </span> closing tags after an unsafe link in a post body
 - **Priority P2**, RPN 16 (severity 2, occurrence 2, detectability 4), status **fixed**, category security, found in unit-test on 2026-09-30
 - Module: web-public/lib/sanitize
@@ -180,6 +224,15 @@ Source of truth: `bugs/register.json`. Formula, lifecycle and rules: `bugs/READM
 - **How to reproduce:** sanitizeBody('<p><a href="javascript:x">bad</a> <a href="https://ok.example">ok</a></p>')
 - **Root cause:** sanitize-html closes function-renamed tags inconsistently
 - **Fix:** unsafe links keep the <a> tag name with no attributes (inert); regression test in apps/web-public/test/helpers.test.ts (2026-09-30)
+
+### BUG-2026-022: Tabs variant=pill draws a stray status-pill dot before the tab list (class 'tabs pill' also matches .pill::before)
+- **Priority P2**, RPN 16 (severity 2, occurrence 4, detectability 2), status **verified**, category ui, found in e2e-test on 2026-09-30
+- Module: web-admin/components/navigation.tsx Tabs + base.css .pill
+- **What:** Tabs with variant pill render class 'tabs pill'; the status pill rule .pill::before adds a 6px dot left of the tabs.
+- **How to reproduce:** Open /media or /events: a dot appears before the tab group.
+- **Root cause:** Variant class name 'pill' collides with the status-pill class.
+- **Fix:** content.css: .tabs.pill::before{content:none}; regression in src/styles.test.ts. The design-system owner may move the rule into ds.css or rename the variant class. (2026-09-30)
+- **Regression tests:** apps/web-admin/src/styles.test.ts
 
 ### BUG-2026-001: SiteConfig/Profile tenantId index defined twice, model init fails
 - **Priority P2**, RPN 15 (severity 3, occurrence 5, detectability 1), status **verified**, category reliability, found in unit-test on 2026-09-30 by dev (Claude)

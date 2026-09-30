@@ -109,13 +109,15 @@ Registry lives in `packages/shared/permissions.ts`; per-membership overrides all
 
 | Method | Path | Notes | Req |
 |---|---|---|---|
-| GET | `/super/dashboard` | platform KPIs, stale sites, SSL/DNS warnings | FR-SA-01, SA-09 |
+| GET | `/super/dashboard` | counts only: `kpis` (tenants by status, complaints 30d/prev/open/overdue/SLA, posts 30d, media bytes image/video, SMS today/month vs cap, domains pending/SSL), `series` (30 Dhaka days, zero-filled), `openByTenant`, `attention` (suspended, SLA, domain, stale, unpublished, setup), `activity`; legacy flat fields kept | FR-SA-01, SA-09 |
+| GET | `/super/slug-available?slug=` | super_admin; `{ slug, host, available }` (wizard live check) | FR-SA-02 |
 | GET/POST | `/super/tenants` | create requires `consent.confirmed === true` + `documentRef` | FR-SA-02 |
 | GET/PATCH | `/super/tenants/:id` | plan, settings caps | |
 | POST | `/super/tenants/:id/status` | `{ to, reason, contentChecked? }` | FR-SA-03 |
 | POST | `/super/tenants/:id/act-as` | `{ reason }` → `{ actAsToken, expiresAt }` (30 min) | FR-SA-05 |
-| GET/POST | `/super/domains` · POST `/super/domains/:id/verify` · POST `/super/domains/:id/primary` · DELETE | Cloudflare for SaaS via `DomainProvider` | FR-SA-04 |
-| GET | `/super/audit` | filters `tenantId, actorType, action, from, to` | FR-SA-06 |
+| GET | `/super/domains` | every domain + tenant, DNS/SSL state, TXT record (implemented, read for support too) | FR-SA-04 |
+| POST | `/super/tenants/:id/domains` · POST `/super/domains/:id/verify` · POST `/super/domains/:id/primary` · (DELETE: not implemented) | Cloudflare for SaaS via `DomainProvider` | FR-SA-04 |
+| GET | `/super/audit` | filters `tenantId, actorType (super/office), action (prefix), actor (name contains), from, to (Dhaka days)`; rows carry `tenantName`; never a user agent; complaint.* rows without IP and reason; IP of admin actions to super_admin only (BUG-2026-018) | FR-SA-06 |
 | GET/POST | `/super/backups` · POST `/super/backups/:id/restore-requests` · POST `/super/restore-requests/:id/approve` | second approver must be a different super admin | FR-SA-07 |
 | GET/POST/PATCH | `/super/staff` | | FR-SA-08 |
 

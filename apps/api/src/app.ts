@@ -11,6 +11,8 @@ import { ApiError } from './errors.js';
 import { als } from './context.js';
 import { logger } from './lib/logger.js';
 import { stripOperators } from './lib/sanitize.js';
+import { isIP } from 'node:net';
+import { safeEqual } from './lib/crypto.js';
 import { TenantScopeError } from './plugins/tenantScoped.js';
 import { authRoutes } from './routes/auth.js';
 import { superRoutes } from './routes/super.js';
@@ -28,6 +30,18 @@ export function createApp(d: Deps, now: () => number = Date.now): { app: Express
   app.use(cookieParser());
   // NoSQL operator injection guard, applied before any route sees the body/query
   app.use((req, _res, next) => { if (req.body) req.body = stripOperators(req.body); for (const k of Object.keys(req.query)) if (k.startsWith('$') || k.includes('.')) delete (req.query as Record<string, unknown>)[k]; next(); });
+  // Our own public-site server may name the visitor (BUG-2026-020). Without the shared token the header is ignored, so nobody
+  // else can pick an IP to dodge rate limits. The token header is removed so it never reaches logs or handlers.
+  app.use((req, _res, next) => {
+    const tok = req.headers['x-site-token'];
+    delete req.headers['x-site-token'];
+    const claimed = String(req.headers['x-client-ip'] ?? '').trim();
+    delete req.headers['x-client-ip'];
+    if (d.config.SITE_SERVER_TOKEN && typeof tok === 'string' && safeEqual(tok, d.config.SITE_SERVER_TOKEN) && isIP(claimed)) {
+      Object.defineProperty(req, 'ip', { value: claimed, configurable: true });
+    }
+    next();
+  });
   // request context: every async continuation of this request sees the same store (tenant, actor, ip)
   app.use((req, res, next) => {
     const requestId = String(req.headers['x-request-id'] ?? randomUUID()).slice(0, 64);

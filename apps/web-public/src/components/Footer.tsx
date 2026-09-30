@@ -21,7 +21,7 @@ export default function Footer({ name, title, layout, contact, complaintOn, phot
         </div>
         <div>
           <h4>সাইট</h4>
-          <ul>
+          <ul className="site-links">
             {NAV.map(([href, label]) => <li key={href}><Link href={href}>{label}</Link></li>)}
             <li><Link href="/biography">জীবনপঞ্জি</Link></li>
             {complaintOn && <li><Link href="/complaint">অভিযোগ বক্স</Link></li>}

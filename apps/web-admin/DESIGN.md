@@ -8,7 +8,7 @@ import { Card, StatCard, AreaChart, DataTable, Button, EmptyState, useToast /* .
 
 Live catalogue with sample data (development only): **http://localhost:5173/_kit** (`src/pages/Kit.tsx`). Keep it in sync when you add a component.
 
-Not in the barrel on purpose (heavier / app specific, import from the file): `Shell` (`components/Shell`), `RichEditor`, `RichText`, `ImagePicker`.
+Not in the barrel on purpose (heavier / app specific, import from the file): `Shell` (`components/Shell`), `RichEditor`, `RichText`, `ImagePicker`, `CopyButton` (`components/CopyButton`).
 
 ## Files
 
@@ -108,6 +108,9 @@ Below 720 px it becomes cards: the `primary` cell is the card title, other cells
 ### EmptyState, Skeleton, Avatar
 `<EmptyState icon title text action compact tone="brass|ok|info" />` (icon + title + text + action; always give an action when the user can do something). `<Skeleton w h r />`, `<SkeletonText lines />`. `<Avatar name src? size />` (initials, honorifics like "ড." skipped, stable tint).
 
+### CopyButton
+`import { CopyButton, copyText } from '../../components/CopyButton'`. `<CopyButton value={link} label="আমন্ত্রণ লিংক কপি করুন" iconOnly? size="sm|md" />`: copies to the clipboard (falls back to a hidden textarea + `execCommand` on http:// hosts), shows "কপি হয়েছে" for 2 s and announces it in a polite live region. `label` is the accessible name (keep it specific, e.g. "TXT রেকর্ডের মান কপি করুন"). Used by the Super Admin wizard (one-time invite link) and DNS instructions.
+
 ### Forms
 `Field` wires label, hint and error for screen readers (`{(p) => <input {...p} />}`). Inputs are ≥ 52 px tall by CSS. Extras: `Chips {value,onChange,options:[{value,label,count?}],label}`, `SearchInput {value,onChange,label,placeholder}`, `Switch {checked,onChange,label}` (still a checkbox for assistive tech).
 `<FormSection title description icon actions layout="stack|split">` groups fields in a card (do not give it an `aria-label` equal to a field label: tests query by label).
@@ -116,7 +119,7 @@ Below 720 px it becomes cards: the `primary` cell is the card title, other cells
 ### Shell (sidebar + top bar)
 `components/Shell.tsx`, used by `TenantLayout` and `SuperLayout`. Props: `brand {small,title,sub?,live?}`, `nav: NavItem[]`, `banner?` (act-as strip, class `.imp`), `roleLabel`, `siteUrl?` ("সাইট দেখুন" link), `notifications?: {key,label,count,to,icon?}[]` (bell menu), `cta?` (brass button on top of the sidebar). It provides breadcrumbs from the nav array, document title, a collapsible icon rail (remembered in `localStorage`), an off-canvas drawer below 980 px and the user menu (role, switch panel, logout).
 
-**Adding a page to the tenant panel:** (1) `<Route>` in `App.tsx`, (2) an entry in `TENANT_NAV` in `src/tenant.tsx` (`{ path, label, icon, perm?, badge?, end? }`; the planned content / site pages / media / office entries are listed in the comment above the array), (3) the path in `KNOWN_TENANT_ROUTES` in `src/routes.ts` so dashboard links stop saying "শীঘ্রই". The Super Admin nav is a literal array in `SuperLayout` (`pages/super/Super.tsx`): `{ to, label, icon, end? }` / `{ group }`.
+**Adding a page to the tenant panel:** (1) `<Route>` in `App.tsx`, (2) an entry in `TENANT_NAV` in `src/tenant.tsx` (`{ path, label, icon, perm?, badge?, end? }`; the planned content / site pages / media / office entries are listed in the comment above the array), (3) the path in `KNOWN_TENANT_ROUTES` in `src/routes.ts` so dashboard links stop saying "শীঘ্রই". The Super Admin nav is a literal array in `SuperLayout` (`pages/super/Super.tsx`): `{ to, label, icon, end?, badge? }` / `{ group }`; the Super Admin screens live in `pages/super/*.tsx` and their page-specific styles in `src/super.css` (`sa-` prefix).
 
 ## Rules of the house
 

@@ -284,3 +284,9 @@ details.credits summary:hover,details.credits summary:focus-visible{color:var(--
 details.credits p{margin:10px 0 0;font-size:12px!important;line-height:1.7;color:var(--muted-light)}
 
 .gs-stage img{-webkit-user-drag:none}
+
+/* footer site links in two columns (owner request 30 Sep): the single list had become very tall */
+footer ul.site-links{grid-template-columns:repeat(2,max-content);column-gap:clamp(24px,3vw,44px);row-gap:6px}
+.foot-grid.v4{grid-template-columns:minmax(0,1.25fr) minmax(0,1.05fr) minmax(0,1.05fr) minmax(0,.8fr)}
+@media (max-width:980px){.foot-grid.v4{grid-template-columns:1fr 1fr}}
+@media (max-width:480px){.foot-grid.v4{grid-template-columns:1fr}}

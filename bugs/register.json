@@ -1,6 +1,6 @@
 {
   "counters": {
-    "2026": 20
+    "2026": 25
   },
   "bugs": [
     {
@@ -439,12 +439,14 @@
       "occurrence": 4,
       "detectability": 5,
       "foundIn": "review",
-      "status": "fixed",
+      "status": "verified",
       "reportedAt": "2026-09-30",
       "reportedBy": "",
       "fix": "GET /super/audit now maps rows through auditForStaff(): user agent never sent; complaint.* rows lose ip and reason; ip only for authenticated admin actions and only to super_admin (support never); tenant names joined. Regression test in apps/api/test/integration/super-dashboard.test.ts.",
       "fixedAt": "2026-09-30",
-      "tests": [],
+      "tests": [
+        "apps/api/test/integration/super-dashboard.test.ts"
+      ],
       "rpn": 80,
       "priority": "P0",
       "updatedAt": "2026-09-30"
@@ -454,7 +456,7 @@
       "title": "Tenant audit API returns the complainant's IP address and user agent to the owner (complaint.create rows)",
       "description": "GET /api/v1/admin/tenants/:id/audit (audit.view: owner, act-as super admin, support) returns raw AuditLog rows including ip and userAgent. complaint.create rows are written by the public complaint endpoint, so ip/userAgent are the citizen's. Owners and platform staff never have complaints.pii_view. Root-cause options: audit() should not store ip/UA when there is no authenticated actor, and/or the tenant route should project them out like auditForStaff() in routes/super.ts. Not fixed by the Super Admin agent (admin.ts / lib/audit.ts are outside its lane).",
       "repro": "Submit a complaint on the public site; GET /admin/tenants/:id/audit as the owner: the complaint.create row carries ip and userAgent.",
-      "rootCause": "",
+      "rootCause": "audit() copied request IP/UA for every action including public submissions, and the tenant audit route returned raw rows",
       "category": "privacy",
       "module": "api/routes/admin",
       "requirement": "",
@@ -462,14 +464,17 @@
       "occurrence": 4,
       "detectability": 5,
       "foundIn": "review",
-      "status": "new",
+      "status": "verified",
       "reportedAt": "2026-09-30",
       "reportedBy": "",
-      "fix": "",
-      "fixedAt": "",
-      "tests": [],
+      "fix": "lib/audit.ts no longer stores IP/user agent for unauthenticated (citizen) actions; tenant GET /audit selects out ip/userAgent and drops reasons on complaint.* rows; regression test in complaints.test.ts (mutation-checked)",
+      "fixedAt": "2026-09-30",
+      "tests": [
+        "apps/api/test/integration/complaints.test.ts"
+      ],
       "rpn": 80,
-      "priority": "P0"
+      "priority": "P0",
+      "updatedAt": "2026-09-30"
     },
     {
       "id": "BUG-2026-020",
@@ -492,6 +497,130 @@
       "tests": [],
       "rpn": 48,
       "priority": "P1"
+    },
+    {
+      "id": "BUG-2026-021",
+      "title": "Saving the profile from the old Site page wiped portrait, milestones, education and every other profile field (PUT /profile replaced the whole draft with 3 fields)",
+      "description": "The legacy ProfileCard on the Site page sent only {headline, intro, story} to PUT /profile. The alias forwards to PageService.put, which parses with defaults and replaces the draft, so portrait, milestones, committees, education, profession, politics, awards, works, parliament and priorities were silently emptied; the owner's next publish would put a gutted biography of the MP on the public site.",
+      "repro": "Open Site page as owner, edit the profile headline, save: GET /pages/profile shows empty milestones/portrait.",
+      "rootCause": "The legacy alias forwarded a partial body to a replace-the-whole-draft service, and the old card only sent three fields.",
+      "category": "data-integrity",
+      "module": "web-admin/pages/tenant/Site.tsx + api/routes/admin.ts PUT /profile",
+      "requirement": "",
+      "severity": 5,
+      "occurrence": 3,
+      "detectability": 4,
+      "foundIn": "review",
+      "status": "verified",
+      "reportedAt": "2026-09-30",
+      "reportedBy": "",
+      "fix": "PUT /profile now merges the partial body onto the current draft; the Site page no longer has a profile card (profile has its own full editor at site-pages/profile). Regression: apps/api/test/integration/pages.test.ts + web-admin content.test.tsx (BUG-2026-021).",
+      "fixedAt": "2026-09-30",
+      "tests": [
+        "apps/api/test/integration/pages.test.ts",
+        "apps/web-admin/src/pages/tenant/content/content.test.tsx"
+      ],
+      "rpn": 60,
+      "priority": "P0",
+      "updatedAt": "2026-09-30"
+    },
+    {
+      "id": "BUG-2026-022",
+      "title": "Tabs variant=pill draws a stray status-pill dot before the tab list (class 'tabs pill' also matches .pill::before)",
+      "description": "Tabs with variant pill render class 'tabs pill'; the status pill rule .pill::before adds a 6px dot left of the tabs.",
+      "repro": "Open /media or /events: a dot appears before the tab group.",
+      "rootCause": "Variant class name 'pill' collides with the status-pill class.",
+      "category": "ui",
+      "module": "web-admin/components/navigation.tsx Tabs + base.css .pill",
+      "requirement": "",
+      "severity": 2,
+      "occurrence": 4,
+      "detectability": 2,
+      "foundIn": "e2e-test",
+      "status": "verified",
+      "reportedAt": "2026-09-30",
+      "reportedBy": "",
+      "fix": "content.css: .tabs.pill::before{content:none}; regression in src/styles.test.ts. The design-system owner may move the rule into ds.css or rename the variant class.",
+      "fixedAt": "2026-09-30",
+      "tests": [
+        "apps/web-admin/src/styles.test.ts"
+      ],
+      "rpn": 16,
+      "priority": "P2",
+      "updatedAt": "2026-09-30"
+    },
+    {
+      "id": "BUG-2026-023",
+      "title": "Public site: server-side API calls lost the tenant Host header (Node fetch overrides Host), production tenant resolution would fail",
+      "description": "Node's global fetch (undici) replaces a custom Host header with the URL host. The API resolves the tenant by Host in production (X-Forwarded-Host is honoured only outside production), so every public page would 404 in production while working in development.",
+      "repro": "fetch('http://127.0.0.1:4000/...', {headers:{host:'ndp3.jonoshetu.com'}}) -> API sees host 127.0.0.1:4000",
+      "rootCause": "undici fetch treats Host as a forbidden/overridden header",
+      "category": "functional",
+      "module": "web-public/lib/api",
+      "requirement": "",
+      "severity": 4,
+      "occurrence": 5,
+      "detectability": 2,
+      "foundIn": "dev",
+      "status": "fixed",
+      "reportedAt": "2026-09-30",
+      "reportedBy": "",
+      "fix": "server-to-API calls use node:http(s) (src/lib/http.ts) which keeps the Host header; regression test in apps/web-public/test/helpers.test.ts",
+      "fixedAt": "2026-09-30",
+      "tests": [],
+      "rpn": 40,
+      "priority": "P1",
+      "updatedAt": "2026-09-30"
+    },
+    {
+      "id": "BUG-2026-024",
+      "title": "Banners page lost edits typed in quick succession (state updates built from a stale copy of the form)",
+      "description": "setF({...f, ...}) used the form object captured at render time; two edits before a re-render (autofill, fast typing, a finished upload plus an edit) overwrote each other, so a new banner was saved without its title and caption.",
+      "repro": "e2e/cms_smoke.py banner step: fill title and caption right after adding a banner, save: title missing on GET /public/site.",
+      "rootCause": "State built from the render-time copy of the form.",
+      "category": "functional",
+      "module": "web-admin/pages/tenant/Site.tsx",
+      "requirement": "",
+      "severity": 3,
+      "occurrence": 2,
+      "detectability": 3,
+      "foundIn": "e2e-test",
+      "status": "verified",
+      "reportedAt": "2026-09-30",
+      "reportedBy": "",
+      "fix": "Site.tsx updates the form only through functional state updates (up(fn)); regression test in content.test.tsx.",
+      "fixedAt": "2026-09-30",
+      "tests": [
+        "apps/web-admin/src/pages/tenant/content/content.test.tsx"
+      ],
+      "rpn": 18,
+      "priority": "P2",
+      "updatedAt": "2026-09-30"
+    },
+    {
+      "id": "BUG-2026-025",
+      "title": "Photo picker's 'earlier uploads' library also listed uploaded videos (a .webm could be chosen as an image)",
+      "description": "GET /media without kind returned images and videos; videos showed as broken images and could be set as a post/portrait/banner photo.",
+      "repro": "Upload a video, open any photo picker, click 'আগে আপলোড করা ছবি থেকে'.",
+      "rootCause": "The media library gained videos; the picker's query predates that.",
+      "category": "functional",
+      "module": "web-admin/components/ImagePicker.tsx",
+      "requirement": "",
+      "severity": 3,
+      "occurrence": 3,
+      "detectability": 3,
+      "foundIn": "review",
+      "status": "verified",
+      "reportedAt": "2026-09-30",
+      "reportedBy": "",
+      "fix": "ImagePicker library requests /media?kind=image; regression in components/media.test.tsx.",
+      "fixedAt": "2026-09-30",
+      "tests": [
+        "apps/web-admin/src/components/media.test.tsx"
+      ],
+      "rpn": 27,
+      "priority": "P2",
+      "updatedAt": "2026-09-30"
     }
   ]
 }

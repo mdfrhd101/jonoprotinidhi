@@ -79,7 +79,13 @@ export function adminRoutes(d: Deps, s: Services): Router {
   // /profile is the older name of page key `profile`; it keeps returning the flat draft plus a status
   const flat = (p: Awaited<ReturnType<typeof s.pages.get>>) => ({ ...p.draft, status: p.status });
   r.get('/profile', requirePermission('profile.edit'), wrap(async (_req, res) => { res.json(flat(await s.pages.get('profile'))); }));
-  r.put('/profile', requirePermission('profile.edit'), wrap(async (req, res) => { res.json(flat(await s.pages.put('profile', req.body, whoOf(req)))); }));
+  // the legacy alias takes a PARTIAL profile and merges it onto the current draft; replacing the whole draft wiped every field
+  // an older client did not send (portrait, milestones, education ...) (BUG-2026-021)
+  r.put('/profile', requirePermission('profile.edit'), wrap(async (req, res) => {
+    const body = req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body as Record<string, unknown> : {};
+    const cur = await s.pages.get('profile');
+    res.json(flat(await s.pages.put('profile', { ...cur.draft, ...body }, whoOf(req))));
+  }));
   r.post('/profile/publish', requirePermission('profile.publish'), wrap(async (req, res) => { res.json(flat(await s.pages.publish('profile', whoOf(req)))); }));
 
   /* ----- site pages (draft + live) ----- */
@@ -135,7 +141,10 @@ export function adminRoutes(d: Deps, s: Services): Router {
   r.get('/audit', requirePermission('audit.view'), wrap(async (req, res) => {
     const { page, limit } = parsePaging(q(req));
     const f = { tenantId: req.tenant!._id };
-    const [items, total] = await Promise.all([AuditLog.find(f).sort({ at: -1 }).skip((page - 1) * limit).limit(limit).lean(), AuditLog.countDocuments(f)]);
+    const [rows, total] = await Promise.all([AuditLog.find(f).sort({ at: -1 }).skip((page - 1) * limit).limit(limit).select('-ip -userAgent').lean(), AuditLog.countDocuments(f)]);
+    // BUG-2026-019: no IP / browser details for anyone in the office; a complaint row's free-text reason (e.g. why an officer
+    // opened an identity) can describe the citizen, so it is dropped too
+    const items = rows.map((a) => (a.action.startsWith('complaint.') ? { ...a, reason: undefined } : a));
     res.json({ items, page, limit, total, totalPages: Math.ceil(total / limit) });
   }));
 

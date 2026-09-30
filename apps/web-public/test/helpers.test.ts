@@ -215,3 +215,38 @@ describe('server read cache', () => {
     expect(isTransient({ status: 400 })).toBe(false);
   });
 });
+
+import http from 'node:http';
+import { serverHeaders, visitorIp } from '../src/lib/serverHeaders';
+import { httpRequest } from '../src/lib/http';
+describe('server-to-API headers (BUG-2026-020)', () => {
+  const H = (o: Record<string, string>) => ({ get: (k: string) => o[k.toLowerCase()] ?? null });
+  it('with the site token: x-site-token + x-client-ip, no x-forwarded-for', () => {
+    const h = serverHeaders({ host: 'ndp3.jonoshetu.com', ip: '203.0.113.9', token: 't'.repeat(40) });
+    expect(h).toEqual({ accept: 'application/json', host: 'ndp3.jonoshetu.com', 'x-forwarded-host': 'ndp3.jonoshetu.com', 'x-site-token': 't'.repeat(40), 'x-client-ip': '203.0.113.9' });
+  });
+  it('without a token: X-Forwarded-For fallback; never an invalid IP', () => {
+    expect(serverHeaders({ host: 'a.example', ip: '2001:db8::1' })['x-forwarded-for']).toBe('2001:db8::1');
+    expect(serverHeaders({ host: 'a.example', ip: '::ffff:10.0.0.1', token: 'x'.repeat(32) })['x-client-ip']).toBe('10.0.0.1');
+    for (const bad of ['', 'evil, 1.2.3.4', '1.2.3.4\r\nx: y', 'localhost']) {
+      const h = serverHeaders({ host: 'a.example', ip: bad, token: 'x'.repeat(32) });
+      expect(h['x-client-ip']).toBeUndefined();
+      expect(h['x-forwarded-for']).toBeUndefined();
+    }
+    expect(serverHeaders({ host: 'a', json: true })['content-type']).toBe('application/json');
+  });
+  it('visitor IP = right-most X-Forwarded-For hop (left entries are spoofable)', () => {
+    expect(visitorIp(H({ 'x-forwarded-for': '6.6.6.6, 198.51.100.7' }))).toBe('198.51.100.7');
+    expect(visitorIp(H({ 'x-real-ip': '198.51.100.8' }))).toBe('198.51.100.8');
+    expect(visitorIp(H({}), '127.0.0.1')).toBe('127.0.0.1');
+  });
+  it('BUG-2026-023: the HTTP client really sends the tenant Host header (global fetch would replace it)', async () => {
+    const srv = http.createServer((q, r) => { r.setHeader('content-type', 'application/json'); r.end(JSON.stringify({ host: q.headers.host, tok: q.headers['x-site-token'] ?? null })); });
+    await new Promise<void>((ok) => srv.listen(0, '127.0.0.1', ok));
+    const port = (srv.address() as { port: number }).port;
+    const r = await httpRequest(`http://127.0.0.1:${port}/x`, { headers: serverHeaders({ host: 'ndp3.jonoshetu.com', ip: '1.2.3.4', token: 'k'.repeat(32) }) });
+    srv.close();
+    expect(r.status).toBe(200);
+    expect(JSON.parse(r.text)).toEqual({ host: 'ndp3.jonoshetu.com', tok: 'k'.repeat(32) });
+  });
+});

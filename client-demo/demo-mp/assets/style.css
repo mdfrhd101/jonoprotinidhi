@@ -626,3 +626,4 @@ details.credits[open] summary::after{content:" ▴"}
 details.credits summary:hover,details.credits summary:focus-visible{color:var(--brass-2)}
 details.credits p{margin:10px 0 0;font-size:12px;line-height:1.7;color:var(--muted-light)}
 footer{padding-bottom:max(84px,env(safe-area-inset-bottom))}
+footer ul.site-links{grid-template-columns:repeat(2,max-content);column-gap:clamp(24px,3vw,44px)}

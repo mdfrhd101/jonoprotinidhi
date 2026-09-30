@@ -313,6 +313,20 @@ describe('status machine, SLA and notifications', () => {
     expect(JSON.stringify((await api(env).get(`/api/v1/public/complaints/${trackingId}`).set('Host', t.host)).body)).not.toContain('প্রকৌশলীর');
   });
 
+  it('BUG-2026-019: the office audit log never shows a citizen IP or browser, nor reasons on complaint rows', async () => {
+    const r = await api(env).post('/api/v1/public/complaints').set('Host', t.host).set('User-Agent', 'CitizenPhone/1.0 (secret-device)').set('X-Forwarded-For', '203.0.113.77').send(body());
+    expect(r.status).toBe(201);
+    const raw = await inT(() => AuditLog.findOne({ action: 'complaint.create' }).lean());
+    expect(raw).toBeTruthy();
+    expect(raw!.ip ?? null).toBeNull(); // not even stored
+    expect(raw!.userAgent ?? null).toBeNull();
+    const log = await api(env).get(admin(t, '/audit?limit=100')).set(bearer(t.owner));
+    expect(log.status).toBe(200);
+    const txt = JSON.stringify(log.body);
+    expect(txt).not.toMatch(/203\.0\.113\.77|CitizenPhone|secret-device|"ip"|"userAgent"/);
+    for (const a of log.body.items as Array<{ action: string; reason?: string }>) if (a.action.startsWith('complaint.')) expect(a.reason).toBeUndefined();
+  });
+
   it('every change is in the append-only event history and audit log', async () => {
     const { id } = await assigned();
     await patch(t.owner, id, { status: 'verify' });

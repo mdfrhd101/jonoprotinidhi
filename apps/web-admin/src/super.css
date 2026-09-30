@@ -122,9 +122,9 @@
   .sa-steps .stepper{flex-direction:row;gap:0}
   .sa-steps .stepper li,.sa-steps .stepper li+li,.sa-steps .stepper li:first-child{flex:1 1 0;padding-bottom:0;justify-content:center}
   .sa-steps .stepper li:not(:last-child)::after{content:none}
-  .sa-steps .st-t{display:none}
-  .sa-steps .stepper li[aria-current="step"] .st-t{display:block;white-space:normal}
-  .sa-steps .stepper li[aria-current="step"] .st-t small{display:none}}
+  .sa-steps .st-t{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .sa-steps .stepper li+li::before{content:"";display:block;flex:1;height:2px;background:var(--line);margin:0 6px;min-width:8px}
+  .sa-steps .stepper li[data-state="done"]+li::before,.sa-steps .stepper li[data-state="current"]::before{background:var(--brass)}}
 @media (max-width:560px){.sa-plan{grid-template-columns:1fr}.sa-rv{grid-template-columns:1fr auto}.sa-rv dt{grid-column:1/-1}.sa-foot .btn{flex:1 1 auto}}
 
 /* ---------- audit ---------- */
@@ -146,3 +146,5 @@
 .sa-diff-t tr.chg .sa-new{background:var(--ok-s);color:var(--ok-d);border-radius:4px;padding:1px 4px}
 @media (min-width:721px){.sa-mp{min-width:230px}.sa-doms .sa-host{overflow-wrap:normal;white-space:nowrap}}
 .sa-wizard>.card{margin-top:0!important}
+.sa-next{list-style:bengali}
+@media (max-width:640px){.sa-detail .card-h{flex-wrap:wrap;row-gap:10px}.sa-detail .card-a{width:100%}}

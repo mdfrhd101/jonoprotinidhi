@@ -80,10 +80,20 @@ IGNORE = re.compile(r'youtube|ytimg|googlevideo|doubleclick|favicon|Download the
 def new_page(browser, width):
     ctx = browser.new_context(viewport={'width': width, 'height': 900 if width > 600 else 844}, locale='bn-BD')
     pg = ctx.new_page(); errs = []
-    pg.on('console', lambda m: errs.append(f'console.{m.type}: {m.text[:300]}') if m.type == 'error' and not IGNORE.search(m.text) else None)
+    # an unknown tracking id is an intended 404 of the lookup endpoint; the browser logs every 4xx fetch
+    pg.on('console', lambda m: errs.append(f'console.{m.type}: {m.text[:300]}') if m.type == 'error' and not IGNORE.search(m.text) and '/api/public/complaints/' not in (m.location or {}).get('url', '') else None)
     pg.on('pageerror', lambda e: errs.append(f'pageerror: {str(e)[:300]}'))
     pg.on('response', lambda r: errs.append(f'{r.status} {r.url}') if r.status >= 400 and not IGNORE.search(r.url) and '/api/public/complaints/' not in r.url else None)
     return ctx, pg, errs
+
+# All test traffic comes from one IP, and the API allows 120 public requests per minute per visitor IP (BUG-2026-020:
+# a server-rendered page view costs several API calls). Keep page loads spaced like a brisk human reader.
+PACE = float(os.environ.get('PACE_S', '4'))
+_last = [0.0]
+def pace():
+    wait = PACE - (time.time() - _last[0])
+    if wait > 0: time.sleep(wait)
+    _last[0] = time.time()
 
 def scroll_through(pg):
     h = pg.evaluate('document.body.scrollHeight'); y = 0
@@ -99,6 +109,7 @@ with sync_playwright() as p:
         ctx, pg, errs = new_page(browser, width)
         for path, texts in EXPECT.items():
             errs.clear()
+            pace()
             r = pg.goto(SITE + path, wait_until='networkidle', timeout=90000)
             scroll_through(pg); time.sleep(0.3)
             body = norm(pg.evaluate('document.body.textContent'))
@@ -122,7 +133,9 @@ with sync_playwright() as p:
             ok = pg.locator('#nav.open a[href="/gallery"]').is_visible()
             pg.click('#nav.open a[href="/gallery"]')
             pg.wait_for_function("location.pathname === '/gallery'", timeout=20000)  # page.url misses client-side pushState here
-            step('390px: mobile menu opens and navigates', ok and pg.locator('#nav.open').count() == 0)
+            time.sleep(0.5)
+            closed = pg.locator('#nav.open').count() == 0
+            step('390px: mobile menu opens and navigates', ok and closed, f'visible={ok} closed={closed}')
         ctx.close()
 
     # ---------- 2. gallery slider + lightbox ----------
@@ -227,7 +240,7 @@ with sync_playwright() as p:
         pg.select_option('#fUnion', index=1)
         pg.fill('#fPlace', 'ই২ই পরীক্ষা')
         pg.fill('#fText', 'স্বয়ংক্রিয় পরীক্ষা: রাস্তার পাশের ড্রেন বন্ধ হয়ে পানি জমে থাকে, দয়া করে দেখুন। ' + time.strftime('%H%M%S'))
-        pg.fill('#fPhone', '01700000099')
+        pg.fill('#fPhone', '0171' + str(int(time.time() * 1000))[-7:])  # a fresh test number: the API caps submissions per phone per day
         pg.click('button[type=submit]:has-text("অভিযোগ জমা দিন")')
         try:
             pg.wait_for_selector('[data-testid=tracking-id]', timeout=20000)
@@ -236,7 +249,7 @@ with sync_playwright() as p:
             print('   alert:', pg.locator('.alert').all_text_contents())
         step('complaint: submission shows a tracking id', tid and re.match(r'^[A-Z0-9]+-\d{4}-\d{5}$', tid), str(tid))
         if tid:
-            pg.click('button:has-text("অবস্থা দেখুন")')
+            pg.click('.ticket button:has-text("অবস্থা দেখুন")')
             pg.wait_for_selector('[data-testid=track-card]', timeout=15000)
             card = norm(pg.locator('[data-testid=track-card]').text_content())
             step('complaint: tracking finds the new complaint', tid in card and 'অভিযোগ গৃহীত' in card, card[:80])
@@ -271,8 +284,15 @@ with sync_playwright() as p:
             s2, _ = api(base + '/publish', 'POST', {}, token=token, public=False)
             step('cms: contact intro saved + published through the admin API', s1 == 200 and s2 == 200, f'{s1} {s2}')
             ctx, pg, errs = new_page(browser, 1440)
-            pg.goto(SITE + '/contact', wait_until='networkidle')
-            step('cms: /contact shows the new intro immediately', marker in norm(pg.evaluate('document.body.textContent')))
+            def shows(want, timeout=15):  # the site keeps API reads for ~5 s, so allow a few reloads
+                t0 = time.time()
+                while True:
+                    pg.goto(SITE + '/contact', wait_until='networkidle')
+                    if want(norm(pg.evaluate('document.body.textContent'))): return round(time.time() - t0, 1)
+                    if time.time() - t0 > timeout: return None
+                    time.sleep(1.5)
+            took = shows(lambda b: marker in b)
+            step('cms: /contact shows the new intro within seconds', took is not None, f'{took}s')
             # restore: publish the original live copy, then put the original draft back (keeps unpublished work unpublished)
             _, cur2 = api(base, token=token, public=False)
             restore_live = orig_live if orig_live else orig_draft
@@ -280,9 +300,8 @@ with sync_playwright() as p:
             s4, r4 = api(base + '/publish', 'POST', {}, token=token, public=False)
             if had_changes:
                 api(base, 'PUT', {**orig_draft, 'version': r4['version']}, token=token, public=False)
-            pg.goto(SITE + '/contact', wait_until='networkidle')
-            body = norm(pg.evaluate('document.body.textContent'))
-            step('cms: original contact page restored', s3 == 200 and s4 == 200 and marker not in body and (not restore_live.get('intro') or norm(restore_live['intro']) in body), f'{s3} {s4}')
+            took = shows(lambda b: marker not in b and (not restore_live.get('intro') or norm(restore_live['intro']) in b))
+            step('cms: original contact page restored', s3 == 200 and s4 == 200 and took is not None, f'{s3} {s4} {took}s')
             ctx.close()
 
     browser.close()

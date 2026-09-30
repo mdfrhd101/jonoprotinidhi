@@ -1,6 +1,6 @@
 # Jonoshetu (জনসেতু) — Handoff bundle
 Generated 2026-09-30 by scripts/build-bundle.py. Upload this single file to a claude.ai Project as knowledge, then use section 2 of KICKOFF_PROMPT.md.
-Contents: CLAUDE.md, KICKOFF_PROMPT.md, HANDOFF.md, docs/00-START-HERE.md, docs/01-PRD.md, docs/02-ARCHITECTURE.md, docs/03-DATA-MODEL.md, docs/04-API.md, docs/05-DESIGN-PATTERNS.md, docs/06-UI-UX.md, docs/07-TASKS.md, docs/08-SECURITY.md, adr/0000-template.md, adr/0001-multi-tenant-platform.md, adr/0002-mern-stack.md, adr/0003-tenant-isolation.md, adr/0004-complainant-pii-protection.md, adr/0005-content-approval-workflow.md, adr/0006-domains-and-tls.md, adr/0007-complaint-otp-optional.md, adr/0008-content-and-legal-guardrails.md, adr/README.md.
+Contents: CLAUDE.md, KICKOFF_PROMPT.md, HANDOFF.md, docs/00-START-HERE.md, docs/01-PRD.md, docs/02-ARCHITECTURE.md, docs/03-DATA-MODEL.md, docs/04-API.md, docs/05-DESIGN-PATTERNS.md, docs/06-UI-UX.md, docs/07-TASKS.md, docs/08-SECURITY.md, docs/09-BUILD-BRIEF.md, adr/0000-template.md, adr/0001-multi-tenant-platform.md, adr/0002-mern-stack.md, adr/0003-tenant-isolation.md, adr/0004-complainant-pii-protection.md, adr/0005-content-approval-workflow.md, adr/0006-domains-and-tls.md, adr/0007-complaint-otp-optional.md, adr/0008-content-and-legal-guardrails.md, adr/README.md.
 The runnable demos live in `client-demo/` (not included here, only listed at the end). They are the visual and UX spec: fetch them from the repository.
 
 
@@ -20,6 +20,9 @@ Portfolio + CMS + citizen complaint platform for Bangladeshi MPs/ministers (mult
 - **Bug tracking:** every defect goes into `bugs/register.json` via `node scripts/bugs.mjs` (RPN = S×O×D, see `bugs/README.md`); each fix needs a regression test that mentions the bug ID; `npm run bugs:check` must pass; open P0/P1 blocks release.
 - **2-step login is a switch:** `MFA_REQUIRED` in `apps/api/.env` (default `true`). Local `.env` has `false` (owner asked, 30 Sep 2026) so login is password-only; the API refuses to start with `false` in production. `e2e/smoke.py` needs `MFA_REQUIRED=true`. Turn it back on before any real client/pilot.
 - **Media + rich text:** post `body` is sanitised HTML (`apps/api/src/lib/richtext.ts`, allow-list; length limit counts visible text via `packages/shared/src/richtext.ts`). Uploads go through `apps/api/src/lib/media.ts` (sharp re-encode to WebP, EXIF stripped, SVG/GIF refused, 40 MP cap) into `MediaStorage`; URLs are built by `lib/mediaUrl.ts` and only own-tenant upload URLs or `MEDIA_HOSTS` are accepted in posts/banners. Admin UI: `components/RichEditor.tsx` (Tiptap), `ImagePicker.tsx`, `RichText.tsx` (DOMPurify on read). New tenant routes must be added to the isolation crawler table.
+- **Public site** `apps/web-public` (Next.js 14, React 18, port 3000): renders only from the public API; tenant from Host (dev fallback `TENANT_HOST`). It sends `X-Site-Token`/`X-Client-IP` (shared `SITE_SERVER_TOKEN` in both `.env` files) so rate limits stay per visitor. Every visible text must come from the CMS.
+- **CMS content model:** `packages/shared/src/content.ts` (page keys + zod schemas, events/gallery/videos, `parseYouTubeId`); services `apps/api/src/services/{pages,collections,media}.ts`; admin editors in `apps/web-admin/src/pages/tenant/content/`; design system rules in `apps/web-admin/DESIGN.md`. Build brief for parallel agents: `docs/09-BUILD-BRIEF.md`.
+- **GitHub:** private `mdfrhd101/jonoshetu`, branch `main`. Never commit `.env*`, `.seed-credentials.local`, uploads, `client-demo/mirza-abbas/`; scan for secrets before every push.
 - Test gotchas: tenant-scoped models need `runInTenant` (await inside it); rate limits are disabled in tests unless `setDisabled(false)`; e2e needs a reseed (`SEED_RESET=1`) each run.
 - Demo preview: `python -m http.server 8765 --bind 127.0.0.1 --directory client-demo` → `http://localhost:8765/demo-mp/` (public site) and `http://localhost:8765/admin/` (Super Admin + MP Admin panels; they share localStorage with the public site).
 - Security rules that apply to all code: every tenant query scoped; no PII in logs; no secrets in git; audit every admin write (`docs/05`, `docs/08`).
@@ -127,7 +130,7 @@ doc, and regenerate HANDOFF_BUNDLE.md.
 ==============================================================================
 
 # জনসেতু (Jonoshetu) — MP/মন্ত্রী পোর্টফোলিও ও জনসংযোগ প্ল্যাটফর্ম
-### হ্যান্ডঅফ ডকুমেন্ট · শেষ হালনাগাদ: ৩০ সেপ্টেম্বর ২০২৬ (আসল Admin panel + টেস্ট + bug register)
+### হ্যান্ডঅফ ডকুমেন্ট · শেষ হালনাগাদ: ৩০ সেপ্টেম্বর ২০২৬ (নতুন অ্যাডমিন ডিজাইন, পুরো CMS, পাবলিক ওয়েবসাইট, GitHub)
 
 > অন্য PC বা অন্য Claude-এ কাজ চালিয়ে যেতে প্রথমে এই ফাইলটা পুরো পড়ুন।
 > Claude-কে বলুন: **"HANDOFF.md পড়ে 'পরের কাজ' অংশ থেকে কাজ চালিয়ে যাও। আমার সাথে বাংলায় কথা বলবে।"**
@@ -386,7 +389,15 @@ npm run dev:admin                         # http://localhost:5173
 
 **ছবি আপলোড ও রিচ-টেক্সট (৩০ সেপ্টেম্বর ২০২৬):** পোস্টের "পুরো খবর" এখন Tiptap (MIT, ওপেন সোর্স) এডিটর: মোটা/বাঁকা/দাগ, হেডিং, তালিকা, উদ্ধৃতি, লিংক। সার্ভার `sanitize-html` দিয়ে HTML পরিষ্কার করে রাখে (script, handler, iframe, javascript: লিংক বাদ)। ছবি আপলোড: `POST /admin/tenants/:id/media` (JPG/PNG/WebP, সর্বোচ্চ ৮MB), সার্ভারে `sharp` দিয়ে decode + EXIF/GPS মুছে + WebP করে সংরক্ষণ (ডিস্কে `apps/api/uploads/`, git-ignored; `MediaStorage` interface, পরে S3), পাবলিক URL `/api/v1/public/media/<tenantId>/<id>.webp`। ছবি শুধু নিজের tenant-এর আপলোড বা অনুমোদিত হোস্টের হতে পারে; ব্যবহৃত ছবি মোছা যায় না। পোস্টে সর্বোচ্চ ৬টি ছবি, প্রতিটির ক্রেডিটসহ। ব্যানারে (Site পেজ) এখনো শুধু লিংক, আপলোড নেই।
 
-**এখনো তৈরি হয়নি:** WebAuthn, Redis/BullMQ (এখন in-memory), Next.js পাবলিক সাইট (M3), backup/restore UI, এলাকা/ইভেন্ট/অফিস/ভিডিও editor, আসল SMS gateway, git repo ও CI। `docs/07-TASKS.md`-এর শুরুতে অবস্থার সারাংশ আছে।
+**৩০ সেপ্টেম্বর ২০২৬ সন্ধ্যা পর্যন্ত যোগ হয়েছে:**
+- **GitHub:** private repo https://github.com/mdfrhd101/jonoshetu (branch `main`)। `.env`, পাসওয়ার্ড ফাইল, আপলোড আর `client-demo/mirza-abbas/` (বাস্তব রাজনীতিকের নাম) ইচ্ছা করে বাদ।
+- **পাবলিক ওয়েবসাইট (Next.js 14):** `apps/web-public`, চালু `npm run dev:public` → http://localhost:3000। সব লেখা ও ছবি CMS থেকে আসে (`/api/v1/public/pages/<key>` ইত্যাদি)। হিরো স্লাইডার (৩ সেকেন্ড, pause নেই, ফ্রেম-করা ছবি), গ্যালারি স্লাইডার + লাইটবক্স, ভিডিও স্লাইডার (YouTube লিংক ও আপলোড করা ভিডিও), অভিযোগ ফর্ম (API proxy)।
+- **CMS:** প্রতিটি পেজের প্রতিটি লেখা সম্পাদনযোগ্য: `layout, home, profile, heroes, area, contact, complaint` (খসড়া → MP প্রকাশ করেন), ব্যানার (ছবি আপলোড, শিরোনাম, বোতাম), গ্যালারি, ভিডিও (YouTube লিংক বা MP4/WebM আপলোড, ১৫০MB), ইভেন্ট, মিডিয়া লাইব্রেরি। নকশা ও API: `docs/09-BUILD-BRIEF.md`।
+- **অ্যাডমিন নতুন ডিজাইন:** design system (`apps/web-admin/DESIGN.md`, `/_kit`), আইকন সাইডবার, নতুন ড্যাশবোর্ড (চার্ট, অনুমোদন, অভিযোগ, সাইট প্রস্তুতি), Super Admin নতুন করে (ড্যাশবোর্ড, MP তালিকা/বিস্তারিত, ৫ ধাপের MP যোগ, অডিট, ডোমেইন)।
+- **ডেমো কনটেন্ট:** `npm run seed` সব পেজ, ১৮টি ছবি, ৭টি ভিডিও, ৫টি ইভেন্ট, MP-র ৩টি AI-নির্মিত ছবি (হিরো) দিয়ে সাজায় (`apps/api/src/seedContent.ts`, `apps/api/seed-assets/`)।
+- **নিরাপত্তা বাগ ঠিক:** BUG-018/019 (নাগরিকের IP/browser অডিট লগে দেখা যেত), BUG-020 (পাবলিক সাইট সার্ভারের জন্য `SITE_SERVER_TOKEN` + `X-Client-IP`, দুই `.env`-এ একই মান)।
+
+**এখনো তৈরি হয়নি:** WebAuthn, Redis/BullMQ (এখন in-memory), backup/restore, স্টাফ ম্যানেজমেন্ট, ভিজিটর পরিসংখ্যান, আসল SMS gateway, CI, প্রোডাকশন হোস্টিং। ছবিতে focal point (কোন অংশ দেখাবে) এখন সাইটে ক্রম অনুযায়ী ঠিক করা, CMS-এ ফিল্ড নেই। `docs/07-TASKS.md`-এর শুরুতে অবস্থার সারাংশ আছে।
 
 **বাগ ট্র্যাকিং:** `bugs/README.md` (ফর্মুলা RPN = তীব্রতা × ঘটার হার × ধরা কঠিনতা), `node scripts/bugs.mjs add|status|check --gate`। Release gate: খোলা P0/P1 থাকলে release নয়।
 
@@ -406,7 +417,8 @@ python -m http.server 8765 --bind 127.0.0.1 --directory "D:/AI/Jonoshetu/client-
    - `HANDOFF_BUNDLE.md` (claude.ai Project-এ upload করার জন্য এক ফাইলে সব)। docs বদলালে আবার বানাতে হবে: `python scripts/build-bundle.py`
    - ইউজার এখনো kit পড়ে দেখেননি। ফিডব্যাক অনুযায়ী বদলাতে হবে।
 5. ~~আসল প্রোডাক্ট: API + Admin panel~~ ✅ প্রথম slice (৩০ সেপ্টেম্বর ২০২৬), ইউজারের ফিডব্যাক বাকি।
-6. **পরের ধাপ:** (ক) Media upload pipeline + ছবির অনুমতি/credit, (খ) Next.js পাবলিক সাইট (M3) API থেকে, (গ) এলাকা/ইভেন্ট/অফিস/ভিডিও editor, (ঘ) Redis/BullMQ, (ঙ) backup/restore, (চ) git repo + CI (GitHub কোথায় হবে ইউজারকে জিজ্ঞেস করতে হবে), (ছ) BUG-2026-014 (e2e flake) কারণ খোঁজা।
+6. ~~Media, পাবলিক সাইট, সব পেজের CMS, গ্যালারি/ভিডিও/ইভেন্ট, GitHub~~ ✅ (৩০ সেপ্টেম্বর ২০২৬)। ইউজারের ফিডব্যাক বাকি।
+7. **পরের ধাপ:** (ক) CI (GitHub Actions: typecheck + test + bugs:check --gate), (খ) ব্যানার/ছবিতে focal point ফিল্ড, (গ) Redis/BullMQ, (ঘ) backup/restore ও স্টাফ ম্যানেজমেন্ট, (ঙ) আসল SMS gateway ও হোস্টিং (ইউজারকে জিজ্ঞেস), (চ) AI ছবির ভেতরের ভুল লেখা ("ঢাকা লোকনাথ", ফলকের লোগো) ঠিক করে নতুন ছবি, (ছ) BUG-2026-014 (e2e flake)।
 
 ## ১১. সিদ্ধান্ত
 **নেওয়া হয়েছে** (৩০ সেপ্টেম্বর ২০২৬, `adr/` দেখুন):
@@ -1249,13 +1261,15 @@ Registry lives in `packages/shared/permissions.ts`; per-membership overrides all
 
 | Method | Path | Notes | Req |
 |---|---|---|---|
-| GET | `/super/dashboard` | platform KPIs, stale sites, SSL/DNS warnings | FR-SA-01, SA-09 |
+| GET | `/super/dashboard` | counts only: `kpis` (tenants by status, complaints 30d/prev/open/overdue/SLA, posts 30d, media bytes image/video, SMS today/month vs cap, domains pending/SSL), `series` (30 Dhaka days, zero-filled), `openByTenant`, `attention` (suspended, SLA, domain, stale, unpublished, setup), `activity`; legacy flat fields kept | FR-SA-01, SA-09 |
+| GET | `/super/slug-available?slug=` | super_admin; `{ slug, host, available }` (wizard live check) | FR-SA-02 |
 | GET/POST | `/super/tenants` | create requires `consent.confirmed === true` + `documentRef` | FR-SA-02 |
 | GET/PATCH | `/super/tenants/:id` | plan, settings caps | |
 | POST | `/super/tenants/:id/status` | `{ to, reason, contentChecked? }` | FR-SA-03 |
 | POST | `/super/tenants/:id/act-as` | `{ reason }` → `{ actAsToken, expiresAt }` (30 min) | FR-SA-05 |
-| GET/POST | `/super/domains` · POST `/super/domains/:id/verify` · POST `/super/domains/:id/primary` · DELETE | Cloudflare for SaaS via `DomainProvider` | FR-SA-04 |
-| GET | `/super/audit` | filters `tenantId, actorType, action, from, to` | FR-SA-06 |
+| GET | `/super/domains` | every domain + tenant, DNS/SSL state, TXT record (implemented, read for support too) | FR-SA-04 |
+| POST | `/super/tenants/:id/domains` · POST `/super/domains/:id/verify` · POST `/super/domains/:id/primary` · (DELETE: not implemented) | Cloudflare for SaaS via `DomainProvider` | FR-SA-04 |
+| GET | `/super/audit` | filters `tenantId, actorType (super/office), action (prefix), actor (name contains), from, to (Dhaka days)`; rows carry `tenantName`; never a user agent; complaint.* rows without IP and reason; IP of admin actions to super_admin only (BUG-2026-018) | FR-SA-06 |
 | GET/POST | `/super/backups` · POST `/super/backups/:id/restore-requests` · POST `/super/restore-requests/:id/approve` | second approver must be a different super admin | FR-SA-07 |
 | GET/POST/PATCH | `/super/staff` | | FR-SA-08 |
 
@@ -1863,6 +1877,169 @@ tag. Staging gets every main build; production on tagged release with changelog.
 - [ ] Backups verified by a restore in the last 90 days
 - [ ] Privacy notice and complaint policy current (lawyer-reviewed)
 - [ ] `HANDOFF.md` and docs updated
+
+
+==============================================================================
+<!-- FILE: docs/09-BUILD-BRIEF.md -->
+==============================================================================
+
+# 09 · Build brief for the CMS redesign, content pages, gallery/video and public site
+
+Read this first if you are a sub-agent. It is the shared context for everyone working in parallel.
+
+## 0. Ground rules
+
+- Product: **Jonoshetu (জনসেতু)**, multi-tenant portfolio + CMS + complaint platform for Bangladeshi MPs. Repo root `D:\AI\Jonoshetu`,
+  npm workspaces: `apps/api` (Express 4 + Mongoose 8 + zod), `apps/web-admin` (React 18 + Vite + react-query + react-router),
+  `packages/shared` (zod schemas, permissions, Bangla helpers), `client-demo/` (static visual spec), later `apps/web-public` (Next.js).
+- Machine: **Windows 11 on ARM64**, Git Bash. Use `MSYS_NO_PATHCONV=1` when a bash argument starts with `/`. Keep files under `D:\`.
+- **UI copy is Bangla** (Bangla digits via `toBn`, dates via `bnDate`). Code, comments, commit-style docs are English.
+- **Never** invent content under a real politician's name. All demo content belongs to the fictional MP **ড. তাহমিনা নূর, নদীপুর-৩**.
+- **Never print or write credentials in chat/docs.** Local seed logins are in the git-ignored `apps/api/.seed-credentials.local`; read them from
+  there in scripts. Local `.env` has `MFA_REQUIRED=false` (password-only login) – leave it as you found it.
+- Security rules that always apply: every tenant query is scoped (fail-closed `tenantId` plugin; use `runInTenant` in scripts/tests and await
+  inside it), no PII in logs, every admin write is audited (`audit()`), permission checks in the API (UI hiding is only a hint), sanitise
+  everything that becomes HTML, strict zod schemas (`.strict()`) on every write body.
+- Bug tracking: any real defect you find goes into `bugs/register.json` via `node scripts/bugs.mjs add …` (see `bugs/README.md`), fixed
+  ones get a regression test that mentions the bug id.
+- Quality gate for anything you finish: `npm run typecheck`, the relevant vitest suite(s) green, and – for UI – you have looked at it in a real
+  browser (Playwright + Edge, see §5) at 1440 px and 390 px wide.
+- Do not run `git`. Do not touch files owned by another agent (see §6). Do not edit `.env`.
+- If something in this brief is impossible or contradicts the code, decide sensibly, note it in your final report, and continue.
+
+## 1. Content model (already in code – `packages/shared/src/content.ts`)
+
+Singleton pages, one document per key, `draft` + `live` copy (model `PageContent`), zod schema per key in `PAGE_SCHEMAS`:
+
+| key | what it edits |
+|---|---|
+| `layout` | announcement bar, tagline, footer texts, photo credit, copyright, social links |
+| `home` | hero note, stats strip (n / unit / label), section titles+intros, complaint call-to-action |
+| `profile` | headline, intro, role line, story paragraphs, milestones, committees, personal facts, education, profession, politics, awards, priorities |
+| `heroes` | kicker/title/intro of every inner page (about, biography, activities, promises, area, gallery, videos, complaint, contact) |
+| `area` | intro, totals, voters, extra facts, upazilas (with unions), note |
+| `contact` | intro, offices (name + label/value rows), channels (label, note, url), hotline |
+| `complaint` | intro, "how it works" steps, privacy note, FAQ |
+
+Existing editable things that stay: **posts** (activities, rich text body + up to 6 photos), **promises** (+ progress updates), **site-config**
+(slogan, accent colour, hero banners, home section order/visibility), **complaint settings** (categories, OTP, SLA), **team**.
+
+Collections (each item has `status: 'draft' | 'published'`, soft delete, `createdBy`):
+
+- `EventItem` – upcoming programmes: title, date, time text, place, note.
+- `GalleryItem` – photos: url (own upload or allow-listed host), caption, credit, album, takenAt, order, featured.
+- `VideoItem` – `kind: 'youtube' | 'upload'`; youtube stores the 11-char id (`parseYouTubeId` accepts any URL form); upload references a video in the
+  media library (`mediaId`); optional poster image; duration text; order; featured.
+
+Publishing rule (ADR-0005): editors (`content.edit`) only ever produce drafts; the owner (`content.publish`, `posts.publish`) publishes. The owner's
+own save offers "save and publish". The public API returns only `live` page copies and `published` items.
+
+Media: `MediaAsset` has `kind: 'image' | 'video'`. Images are re-encoded to WebP by `sharp` (EXIF stripped). Videos (mp4/webm, size-limited, magic-byte
+checked, not transcoded) are streamed with HTTP Range support from `/api/v1/public/media/:tenantId/:id.(webp|mp4|webm)`.
+
+## 2. API surface (tenant admin, all under `/api/v1/admin/tenants/:tenantId`)
+
+Existing: `/me /dashboard /posts… /promises… /site-config /settings /profile /complaints… /team… /audit /media (POST image, GET list, DELETE)`.
+
+New (DONE and tested – `apps/api/src/services/{pages,collections,media}.ts`, tests `test/integration/{pages,collections,media}.test.ts`):
+
+- `GET /pages` → `[{ key, label, status: 'empty'|'draft'|'published', hasUnpublishedChanges, updatedAt, publishedAt }]`
+- `GET /pages/:key` → `{ key, draft, live, status, updatedAt, publishedAt, version }` (`draft` is fully defaulted by the schema)
+- `PUT /pages/:key` body = page data (+ optional `version` for optimistic locking) → saves the **draft**
+- `POST /pages/:key/publish` (owner) → copies draft to live; `POST /pages/:key/discard` → draft := live
+- `/profile` GET/PUT/publish keep working (aliases of key `profile`)
+- `/events`, `/gallery`, `/videos`: `GET ?status=&q=&page=&limit=`, `POST`, `GET /:id`, `PATCH /:id`, `DELETE /:id`,
+  `POST /:id/publish`, `POST /:id/unpublish`; gallery also `POST /reorder {ids:[…]}`; videos also `POST /reorder`.
+- `POST /media/video?name=&credit=` raw body `video/mp4|video/webm` → `{ id, url, kind:'video', bytes, name }`; `GET /media?kind=image|video`;
+  `DELETE /media/:id` (refuses when in use).
+- Public (Host-resolved tenant, `GET /api/v1/public/…`): `/site`, `/profile`, `/pages/:key`, `/posts`, `/posts/:slug`, `/promises`,
+  `/events`, `/gallery` (+`/gallery/albums`), `/videos`, `/complaint-stats`, `/complaint-form`, plus the existing complaint POST/track endpoints.
+
+Dashboard (`GET /dashboard`) response contract (role-filtered: send a section only if the role may see it – never send complaint data to editors):
+
+```ts
+{
+  generatedAt: string,
+  posts?:       { total, byStatus: Record<status, number>, last30d: number, recent: {id,title,status,eventDate,updatedAt}[] },
+  promises?:    { total, byStatus: Record<status, number>, avgPct: number, late: {id,name,pct}[] },
+  approvals?:   { total: number, items: {id,title,authorName,submittedAt}[] },            // needs posts.publish
+  complaints?:  { total, open, byStatus: Record<status, number>, slaPct, resolvedLast30d, overdue, avgResolutionDays,
+                  series: {date:'YYYY-MM-DD', received:number, solved:number}[],           // last 30 days, zero-filled
+                  byCategory: {name,count}[], byUpazila: {name,count,open}[],
+                  latest: {id,trackingId,category,upazila,status,createdAt}[] },            // never PII
+  events?:      { upcoming: {id,title,date,place}[] },
+  content?:     { gallery: number, videos: number, events: number, readinessPct: number,
+                  pages: {key,label,ready:boolean}[] },                                     // "site readiness" checklist
+  activity?:    { items: {action,label,actorName,at}[] },                                   // needs audit.view
+}
+```
+
+## 3. Design language (admin panels)
+
+Goal: a premium, calm, modern control room – think Linear/Stripe dashboards, but Bangla-first and in the Jonoshetu brand.
+
+- Brand tokens (keep): ink `#0C1117`, brass `#C7A35A` / deep brass `#9C7A2E`, paper `#F5F1EA`. Add a modern neutral scale, one info-blue, green, amber, red.
+- Surfaces: warm light background, white cards, 14 px radius, 1 px border + soft layered shadow, 24 px gaps, generous padding.
+- Typography: Noto Sans Bengali for UI (16 px base, comfortable line-height for Bangla), Noto Serif Bengali only for big page titles and KPI numbers.
+- Sidebar: ink, grouped, **icons** (`lucide-react`), active item = brass tint pill + left bar, badges for counts, collapses to a drawer on mobile.
+  Top bar: page breadcrumb/title, quick "site দেখুন ↗", notifications (pending approvals / new complaints), user menu.
+- Dashboard: greeting + date, KPI cards (icon chip, big number, delta/sparkline), area chart (30 days received vs solved), donut (status),
+  bar lists (category, upazila), lists (pending approvals, latest complaints without PII, upcoming events, recent activity), quick actions,
+  "site readiness" progress. Empty states are helpful and actionable, loading uses skeletons, errors have retry.
+- Charts are small hand-written SVG components (no chart dependency), accessible (`role="img"`, aria-label, visually-hidden data table).
+- Forms: tall inputs (≥ 48 px), clear labels, inline hints/errors, sticky save bar, unsaved-changes guard where cheap.
+- Responsive from 390 px; keyboard accessible; visible focus; `prefers-reduced-motion` respected.
+
+## 4. Commands
+
+```bash
+npm run typecheck                       # all workspaces
+npm test                                # all vitest suites
+cd apps/api && npx vitest run <file>    # single API test file (mongodb-memory-server, no external DB)
+cd apps/web-admin && npx vitest run     # admin component tests (jsdom)
+npm run dev:api  /  npm run dev:admin   # already running: API :4000, admin http://localhost:5173, static demo :8765
+cd apps/api && SEED_RESET=1 npm run seed --silent   # reseed the fictional tenant (wipes it first)
+node scripts/bugs.mjs check
+```
+
+## 5. Looking at the UI
+
+Playwright (Python, Edge) is installed. `e2e/smoke.py` shows how to log in (read `apps/api/.seed-credentials.local`, never print it) and
+`e2e/run.sh` how the full suite runs. Screenshots go to a scratch folder, not into the repo. Login is password-only while `MFA_REQUIRED=false`;
+`e2e/smoke.py` needs `MFA_REQUIRED=true` (temporarily change `.env`, restart the API, run, then restore) – only do this if you own the e2e step.
+
+## 6. Ownership (parallel work – stay in your lane)
+
+| Agent | Owns | Does not touch |
+|---|---|---|
+| Foundation (lead) | `packages/shared/src/content.ts`, API models/services/routes for pages, events, gallery, videos, video upload, public API, seed, API tests | – |
+| Admin design | `apps/web-admin/src/{base.css,extra.css,components/**,api.ts…}` design system, shell, dashboard, restyle of existing tenant pages, `services/dashboard.ts` | new content editors, Super Admin pages |
+| Content editors | `apps/web-admin/src/pages/tenant/content/**`, gallery/videos/events/media pages, route + nav additions | design-system files (only add `content.css`) |
+| Super Admin | `apps/web-admin/src/pages/super/**`, `apps/api/src/routes/super.ts`, `services/tenants.ts` stats | tenant pages |
+| Public site | `apps/web-public/**` | everything else |
+
+## 7. API facts for UI builders (implemented)
+
+- Create/update of events/gallery/videos accept `?publish=1`: honoured only when the caller has `content.publish` (owner); an editor's
+  change to a published item flips it back to `draft`. Deleting a published item needs `content.publish` (editor gets 403).
+- List responses: `{ items, total, page, totalPages, counts: { draft?: n, published?: n } }`, query `status`, `q`, `page`, `limit` (≤100).
+- Event item: `{ id, title, date, time, place, note, status, updatedAt }`.
+- Gallery item: `{ id, url, caption, credit, album, takenAt, order, featured, status, updatedAt }`; `POST /gallery/reorder {ids}` → 204.
+- Video item: `{ id, title, description, date, kind: 'youtube'|'upload', youtubeId, mediaId, fileUrl, posterUrl, embedUrl, duration, order, featured, status }`.
+  Create youtube: `{ title, kind:'youtube', youtube:'<any YouTube URL>' , ...}`; create upload: first `POST /media/video?name=` with the raw
+  file (Content-Type video/mp4|video/webm, ≤150 MB default), then `{ title, kind:'upload', mediaId }`. `parseYouTubeId` is exported from
+  `@jonoshetu/shared` for instant client-side preview (thumbnail `https://i.ytimg.com/vi/<id>/hqdefault.jpg`, embed `https://www.youtube-nocookie.com/embed/<id>`).
+- Pages: `GET /pages/:key` → `{ key, label, draft, live, status: 'empty'|'draft'|'published', hasUnpublishedChanges, version, updatedAt, publishedAt }`.
+  `PUT /pages/:key` with the full page object (+ `version`) → same shape; 409 `VERSION_CONFLICT` on stale version; 400 with zod `details.fieldErrors`
+  (paths are flattened to the top-level key only – show a general error plus field-level ones where the key matches).
+  Page schemas and defaults: `PAGE_SCHEMAS` / `parsePage()` in `packages/shared/src/content.ts` – use them in forms for client-side validation.
+  `profile` has `portrait: { url, credit }` (own upload or allow-listed host).
+- Site config (`GET/PUT /site-config`, owner only): `{ slogan, accent: 'brass'|'river'|'maroon', banners: [{ url, caption, title?, subtitle?, ctaLabel?, ctaHref? }] (≤6),
+  sections: [{ key, on }] }` with keys `stats, about, activities, office, promises, area, gallery, videos, events, cta` (order = display order).
+- Public API (Host header selects the tenant; dev host `ndp3.jonoshetu.localhost`): `/site`, `/pages/:key` → `{ key, published, data }` (data always fully
+  defaulted), `/profile`, `/posts?category=&upazila=&page=&limit=`, `/posts/:slug`, `/promises`, `/events?limit=`, `/gallery?album=&featured=1&page=&limit=`,
+  `/gallery/albums`, `/videos?featured=1`, `/complaint-stats`, `/complaint-form`, `POST /complaints`, complaint tracking (see `routes/public.ts`).
+  Media files: `/api/v1/public/media/<tenantId>/<id>.<webp|mp4|webm>` (Range supported).
 
 
 ==============================================================================

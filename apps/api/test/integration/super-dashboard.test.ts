@@ -178,7 +178,8 @@ describe('GET /super/audit (FR-SA-06)', () => {
     const t = await makeTenant(env, sa, 'ndp3');
     await api(env).post('/api/v1/public/complaints').set('Host', t.host).set('User-Agent', 'CitizenBrowser/1.0').send({ category: 'বিদ্যুৎ', upazila: 'চরকান্দি', union: 'কাশবন', description: 'রাস্তার বাতি দুই সপ্তাহ ধরে নষ্ট হয়ে আছে', phone: '01712345678', name: 'নাগরিক', turnstileToken: 'ok' });
     const stored = await AuditLog.findOne({ action: 'complaint.create' }).lean();
-    expect(stored!.ip).toBeTruthy(); // the raw row does hold it (written by audit()), the API must not hand it out
+    expect(stored!.ip ?? null).toBeNull(); // BUG-2026-019: a citizen's IP is not even stored any more (defence in depth: the API also strips it)
+    expect(stored!.userAgent ?? null).toBeNull();
     const all = (await get('/audit?limit=100')).body.items;
     const row = all.find((x: { action: string }) => x.action === 'complaint.create');
     expect(row).toBeTruthy();

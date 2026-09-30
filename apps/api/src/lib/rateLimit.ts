@@ -36,6 +36,7 @@ export const TIERS = {
   auth: { limit: 60, windowMs: 15 * 60_000 },
   authAccount: { limit: 10, windowMs: 15 * 60_000 },
   admin: { limit: 300, windowMs: 60_000 },
+  media: { limit: 600, windowMs: 60_000 }, // image/video files: a gallery page loads dozens at once
   upload: { limit: 40, windowMs: 10 * 60_000 },
   pii: { limit: 30, windowMs: 3_600_000 },
   otpSend: { limit: 3, windowMs: 10 * 60_000 },

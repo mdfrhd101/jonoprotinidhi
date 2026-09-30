@@ -26,7 +26,7 @@ function parseRange(header: string | undefined, size: number): { start: number; 
 
 export function mediaFileRoute(d: Deps, s: Services): Router {
   const r = Router();
-  r.get('/media/:tenantId/:file', limit(d.rateLimiter, 'public', byIp), wrap(async (req, res) => {
+  r.get('/media/:tenantId/:file', limit(d.rateLimiter, 'media', byIp), wrap(async (req, res) => {
     const tenantId = String(req.params.tenantId), m = /^([a-f0-9]{24})\.(webp|mp4|webm)$/.exec(String(req.params.file));
     if (!/^[a-f0-9]{24}$/.test(tenantId) || !m) throw ApiError.notFound();
     const t = await Tenant.findById(tenantId).select('status').lean();

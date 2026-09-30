@@ -59,7 +59,7 @@ function Editor({ pageKey }: { pageKey: PageKey }) {
 
   const focusFirstError = () => requestAnimationFrame(() => {
     const el = document.querySelector<HTMLElement>('.ct-editor [aria-invalid="true"], .ct-editor .ct-item.bad .ct-item-tg, .ct-editor .err');
-    el?.scrollIntoView({ block: 'center', behavior: 'smooth' }); if (el && 'focus' in el) el.focus({ preventScroll: true });
+    el?.scrollIntoView?.({ block: 'center', behavior: 'smooth' }); if (el && 'focus' in el) el.focus({ preventScroll: true });
   });
 
   const run = async (publish: boolean, overwrite = false) => {
@@ -118,6 +118,7 @@ function Editor({ pageKey }: { pageKey: PageKey }) {
           <FormProvider value={{ form, live: doc.live, errors, showDiff, set }}>
             {sections.map((s) => <Section key={s.id} s={s} />)}
           </FormProvider>
+          <div className={`ct-sb${dirty || (doc.hasUnpublishedChanges && doc.status !== 'empty') ? ' active' : ''}`}>
           <SaveBar dirty={dirty} busy={!!busy}
             status={!dirty && doc.hasUnpublishedChanges && doc.status !== 'empty' ? <><Icon name="clock" size={16} />সংরক্ষিত, {canPublish ? 'এখনো প্রকাশ করা হয়নি' : 'MP-র প্রকাশের অপেক্ষায়'}</> : undefined}
             onDiscard={() => { setForm(JSON.parse(snap)); setServerErrs({}); setValidated(false); toast('অসংরক্ষিত পরিবর্তন বাতিল হয়েছে', 'info'); }}
@@ -127,6 +128,7 @@ function Editor({ pageKey }: { pageKey: PageKey }) {
               {!dirty && doc.hasUnpublishedChanges && doc.status !== 'empty' && <Button variant="accent" icon="rocket" loading={busy === 'publish'} disabled={!!busy} onClick={() => void run(true)}>প্রকাশ করুন</Button>}
               <Button icon="save" disabled={!dirty || !!busy} onClick={() => void run(false)}>খসড়া সংরক্ষণ</Button>
             </> : undefined} />
+          </div>
         </div>
         <aside className="editor-aside" aria-label="পাতার অবস্থা">
           <Card title="অবস্থা" icon="eye" className="ct-status">

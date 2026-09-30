@@ -43,7 +43,12 @@ export default function ComplaintBox({ categories, upazilas, otpRequired, enable
   const formRef = useRef<HTMLFormElement>(null);
   const ticketRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { if (window.location.hash === '#track') setTab('track'); }, []);
+  useEffect(() => {
+    const sync = () => { if (window.location.hash === '#track') setTab('track'); };
+    sync();
+    window.addEventListener('hashchange', sync);
+    return () => window.removeEventListener('hashchange', sync);
+  }, []);
   useEffect(() => { if (done) ticketRef.current?.focus(); }, [done]);
 
   const upz = upazilas.find((u) => (u.short || u.name) === f.upazila);

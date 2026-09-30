@@ -34,8 +34,9 @@ export async function audit(e: AuditInput): Promise<void> {
       entity: e.entity ? { type: e.entity.type, id: e.entity.id != null ? String(e.entity.id) : undefined, label: e.entity.label } : undefined,
       diff: e.diff ? { before: redact(e.diff.before), after: redact(e.diff.after) } : undefined,
       reason: e.reason,
-      ip: c?.ip,
-      userAgent: c?.userAgent?.slice(0, 200),
+      // BUG-2026-019: a public (not signed-in) action is a citizen; their IP and browser are not audit data
+      ip: c?.actor ? c.ip : undefined,
+      userAgent: c?.actor ? c.userAgent?.slice(0, 200) : undefined,
     });
   } catch (err) {
     logger.error({ err: (err as Error).message, action: e.action }, 'AUDIT WRITE FAILED');

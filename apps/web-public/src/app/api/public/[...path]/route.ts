@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { env } from '@/lib/env';
 import { apiHeaders, tenantHost } from '@/lib/api';
+import { visitorIp } from '@/lib/serverHeaders';
+import { httpRequest, type HttpResult } from '@/lib/http';
 
 /* Same-origin proxy for the few public API calls the browser makes (complaint form, OTP, tracking), so the browser
    never needs CORS and the tenant is chosen by this site's host. Only an explicit allow-list is forwarded. */
@@ -11,31 +13,21 @@ const GET_OK = [/^complaint-form$/, /^complaint-stats$/, /^complaints\/[A-Za-z0-
 const POST_OK = [/^complaints$/, /^otp\/send$/, /^otp\/verify$/];
 const MAX_BODY = 16 * 1024;
 
-function clientIp(req: NextRequest): string {
-  // the right-most X-Forwarded-For entry was added by the hop directly in front of us (our proxy / Next itself);
-  // entries further left are client-supplied and could be spoofed
-  const xff = req.headers.get('x-forwarded-for');
-  const last = xff?.split(',').map((s) => s.trim()).filter(Boolean).pop();
-  return last || req.ip || '';
-}
-
 const deny = () => NextResponse.json({ error: { code: 'NOT_FOUND', message: 'পাওয়া যায়নি' } }, { status: 404, headers: { 'Cache-Control': 'no-store' } });
 
 async function forward(req: NextRequest, path: string, method: 'GET' | 'POST', body?: string) {
-  const extra: Record<string, string> = {};
-  const ip = clientIp(req);
-  if (ip) extra['x-forwarded-for'] = ip;
-  if (body !== undefined) extra['content-type'] = 'application/json';
-  let res: Response;
+  // only headers we build are sent: an incoming x-site-token / x-client-ip / x-forwarded-for is never copied through
+  const ip = visitorIp(req.headers, req.ip);
+  let res: HttpResult;
   try {
-    res = await fetch(`${env.apiUrl}/api/v1/public/${path}`, { method, headers: apiHeaders(tenantHost(), extra), body, cache: 'no-store', signal: AbortSignal.timeout(15_000) });
+    res = await httpRequest(`${env.apiUrl}/api/v1/public/${path}`, { method, headers: apiHeaders(tenantHost(), ip, body !== undefined), body, timeoutMs: 15_000, maxBytes: 256 * 1024 });
   } catch {
     return NextResponse.json({ error: { code: 'API_UNREACHABLE', message: 'সার্ভারের সঙ্গে যোগাযোগ করা যাচ্ছে না, একটু পরে আবার চেষ্টা করুন' } }, { status: 503, headers: { 'Cache-Control': 'no-store' } });
   }
-  const text = await res.text();
-  const out = new NextResponse(text || null, { status: res.status, headers: { 'Content-Type': res.headers.get('content-type') ?? 'application/json', 'Cache-Control': 'no-store' } });
-  const ra = res.headers.get('retry-after');
-  if (ra) out.headers.set('Retry-After', ra);
+  const ct = res.headers['content-type'];
+  const out = new NextResponse(res.text || null, { status: res.status, headers: { 'Content-Type': (Array.isArray(ct) ? ct[0] : ct) ?? 'application/json', 'Cache-Control': 'no-store' } });
+  const ra = res.headers['retry-after'];
+  if (typeof ra === 'string') out.headers.set('Retry-After', ra);
   return out;
 }
 

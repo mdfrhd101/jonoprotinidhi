@@ -162,6 +162,21 @@ describe('every page schema accepts a realistic full document', () => {
     expect(pub.body.headline).toBe('শিরোনাম');
   });
 
+  it('BUG-2026-021: PUT /profile (legacy alias) merges a partial body instead of wiping the rest of the draft', async () => {
+    const full = { headline: 'পুরনো শিরোনাম', intro: 'ভূমিকা', milestones: [{ yr: '২০০৪', title: 'চিকিৎসক', note: '' }], education: [{ year: '১৯৯৮', title: 'এমবিবিএস', place: '', note: '' }], priorities: [{ title: 'সড়ক', text: '' }] };
+    expect((await put(t, t.editor, 'profile', full)).status).toBe(200);
+    const w = await api(env).put(admin(t, '/profile')).set(bearer(t.editor)).send({ headline: 'নতুন শিরোনাম', story: ['একটি অনুচ্ছেদ'] });
+    expect(w.status).toBe(200);
+    const d = (await get(t, t.owner, 'profile')).body.draft;
+    expect(d.headline).toBe('নতুন শিরোনাম');
+    expect(d.story).toEqual(['একটি অনুচ্ছেদ']);
+    expect(d.milestones).toHaveLength(1);
+    expect(d.education[0].title).toBe('এমবিবিএস');
+    expect(d.priorities[0].title).toBe('সড়ক');
+    // unknown keys are still rejected
+    expect((await api(env).put(admin(t, '/profile')).set(bearer(t.editor)).send({ nope: 1 })).status).toBe(400);
+  });
+
   it('the profile portrait must be an own upload (or an allowed host)', async () => {
     const png = await sharp({ create: { width: 20, height: 20, channels: 3, background: '#444' } }).png().toBuffer();
     const up = await api(env).post(admin(t, '/media')).set(bearer(t.editor)).set('Content-Type', 'image/png').send(png);

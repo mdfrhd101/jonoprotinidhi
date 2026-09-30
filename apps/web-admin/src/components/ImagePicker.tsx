@@ -49,7 +49,7 @@ export function ImagePicker({ value, onChange, max = 6, error }: { value: Pic[];
     if (added.length) onChange([...value, ...added]);
   };
   const onDrop = (e: DragEvent) => { e.preventDefault(); setOver(false); void send(Array.from(e.dataTransfer.files)); };
-  const library = useQuery({ queryKey: ['tenant', id, 'media', page], enabled: lib, queryFn: () => api.get<{ items: Asset[]; totalPages: number }>(`/media?page=${page}&limit=24`) });
+  const library = useQuery({ queryKey: ['tenant', id, 'media', page], enabled: lib, queryFn: () => api.get<{ items: Asset[]; totalPages: number }>(`/media?kind=image&page=${page}&limit=24`) });
 
   return (
     <div>
