@@ -29,7 +29,7 @@ The product is a fresh build following docs 01–08.
 ## 3. Reading order
 
 1. `docs/00-START-HERE.md` (this file) — context, decisions, rules, glossary
-2. `HANDOFF.md` — the owner's running project log (Bangla); design feedback history and legal rules
+2. `HANDOFF.md` — the owner's running project log (English); design feedback history and legal rules
 3. `docs/01-PRD.md` — what the product must do (requirement IDs used everywhere else)
 4. `docs/02-ARCHITECTURE.md` — system shape, tenancy, request flows, deployment
 5. `docs/03-DATA-MODEL.md` — MongoDB collections, fields, indexes, encryption
@@ -86,7 +86,7 @@ production domain.
 
 ```
 CLAUDE.md               instructions any Claude session loads automatically
-HANDOFF.md              owner's project log (Bangla) — update after each work session
+HANDOFF.md              owner's project log (English) — update after each work session
 KICKOFF_PROMPT.md       copy-paste prompts to start a new Claude session
 HANDOFF_BUNDLE.md       everything in one file for claude.ai (generated: python scripts/build-bundle.py)
 docs/00..08             the kit (this folder)

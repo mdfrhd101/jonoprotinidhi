@@ -1,7 +1,7 @@
 # Jonoshetu (জনসেতু)
 
 Multi-tenant portfolio + CMS + citizen complaint platform for Bangladeshi MPs and ministers.
-Start with `HANDOFF.md` (owner's log, Bangla) and `docs/00-START-HERE.md`.
+Start with `HANDOFF.md` (owner's project log, English) and `docs/00-START-HERE.md`.
 
 ```
 apps/api          Express + Mongoose API (tenant isolation, auth + TOTP, workflow, encrypted complaints)

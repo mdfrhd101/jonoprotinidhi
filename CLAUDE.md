@@ -2,7 +2,7 @@
 
 Portfolio + CMS + citizen complaint platform for Bangladeshi MPs/ministers (multi-tenant, run by the user's company).
 
-- **Read `HANDOFF.md` first** (owner's log, Bangla), then **`docs/00-START-HERE.md`** and the kit in `docs/01..08` + `adr/`.
+- **Read `HANDOFF.md` first** (owner's project log, English), then **`docs/00-START-HERE.md`** and the kit in `docs/01..08` + `adr/`.
 - Reply to the user in **Bangla**. Code, commits and docs in English; UI copy in Bangla.
 - **Decisions already made** (see `adr/`): one multi-tenant platform we host; **MERN** (Express + Mongoose API, React admin SPA, Next.js public sites); tenant isolation via fail-closed `tenantId` plugin; complainant PII encrypted, assigned-officer-only; Draft → Review → Publish with owner approval; complaint OTP optional (mandatory per tenant on request). Don't re-open without the owner.
 - Never put invented activities/news/stats/quotes under a real politician's name; full-content demos use the fictional MP in `client-demo/demo-mp/`. No real MP site without written office consent.
@@ -16,4 +16,4 @@ Portfolio + CMS + citizen complaint platform for Bangladeshi MPs/ministers (mult
 - Test gotchas: tenant-scoped models need `runInTenant` (await inside it); rate limits are disabled in tests unless `setDisabled(false)`; e2e needs a reseed (`SEED_RESET=1`) each run.
 - Demo preview: `python -m http.server 8765 --bind 127.0.0.1 --directory client-demo` → `http://localhost:8765/demo-mp/` (public site) and `http://localhost:8765/admin/` (Super Admin + MP Admin panels; they share localStorage with the public site).
 - Security rules that apply to all code: every tenant query scoped; no PII in logs; no secrets in git; audit every admin write (`docs/05`, `docs/08`).
-- Update the dated header and "এখন পর্যন্ত যা তৈরি হয়েছে" / "পরের কাজ" sections of `HANDOFF.md` whenever work is done; keep docs in sync and regenerate `HANDOFF_BUNDLE.md` (`python scripts/build-bundle.py`).
+- Update the dated header and "9. What has been built so far" / "10. Next steps" sections of `HANDOFF.md` (written in English) whenever work is done; keep docs in sync and regenerate `HANDOFF_BUNDLE.md` (`python scripts/build-bundle.py`).
