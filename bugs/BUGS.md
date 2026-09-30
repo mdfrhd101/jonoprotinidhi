@@ -7,8 +7,8 @@ Source of truth: `bugs/register.json`. Formula, lifecycle and rules: `bugs/READM
 | Metric | Value |
 |---|---|
 | Total bugs | 25 |
-| Open | 2 (P0: 0, P1: 1, P2: 1, P3: 0) |
-| Sum of open RPN (risk load) | 60 |
+| Open | 1 (P0: 0, P1: 0, P2: 1, P3: 0) |
+| Sum of open RPN (risk load) | 12 |
 | Mean days report → fix | 0.0 |
 | Defect escape rate (found in staging/production) | 0% |
 | Found by phase | unit-test: 6, integration-test: 4, dev: 3, e2e-test: 8, review: 4 |
@@ -17,7 +17,6 @@ Source of truth: `bugs/register.json`. Formula, lifecycle and rules: `bugs/READM
 
 | ID | Prio | RPN (S×O×D) | Status | Category | Title | Module | Found in |
 |---|---|---|---|---|---|---|---|
-| BUG-2026-020 | P1 | 48 (4×4×3) | new | reliability | API: public per-IP rate limit (120/min) throttles the whole server-rendered public site; media files share the same bucket | api/routes/public | e2e-test |
 | BUG-2026-014 | P2 | 12 (2×2×3) | triaged | reliability | E2E: officer login stuck once after fresh dev-server start (not reproduced in 3 later runs) | e2e/smoke | e2e-test |
 
 ## Fixed / closed / other
@@ -30,6 +29,7 @@ Source of truth: `bugs/register.json`. Formula, lifecycle and rules: `bugs/READM
 | BUG-2026-007 | P0 | 60 (4×3×5) | verified | security | RATE_LIMIT_DISABLED=false still disabled rate limiting | api/config | dev |
 | BUG-2026-021 | P0 | 60 (5×3×4) | verified | data-integrity | Saving the profile from the old Site page wiped portrait, milestones, education and every other profile field (PUT /profile replaced the whole draft with 3 fields) | web-admin/pages/tenant/Site.tsx + api/routes/admin.ts PUT /profile | review |
 | BUG-2026-005 | P1 | 48 (4×3×4) | verified | security | Tenant SMS cap overrode the platform cap, so the SMS cost limit did nothing | api/lib/sms | integration-test |
+| BUG-2026-020 | P1 | 48 (4×4×3) | verified | reliability | API: public per-IP rate limit (120/min) throttles the whole server-rendered public site; media files share the same bucket | api/routes/public | e2e-test |
 | BUG-2026-010 | P1 | 40 (4×5×2) | verified | functional | Opening a second complaint navigated to a nested broken URL and bounced to the home page | web-admin/pages/Complaints | e2e-test |
 | BUG-2026-023 | P1 | 40 (4×5×2) | fixed | functional | Public site: server-side API calls lost the tenant Host header (Node fetch overrides Host), production tenant resolution would fail | web-public/lib/api | dev |
 | BUG-2026-002 | P1 | 36 (3×4×3) | verified | tenant-isolation | Tenant context lost when a lazy Mongoose Query is returned from the tenant runner | api/context | unit-test |
@@ -105,10 +105,12 @@ Source of truth: `bugs/register.json`. Formula, lifecycle and rules: `bugs/READM
 - **Regression tests:** apps/api/test/integration/complaints.test.ts
 
 ### BUG-2026-020: API: public per-IP rate limit (120/min) throttles the whole server-rendered public site; media files share the same bucket
-- **Priority P1**, RPN 48 (severity 4, occurrence 4, detectability 3), status **new**, category reliability, found in e2e-test on 2026-09-30
+- **Priority P1**, RPN 48 (severity 4, occurrence 4, detectability 3), status **verified**, category reliability, found in e2e-test on 2026-09-30
 - Module: api/routes/public
 - **What:** routes/public.ts applies limit('public', byIp) to every public read and to /media files. The Next.js public site renders on the server, so every visitor's page view becomes ~6-10 API calls from the site server. Unless every hop forwards X-Forwarded-For correctly (trust proxy = 1 hop only), all visitors share one 120/min bucket; even per visitor, ~12 page views/min (plus every uploaded image/video file request) trips it and pages turn into 500s. Seen in the public-site smoke test: pages failed with RATE_LIMITED after ~15 page loads. The site now caches reads for 5 s and forwards the visitor IP, which reduces but does not remove the risk.
 - **How to reproduce:** Load 15 pages of the public site within a minute from one IP (python apps/web-public/e2e/public_smoke.py) -> GET /api/v1/public/* returns 429, site shows the error page. Suggested fix: separate (much higher) limit or a signed server-to-server key for the site renderer, and a separate limiter for /media files.
+- **Fix:** API: X-Site-Token + X-Client-IP trusted only with the shared secret, separate media tier (lead). Site: server reads and the complaint/OTP/tracking proxy send x-site-token + x-client-ip (server-only env SITE_SERVER_TOKEN, X-Forwarded-For fallback without a token, incoming values never forwarded), 5 s read cache with stale-on-429/5xx; tests in apps/web-public/test/helpers.test.ts + apps/api/test/integration/site-server.test.ts (2026-09-30)
+- **Regression tests:** apps/api/test/integration/site-server.test.ts, apps/web-public/test/helpers.test.ts
 
 ### BUG-2026-010: Opening a second complaint navigated to a nested broken URL and bounced to the home page
 - **Priority P1**, RPN 40 (severity 4, occurrence 5, detectability 2), status **verified**, category functional, found in e2e-test on 2026-09-30 by dev (Claude)

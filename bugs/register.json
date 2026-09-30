@@ -489,14 +489,18 @@
       "occurrence": 4,
       "detectability": 3,
       "foundIn": "e2e-test",
-      "status": "new",
+      "status": "verified",
       "reportedAt": "2026-09-30",
       "reportedBy": "",
-      "fix": "",
-      "fixedAt": "",
-      "tests": [],
+      "fix": "API: X-Site-Token + X-Client-IP trusted only with the shared secret, separate media tier (lead). Site: server reads and the complaint/OTP/tracking proxy send x-site-token + x-client-ip (server-only env SITE_SERVER_TOKEN, X-Forwarded-For fallback without a token, incoming values never forwarded), 5 s read cache with stale-on-429/5xx; tests in apps/web-public/test/helpers.test.ts + apps/api/test/integration/site-server.test.ts",
+      "fixedAt": "2026-09-30",
+      "tests": [
+        "apps/api/test/integration/site-server.test.ts",
+        "apps/web-public/test/helpers.test.ts"
+      ],
       "rpn": 48,
-      "priority": "P1"
+      "priority": "P1",
+      "updatedAt": "2026-09-30"
     },
     {
       "id": "BUG-2026-021",
