@@ -19,3 +19,6 @@ playwright-report/
 .claude/
 # Demo v2 uses a REAL politician's name (Wikipedia facts only); it must not be shared outside this machine (HANDOFF §9)
 client-demo/mirza-abbas/
+
+# research notes on real people (kept local until their office consents; repo is public)
+research/
