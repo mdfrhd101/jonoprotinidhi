@@ -2,6 +2,7 @@
 # Click-by-click setup: docs/10-DEPLOY-RENDER.md.   Repo is PUBLIC: this file must never contain a secret value.
 #
 #   jonoprotinidhi-demo   (web, Next.js)  public site, pinned to one tenant, noindex (Basic auth gate removed 2 Oct 2026)
+#                                         (a static copy of this site is also published on GitHub Pages: .github/workflows/pages.yml)
 #   jonoprotinidhi-api    (web, Express)  API; needs MongoDB Atlas (free M0)
 #   jonoprotinidhi-admin  (static site)   admin SPA; /api/* is rewritten to the API, so the browser sees ONE origin
 #                                         (the refresh cookie is SameSite=Strict + path-scoped, it only works same-origin)
@@ -58,6 +59,8 @@ services:
         value: https://jonoprotinidhi-api.onrender.com
       - key: CORS_ORIGINS             # the admin origin (same-origin through the rewrite, kept correct anyway)
         value: https://jonoprotinidhi-admin.onrender.com
+      - key: PUBLIC_SITE_ORIGINS      # GitHub Pages copy of the public site (docs/11): its browsers call OTP / complaint / tracking directly
+        value: https://mdfrhd101.github.io   # origin only (no /jonoprotinidhi path); CORS for those 4 calls, no cookies
       - key: MEDIA_HOSTS              # must equal the demo service's list; the Tarique content uses only these hosts
         value: upload.wikimedia.org,thumb.wikimedia.org
       - key: UPLOAD_DIR               # EPHEMERAL on the free plan: files vanish on every restart/spin-down/deploy

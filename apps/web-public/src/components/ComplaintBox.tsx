@@ -6,6 +6,7 @@ import { isValidBdMobile, normalizeBdPhone, toBn, toEn } from '@jonoprotinidhi/s
 import { COMPLAINT_MAX_FILES, COMPLAINT_MAX_FILE_B64, COMPLAINT_MAX_FILE_BYTES, COMPLAINT_MAX_VOICE_B64, COMPLAINT_MAX_VOICE_SEC } from '@jonoprotinidhi/shared/src/complaintLimits.js';
 import { overTotal, plainDataUrl, readAsDataUrl, shrinkImage } from '@/lib/attachments';
 import { COMPLAINT_STATUS, bnDateSafe, joinParts } from '@/lib/format';
+import { publicApiUrl } from '@/lib/publicApi';
 import type { TrackResult, Upazila } from '@/lib/types';
 
 type Props = { categories: string[]; upazilas: Upazila[]; otpRequired: boolean; enabled: boolean; privacyNote: string; turnstileSiteKey: string };
@@ -20,7 +21,7 @@ const FIELD_MSG: Record<string, string> = {
 
 async function call<T>(path: string, body?: unknown): Promise<{ ok: true; data: T } | { ok: false; status: number; err: ApiErr }> {
   try {
-    const res = await fetch(`/api/public/${path}`, body === undefined ? { cache: 'no-store' } : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    const res = await fetch(publicApiUrl(path), body === undefined ? { cache: 'no-store' } : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
     const j = await res.json().catch(() => ({}));
     return res.ok ? { ok: true, data: j as T } : { ok: false, status: res.status, err: j as ApiErr };
   } catch {

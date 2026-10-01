@@ -4,12 +4,18 @@ import { notFound } from 'next/navigation';
 import AlbumTiles from '@/components/AlbumTiles';
 import CopyLink from '@/components/CopyLink';
 import { More, NewsCard, PageHero, SecHead } from '@/components/blocks';
-import { ApiFetchError, getPost, getPosts, getSite, soft } from '@/lib/api';
+import { ApiFetchError, getAllPosts, getPost, getPosts, getSite, soft } from '@/lib/api';
 import { PAGE_NAME } from '@/lib/nav';
 import { POST_CATEGORY_LABEL, bnDateSafe, joinParts, toBn } from '@/lib/format';
 import { sanitizeBody, splitAfterFirstBlock, textOf } from '@/lib/sanitize';
+import { STATIC_EXPORT } from '@/lib/staticMode';
 
 type P = { params: { slug: string } };
+
+// A static export needs every post's address up front. In the normal (server-rendered) site this is undefined: no change.
+export const generateStaticParams = STATIC_EXPORT
+  ? async () => (await getAllPosts()).items.map((p) => ({ slug: p.slug }))
+  : undefined;
 
 async function load(slug: string) {
   try { return await getPost(slug); } catch (e) { if (e instanceof ApiFetchError && e.status === 404) return null; throw e; }

@@ -1,5 +1,5 @@
 # Jonoprotinidhi (জনপ্রতিনিধি) — Portfolio and public-engagement platform for MPs and ministers
-### Handoff document · last updated: 1 October 2026, evening (pre-demo hardening of voice notes, attachments and invite-with-password: BUG-2026-026..035 fixed)
+### Handoff document · last updated: 2 October 2026 (public site also published on GitHub Pages as a static export, `docs/11`; before that: pre-demo hardening BUG-2026-026..035)
 
 > To continue this work on another PC or with another Claude, read this whole file first.
 > Tell Claude: **"Read HANDOFF.md and continue from the 'Next steps' section. Talk to me in Bangla."**
@@ -267,6 +267,7 @@ checks), `npm run bugs:check -- --gate`.
 - Public website (Next.js): every text and image from the CMS; hero, gallery and video sliders; complaint form through a
   same-origin proxy; strict CSP with nonce; direct voice recording via Web Audio and photo/PDF attachments (max 5; photos shrunk in the
   browser; the proxy and the API accept a large body (13 MB) only for the complaint submission, everything else 1 MB / 16 KB).
+- Public site on GitHub Pages (2 Oct 2026, `docs/11`): `STATIC_EXPORT=1` exports `apps/web-public` as plain files (`npm run build:static -w @jonoprotinidhi/web-public`), published by `.github/workflows/pages.yml` on push, hourly and on demand to `https://mdfrhd101.github.io/jonoprotinidhi/`. Data is read from the Render API at build time (retry/backoff, a failed read fails the build), the complaint box calls the API directly, and the API allows CORS for `PUBLIC_SITE_ORIGINS` on OTP/complaint/tracking only. The normal server-rendered build (Render) is unchanged. Limits (snapshot up to 1 h old, no activity filters, no CSP headers): `docs/11` section 5.
 - Complaints inbox: playback of citizen voice recordings; inspection and downloading of attached photos and PDFs (safe Blob URLs only);
   list and CSV never load attachment payloads; the retention job removes voice and files together with the identity.
 - Team: an invite may carry a password only for a brand-new account; an existing account is never changed (409, BUG-2026-026).
@@ -307,7 +308,8 @@ Then open `http://localhost:8765/demo-mp/` (public demo) and `http://localhost:8
    flake on macOS (035). All `fixed` with regression tests; still to do: independent verification (`bugs.mjs status <id> verified`),
    a real-device check of the voice recorder (Chrome/Android, Safari/iOS, Firefox) and the photo shrinking, and commit (nothing is
    committed yet).
-8. **Next:** (a) CI (GitHub Actions: typecheck + test + `bugs:check --gate`), (b) focal-point field for banners/photos,
+7c. ~~Public site on GitHub Pages~~ built (2 Oct 2026); to go live: push, enable Pages (source: GitHub Actions) with the `gh api` command in `docs/11` section 1, check `PUBLIC_SITE_ORIGINS` on the Render API, run the workflow once.
+8. **Next:** (a) CI (GitHub Actions: typecheck + test + `bugs:check --gate`; `.github/workflows/pages.yml` is the only workflow so far), (b) focal-point field for banners/photos,
    (c) Redis/BullMQ, (d) backup/restore and staff management, (e) real SMS gateway and hosting (ask the user),
    (f) regenerate the AI photos without the wrong text ("ঢাকা লোকনাথ", the plaque seal), (g) BUG-2026-014 (e2e flake),
    (h) remove the two test tenants left in the dev database (`sa-e2e-*`) with a fresh `SEED_RESET=1 npm run seed`,

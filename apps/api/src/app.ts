@@ -17,7 +17,7 @@ import { TenantScopeError } from './plugins/tenantScoped.js';
 import { authRoutes } from './routes/auth.js';
 import { superRoutes } from './routes/super.js';
 import { adminRoutes } from './routes/admin.js';
-import { publicRoutes, mediaFileRoute, isPublicComplaintSubmit } from './routes/public.js';
+import { publicRoutes, mediaFileRoute, isPublicComplaintSubmit, isPublicSiteBrowserCall } from './routes/public.js';
 
 export function createApp(d: Deps, now: () => number = Date.now): { app: Express; services: Services } {
   const app = express();
@@ -25,7 +25,17 @@ export function createApp(d: Deps, now: () => number = Date.now): { app: Express
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
   app.use(helmet());
-  app.use(cors({ origin: (origin, cb) => cb(null, !origin || d.config.corsOrigins.includes(origin)), credentials: true, allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF'] }));
+  // Two CORS policies. The static public site (PUBLIC_SITE_ORIGINS) gets the few citizen routes only, and never cookies;
+  // every other origin/route keeps the credentialed CORS_ORIGINS rule (the admin app).
+  app.use(cors((req, cb) => {
+    const origin = req.headers.origin;
+    // a preflight names the method it is asking about; the browser will send that one next
+    const method = req.method === 'OPTIONS' ? String(req.headers['access-control-request-method'] ?? '') : req.method;
+    if (origin && isPublicSiteBrowserCall(method, req.path) && d.config.publicSiteOrigins.includes(origin)) {
+      return cb(null, { origin: true, credentials: false, methods: [method.toUpperCase()], allowedHeaders: ['Content-Type'], maxAge: 600 });
+    }
+    cb(null, { origin: !origin || d.config.corsOrigins.includes(origin), credentials: true, allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF'] });
+  }));
   // The public complaint submission (attachments) is the one large body; its own parser runs inside the public router,
   // after host resolution and a rate limit (BUG-2026-031). Everything else keeps the 1 MB limit.
   const json = express.json({ limit: '1mb' });

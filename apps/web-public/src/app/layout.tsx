@@ -9,11 +9,13 @@ import Motion from '@/components/Motion';
 import { getGallery, getPage, getSite, soft } from '@/lib/api';
 import { safeHref } from '@/lib/links';
 import { bnText } from '@/lib/format';
+import { STATIC_EXPORT } from '@/lib/staticMode';
 
 const sans = Noto_Sans_Bengali({ subsets: ['bengali', 'latin'], axes: ['wdth'], display: 'swap', variable: '--font-sans' });
 const serif = Noto_Serif_Bengali({ subsets: ['bengali', 'latin'], weight: ['500', '600', '700', '800', '900'], display: 'swap', variable: '--font-serif' });
 
-export const dynamic = 'force-dynamic';
+// A static export renders every page once at build time: force-static makes cookies/headers/searchParams empty there
+export const dynamic = STATIC_EXPORT ? 'force-static' : 'force-dynamic';
 
 export async function generateMetadata(): Promise<Metadata> {
   const site = await soft(getSite(), null);
@@ -23,7 +25,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: { default: [name, title].filter(Boolean).join(' · ') || 'জনপ্রতিনিধি', template: name ? `%s · ${name}` : '%s' },
     description: layout?.tagline || site?.slogan || undefined,
-    robots: process.env.NODE_ENV === 'production' ? undefined : { index: false, follow: false },
+    // GitHub Pages cannot send X-Robots-Tag, so the static export says it in the page itself (the Render site does it in middleware.ts)
+    robots: STATIC_EXPORT || process.env.NODE_ENV !== 'production' ? { index: false, follow: false } : undefined,
     openGraph: { type: 'website', locale: 'bn_BD', siteName: name || undefined },
   };
 }
@@ -31,7 +34,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover', themeColor: '#0C1117' };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const nonce = headers().get('x-nonce') ?? undefined;
+  const nonce = STATIC_EXPORT ? undefined : headers().get('x-nonce') ?? undefined; // no middleware, no CSP nonce in a static export
   const [site, layout, contact, gallery] = await Promise.all([soft(getSite(), null), soft(getPage('layout'), null), soft(getPage('contact'), null), soft(getGallery({ limit: 100 }), null)]);
   const photoCredits = (gallery?.items ?? []).map((g) => g.credit).filter(Boolean);
   const accent = site?.theme?.accent && ['brass', 'river', 'maroon'].includes(site.theme.accent) ? site.theme.accent : 'brass';

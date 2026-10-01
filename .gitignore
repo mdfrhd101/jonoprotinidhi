@@ -11,6 +11,8 @@ coverage/
 apps/api/uploads/
 # build output and tool caches
 .next/
+# static export for GitHub Pages: an artifact, never committed (docs/11)
+apps/web-public/out/
 *.tsbuildinfo
 __pycache__/
 test-results/

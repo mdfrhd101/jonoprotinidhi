@@ -2,10 +2,11 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import FilterForm from '@/components/FilterForm';
 import { NewsCard, PageHero } from '@/components/blocks';
-import { getPage, getPosts, getSite, soft, pageImage } from '@/lib/api';
+import { getAllPosts, getPage, getPosts, getSite, soft, pageImage } from '@/lib/api';
 import { PAGE_NAME } from '@/lib/nav';
 import { POST_CATEGORY_LABEL, toBn } from '@/lib/format';
 import { pageList } from '@/lib/slider';
+import { STATIC_EXPORT } from '@/lib/staticMode';
 
 export const metadata: Metadata = { title: PAGE_NAME.activities };
 
@@ -28,7 +29,8 @@ export default async function Activities({ searchParams }: { searchParams: SP })
   const site = await getSite();
   const [heroes, area, posts] = await Promise.all([
     soft(getPage('heroes'), null), soft(getPage('area'), null),
-    getPosts({ category: category || undefined, upazila: upazila || undefined, page, limit: PER_PAGE }),
+    // a static export has no query string: it lists every post on one page, without the filters and pagination below
+    STATIC_EXPORT ? getAllPosts() : getPosts({ category: category || undefined, upazila: upazila || undefined, page, limit: PER_PAGE }),
   ]);
   const img = (await pageImage(site, 'activities'));
   const upzOptions = [...new Set((area?.upazilas ?? []).map((u) => u.short || u.name).filter(Boolean))];
@@ -39,7 +41,7 @@ export default async function Activities({ searchParams }: { searchParams: SP })
     <>
       <PageHero hero={heroes?.activities} fallbackTitle={PAGE_NAME.activities} image={img?.url} credit={img?.caption} crumbs={[{ label: PAGE_NAME.activities }]} />
       <section className="sec dark"><div className="wrap">
-        <div className="filters">
+        {!STATIC_EXPORT && <div className="filters">
           <nav className="chips" aria-label="বিষয় অনুযায়ী দেখুন">
             {cats.map(([k, t]) => (
               <Link key={k || 'all'} className="chip as-link" href={href({ category: k, upazila })} aria-current={k === category ? 'page' : undefined}
@@ -48,7 +50,7 @@ export default async function Activities({ searchParams }: { searchParams: SP })
           </nav>
           {upzOptions.length > 0 && <FilterForm category={category} upazila={upazila} options={upzOptions} />}
           {filtered && <Link className="linkbtn" href="/activities" scroll={false} style={{ marginBottom: 12 }}>ফিল্টার মুছুন</Link>}
-        </div>
+        </div>}
         <p className="count" aria-live="polite">{toBn(posts.total)}টি কার্যক্রম{posts.totalPages > 1 ? ` · পাতা ${toBn(page)}/${toBn(posts.totalPages)}` : ''}</p>
         {posts.items.length > 0 ? (
           <div className="news">{posts.items.map((p, i) => <NewsCard key={p.slug} p={p} feat={i === 0 && page === 1 && posts.items.length > 2} eager={i === 0} />)}</div>

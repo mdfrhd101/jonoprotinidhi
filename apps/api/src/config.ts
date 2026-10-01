@@ -18,6 +18,9 @@ const schema = z.object({
   PHONE_PEPPER: z.string().min(16),
   PLATFORM_DOMAIN: z.string().min(3).default('jonoprotinidhi.localhost'),
   CORS_ORIGINS: z.string().default('http://localhost:5173'),
+  // Origins of a static public site (GitHub Pages) whose browsers call the complaint/OTP routes directly, without cookies.
+  // Comma separated, scheme + host only, e.g. https://mdfrhd101.github.io (no path: a project site's /repo part is not part of an origin).
+  PUBLIC_SITE_ORIGINS: z.string().default(''),
   TURNSTILE_SECRET: z.string().optional().default(''),
   SMS_PROVIDER: z.enum(['console']).default('console'),
   ACCESS_TTL_SEC: z.coerce.number().int().min(60).default(600),
@@ -45,7 +48,7 @@ const schema = z.object({
   RATE_LIMIT_DISABLED: z.enum(['true', 'false', '1', '0']).default('false').transform((v) => v === 'true' || v === '1'),
 });
 
-export type Config = z.infer<typeof schema> & { corsOrigins: string[]; mediaHosts: string[]; isProd: boolean };
+export type Config = z.infer<typeof schema> & { corsOrigins: string[]; publicSiteOrigins: string[]; mediaHosts: string[]; isProd: boolean };
 
 export function loadConfig(source: Record<string, string | undefined> = process.env): Config {
   const parsed = schema.safeParse(source);
@@ -58,6 +61,7 @@ export function loadConfig(source: Record<string, string | undefined> = process.
   return {
     ...c,
     corsOrigins: c.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean),
+    publicSiteOrigins: c.PUBLIC_SITE_ORIGINS.split(',').map((s) => s.trim().replace(/\/+$/, '')).filter(Boolean),
     mediaHosts: c.MEDIA_HOSTS.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean),
     isProd: c.NODE_ENV === 'production',
   };

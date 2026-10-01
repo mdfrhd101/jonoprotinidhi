@@ -62,6 +62,13 @@ export default function VideoSlider({ items, initialId, label = 'ভিডিও
     if (focusStage) root.current?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
   }, [n]);
 
+  // A static export cannot read ?v= on the server (no initialId): pick that video from the address bar once, before the effect below rewrites it.
+  useEffect(() => {
+    if (!syncUrl || initialId !== undefined) return;
+    const i = list.findIndex((x) => x.id === new URLSearchParams(window.location.search).get('v'));
+    if (i > 0) setCur(i);
+  }, [syncUrl, initialId, list]);
+
   useEffect(() => {
     if (!syncUrl || !v) return;
     const u = new URL(window.location.href);

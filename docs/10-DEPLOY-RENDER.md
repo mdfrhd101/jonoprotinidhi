@@ -13,6 +13,8 @@ This is a **demo**, not production. It runs entirely on free tiers (Render free 
 | Admin panel (calls `/api` on its own origin; Render forwards it to the API) | `jonoprotinidhi-admin` (static site) | `https://jonoprotinidhi-admin.onrender.com` |
 | Database | MongoDB Atlas M0 (outside Render) | n/a |
 
+A static copy of the public site can also be published on GitHub Pages, calling this API directly: [docs/11](11-DEPLOY-GITHUB-PAGES.md).
+
 Everything is defined in [`render.yaml`](../render.yaml). It contains no secret value; secrets are typed into the Render dashboard once (step 5).
 
 Deployment strategy: straight deploy of a new, private environment. Nothing real depends on it, the local database is only read, and the Atlas copy can be rebuilt at any time (step 3). Rollback is in section 10.

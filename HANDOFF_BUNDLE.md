@@ -1,5 +1,5 @@
 # Jonoprotinidhi (জনপ্রতিনিধি) — Handoff bundle
-Generated 2026-10-01 by scripts/build-bundle.py. Upload this single file to a claude.ai Project as knowledge, then use section 2 of KICKOFF_PROMPT.md.
+Generated 2026-10-02 by scripts/build-bundle.py. Upload this single file to a claude.ai Project as knowledge, then use section 2 of KICKOFF_PROMPT.md.
 Contents: CLAUDE.md, KICKOFF_PROMPT.md, HANDOFF.md, docs/00-START-HERE.md, docs/01-PRD.md, docs/02-ARCHITECTURE.md, docs/03-DATA-MODEL.md, docs/04-API.md, docs/05-DESIGN-PATTERNS.md, docs/06-UI-UX.md, docs/07-TASKS.md, docs/08-SECURITY.md, docs/09-BUILD-BRIEF.md, adr/0000-template.md, adr/0001-multi-tenant-platform.md, adr/0002-mern-stack.md, adr/0003-tenant-isolation.md, adr/0004-complainant-pii-protection.md, adr/0005-content-approval-workflow.md, adr/0006-domains-and-tls.md, adr/0007-complaint-otp-optional.md, adr/0008-content-and-legal-guardrails.md, adr/README.md.
 The runnable demos live in `client-demo/` (not included here, only listed at the end). They are the visual and UX spec: fetch them from the repository.
 
@@ -20,7 +20,7 @@ Portfolio + CMS + citizen complaint platform for Bangladeshi MPs/ministers (mult
 - **Bug tracking:** every defect goes into `bugs/register.json` via `node scripts/bugs.mjs` (RPN = S×O×D, see `bugs/README.md`); each fix needs a regression test that mentions the bug ID; `npm run bugs:check` must pass; open P0/P1 blocks release.
 - **2-step login is a switch:** `MFA_REQUIRED` in `apps/api/.env` (default `true`). Local `.env` has `false` (owner asked, 30 Sep 2026) so login is password-only; the API refuses to start with `false` in production. `e2e/smoke.py` needs `MFA_REQUIRED=true`. Turn it back on before any real client/pilot.
 - **Media + rich text:** post `body` is sanitised HTML (`apps/api/src/lib/richtext.ts`, allow-list; length limit counts visible text via `packages/shared/src/richtext.ts`). Uploads go through `apps/api/src/lib/media.ts` (sharp re-encode to WebP, EXIF stripped, SVG/GIF refused, 40 MP cap) into `MediaStorage`; URLs are built by `lib/mediaUrl.ts` and only own-tenant upload URLs or `MEDIA_HOSTS` are accepted in posts/banners. Admin UI: `components/RichEditor.tsx` (Tiptap), `ImagePicker.tsx`, `RichText.tsx` (DOMPurify on read). New tenant routes must be added to the isolation crawler table.
-- **Public site** `apps/web-public` (Next.js 14, React 18, port 3000): renders only from the public API; tenant from Host (dev fallback `TENANT_HOST`). It sends `X-Site-Token`/`X-Client-IP` (shared `SITE_SERVER_TOKEN` in both `.env` files) so rate limits stay per visitor. Every visible text must come from the CMS.
+- **Public site** `apps/web-public` (Next.js 14, React 18, port 3000): renders only from the public API; tenant from Host (dev fallback `TENANT_HOST`). It sends `X-Site-Token`/`X-Client-IP` (shared `SITE_SERVER_TOKEN` in both `.env` files) so rate limits stay per visitor. Every visible text must come from the CMS. `STATIC_EXPORT=1` builds it as plain files for GitHub Pages (`npm run build:static -w @jonoprotinidhi/web-public`, `.github/workflows/pages.yml`, `docs/11`): data fetched at build time, complaint box calls the API directly (CORS: `PUBLIC_SITE_ORIGINS`); the normal build is unchanged.
 - **CMS content model:** `packages/shared/src/content.ts` (page keys + zod schemas, events/gallery/videos, `parseYouTubeId`); services `apps/api/src/services/{pages,collections,media}.ts`; admin editors in `apps/web-admin/src/pages/tenant/content/`; design system rules in `apps/web-admin/DESIGN.md`. Build brief for parallel agents: `docs/09-BUILD-BRIEF.md`.
 - **GitHub:** PUBLIC `mdfrhd101/jonoprotinidhi` (owner made it public 30 Sep 2026), branch `main` — every push is world-readable. Commit messages must NOT contain a `Co-Authored-By: Claude` (or any AI attribution) trailer (owner request). Never commit `.env*`, `.seed-credentials.local`, uploads, `client-demo/mirza-abbas/`; scan for secrets before every push.
 - Test gotchas: tenant-scoped models need `runInTenant` (await inside it); rate limits are disabled in tests unless `setDisabled(false)`; e2e needs a reseed (`SEED_RESET=1`) each run.
@@ -130,7 +130,7 @@ doc, and regenerate HANDOFF_BUNDLE.md.
 ==============================================================================
 
 # Jonoprotinidhi (জনপ্রতিনিধি) — Portfolio and public-engagement platform for MPs and ministers
-### Handoff document · last updated: 1 October 2026, evening (pre-demo hardening of voice notes, attachments and invite-with-password: BUG-2026-026..035 fixed)
+### Handoff document · last updated: 2 October 2026 (public site also published on GitHub Pages as a static export, `docs/11`; before that: pre-demo hardening BUG-2026-026..035)
 
 > To continue this work on another PC or with another Claude, read this whole file first.
 > Tell Claude: **"Read HANDOFF.md and continue from the 'Next steps' section. Talk to me in Bangla."**
@@ -398,6 +398,7 @@ checks), `npm run bugs:check -- --gate`.
 - Public website (Next.js): every text and image from the CMS; hero, gallery and video sliders; complaint form through a
   same-origin proxy; strict CSP with nonce; direct voice recording via Web Audio and photo/PDF attachments (max 5; photos shrunk in the
   browser; the proxy and the API accept a large body (13 MB) only for the complaint submission, everything else 1 MB / 16 KB).
+- Public site on GitHub Pages (2 Oct 2026, `docs/11`): `STATIC_EXPORT=1` exports `apps/web-public` as plain files (`npm run build:static -w @jonoprotinidhi/web-public`), published by `.github/workflows/pages.yml` on push, hourly and on demand to `https://mdfrhd101.github.io/jonoprotinidhi/`. Data is read from the Render API at build time (retry/backoff, a failed read fails the build), the complaint box calls the API directly, and the API allows CORS for `PUBLIC_SITE_ORIGINS` on OTP/complaint/tracking only. The normal server-rendered build (Render) is unchanged. Limits (snapshot up to 1 h old, no activity filters, no CSP headers): `docs/11` section 5.
 - Complaints inbox: playback of citizen voice recordings; inspection and downloading of attached photos and PDFs (safe Blob URLs only);
   list and CSV never load attachment payloads; the retention job removes voice and files together with the identity.
 - Team: an invite may carry a password only for a brand-new account; an existing account is never changed (409, BUG-2026-026).
@@ -438,7 +439,8 @@ Then open `http://localhost:8765/demo-mp/` (public demo) and `http://localhost:8
    flake on macOS (035). All `fixed` with regression tests; still to do: independent verification (`bugs.mjs status <id> verified`),
    a real-device check of the voice recorder (Chrome/Android, Safari/iOS, Firefox) and the photo shrinking, and commit (nothing is
    committed yet).
-8. **Next:** (a) CI (GitHub Actions: typecheck + test + `bugs:check --gate`), (b) focal-point field for banners/photos,
+7c. ~~Public site on GitHub Pages~~ built (2 Oct 2026); to go live: push, enable Pages (source: GitHub Actions) with the `gh api` command in `docs/11` section 1, check `PUBLIC_SITE_ORIGINS` on the Render API, run the workflow once.
+8. **Next:** (a) CI (GitHub Actions: typecheck + test + `bugs:check --gate`; `.github/workflows/pages.yml` is the only workflow so far), (b) focal-point field for banners/photos,
    (c) Redis/BullMQ, (d) backup/restore and staff management, (e) real SMS gateway and hosting (ask the user),
    (f) regenerate the AI photos without the wrong text ("ঢাকা লোকনাথ", the plaque seal), (g) BUG-2026-014 (e2e flake),
    (h) remove the two test tenants left in the dev database (`sa-e2e-*`) with a fresh `SEED_RESET=1 npm run seed`,

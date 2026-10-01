@@ -16,6 +16,15 @@ import { Tenant } from '../models/index.js';
 export const COMPLAINT_BODY_LIMIT = '13mb';
 export const isPublicComplaintSubmit = (req: Request) => req.method === 'POST' && req.path === '/api/v1/public/complaints';
 
+/** The only calls a browser on the static public site (GitHub Pages, PUBLIC_SITE_ORIGINS) may make cross-origin: OTP send/verify and
+    complaint submission (POST), complaint tracking (GET). Everything else on the API, admin included, keeps the CORS_ORIGINS rule (app.ts). */
+export function isPublicSiteBrowserCall(method: string, path: string): boolean {
+  const m = method.toUpperCase();
+  if (m === 'POST') return /^\/api\/v1\/public\/(otp\/(send|verify)|complaints)\/?$/.test(path);
+  if (m === 'GET') return /^\/api\/v1\/public\/complaints\/[A-Za-z0-9-]{3,40}\/?$/.test(path);
+  return false;
+}
+
 /** Uploaded images and videos. The URL carries the tenant id (a public file has no Host to resolve); ids are random and never reused.
     Supports HTTP Range so browsers can seek inside videos. */
 function parseRange(header: string | undefined, size: number): { start: number; end: number } | 'invalid' | null {
