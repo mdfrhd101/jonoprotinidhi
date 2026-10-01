@@ -1,7 +1,7 @@
-# Render Blueprint: PRIVATE DEMO of the Tarique Rahman showcase tenant, all on the free plan.
+# Render Blueprint: demo of the Tarique Rahman showcase tenant, all on the free plan.
 # Click-by-click setup: docs/10-DEPLOY-RENDER.md.   Repo is PUBLIC: this file must never contain a secret value.
 #
-#   jonoprotinidhi-demo   (web, Next.js)  public site, pinned to one tenant, behind HTTP Basic auth + noindex
+#   jonoprotinidhi-demo   (web, Next.js)  public site, pinned to one tenant, noindex (Basic auth gate removed 2 Oct 2026)
 #   jonoprotinidhi-api    (web, Express)  API; needs MongoDB Atlas (free M0)
 #   jonoprotinidhi-admin  (static site)   admin SPA; /api/* is rewritten to the API, so the browser sees ONE origin
 #                                         (the refresh cookie is SameSite=Strict + path-scoped, it only works same-origin)
@@ -98,11 +98,8 @@ services:
         value: upload.wikimedia.org,thumb.wikimedia.org
       - key: TURNSTILE_SITE_KEY       # public by design; must be the sitekey that belongs to the API's TURNSTILE_SECRET
         sync: false
-      # Private-demo gate (apps/web-public/src/middleware.ts). Remove both SITE_BASIC_AUTH_* values to open the site.
-      - key: SITE_BASIC_AUTH_USER
-        value: demo
-      - key: SITE_BASIC_AUTH_PASS     # read it in the dashboard: this service -> Environment
-        generateValue: true
+      # Basic auth gate removed at the owner's request (2 Oct 2026). To bring it back, add SITE_BASIC_AUTH_USER and
+      # SITE_BASIC_AUTH_PASS (both, or the middleware fails closed) — see apps/web-public/src/middleware.ts.
       - key: NOINDEX                  # X-Robots-Tag: noindex, nofollow on every response
         value: "1"
 
