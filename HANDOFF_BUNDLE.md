@@ -1,6 +1,6 @@
 # Jonoprotinidhi (জনপ্রতিনিধি) — Handoff bundle
 Generated 2026-10-02 by scripts/build-bundle.py. Upload this single file to a claude.ai Project as knowledge, then use section 2 of KICKOFF_PROMPT.md.
-Contents: CLAUDE.md, KICKOFF_PROMPT.md, HANDOFF.md, docs/00-START-HERE.md, docs/01-PRD.md, docs/02-ARCHITECTURE.md, docs/03-DATA-MODEL.md, docs/04-API.md, docs/05-DESIGN-PATTERNS.md, docs/06-UI-UX.md, docs/07-TASKS.md, docs/08-SECURITY.md, docs/09-BUILD-BRIEF.md, adr/0000-template.md, adr/0001-multi-tenant-platform.md, adr/0002-mern-stack.md, adr/0003-tenant-isolation.md, adr/0004-complainant-pii-protection.md, adr/0005-content-approval-workflow.md, adr/0006-domains-and-tls.md, adr/0007-complaint-otp-optional.md, adr/0008-content-and-legal-guardrails.md, adr/README.md.
+Contents: CLAUDE.md, KICKOFF_PROMPT.md, HANDOFF.md, docs/00-START-HERE.md, docs/01-PRD.md, docs/02-ARCHITECTURE.md, docs/03-DATA-MODEL.md, docs/04-API.md, docs/05-DESIGN-PATTERNS.md, docs/06-UI-UX.md, docs/07-TASKS.md, docs/08-SECURITY.md, docs/09-BUILD-BRIEF.md, adr/0000-template.md, adr/0001-multi-tenant-platform.md, adr/0002-mern-stack.md, adr/0003-tenant-isolation.md, adr/0004-complainant-pii-protection.md, adr/0005-content-approval-workflow.md, adr/0006-domains-and-tls.md, adr/0007-complaint-otp-optional.md, adr/0008-content-and-legal-guardrails.md, adr/0009-no-anonymous-complaints-dob-nid-required.md, adr/README.md.
 The runnable demos live in `client-demo/` (not included here, only listed at the end). They are the visual and UX spec: fetch them from the repository.
 
 
@@ -18,7 +18,7 @@ Portfolio + CMS + citizen complaint platform for Bangladeshi MPs/ministers (mult
 - Never put invented activities/news/stats/quotes under a real politician's name; full-content demos use the fictional MP in `client-demo/demo-mp/`. No real MP site without written office consent.
 - Product code **exists** (first vertical slice): `apps/api` (Express+Mongoose), `apps/web-admin` (React SPA), `packages/shared` (zod schemas, permissions). Run: `npm install`, `npm run seed`, `npm run dev:api`, `npm run dev:admin`. Test: `npm test`, `npm run typecheck`, `bash e2e/run.sh`. Seed credentials are in git-ignored `apps/api/.seed-credentials.local` (never paste them in chat). `client-demo/` remains the visual/UX spec (static, no backend).
 - **Bug tracking:** every defect goes into `bugs/register.json` via `node scripts/bugs.mjs` (RPN = S×O×D, see `bugs/README.md`); each fix needs a regression test that mentions the bug ID; `npm run bugs:check` must pass; open P0/P1 blocks release.
-- **2-step login is a switch:** `MFA_REQUIRED` in `apps/api/.env` (default `true`). Local `.env` has `false` (owner asked, 30 Sep 2026) so login is password-only; the API refuses to start with `false` in production. `e2e/smoke.py` needs `MFA_REQUIRED=true`. Turn it back on before any real client/pilot.
+- **2-step login is a switch:** `MFA_REQUIRED` in `apps/api/.env` (default `true`). Local `.env` has `false` (owner asked, 30 Sep 2026) so login is password-only; the API refuses `false` in production unless `ALLOW_NO_MFA_IN_PRODUCTION=true` (set on the Render demo at the owner's request, 2 Oct 2026). `e2e/smoke.py` needs `MFA_REQUIRED=true`. Turn it back on before any real client/pilot.
 - **Media + rich text:** post `body` is sanitised HTML (`apps/api/src/lib/richtext.ts`, allow-list; length limit counts visible text via `packages/shared/src/richtext.ts`). Uploads go through `apps/api/src/lib/media.ts` (sharp re-encode to WebP, EXIF stripped, SVG/GIF refused, 40 MP cap) into `MediaStorage`; URLs are built by `lib/mediaUrl.ts` and only own-tenant upload URLs or `MEDIA_HOSTS` are accepted in posts/banners. Admin UI: `components/RichEditor.tsx` (Tiptap), `ImagePicker.tsx`, `RichText.tsx` (DOMPurify on read). New tenant routes must be added to the isolation crawler table.
 - **Public site** `apps/web-public` (Next.js 14, React 18, port 3000): renders only from the public API; tenant from Host (dev fallback `TENANT_HOST`). It sends `X-Site-Token`/`X-Client-IP` (shared `SITE_SERVER_TOKEN` in both `.env` files) so rate limits stay per visitor. Every visible text must come from the CMS. `STATIC_EXPORT=1` builds it as plain files for GitHub Pages (`npm run build:static -w @jonoprotinidhi/web-public`, `.github/workflows/pages.yml`, `docs/11`): data fetched at build time, complaint box calls the API directly (CORS: `PUBLIC_SITE_ORIGINS`); the normal build is unchanged.
 - **CMS content model:** `packages/shared/src/content.ts` (page keys + zod schemas, events/gallery/videos, `parseYouTubeId`); services `apps/api/src/services/{pages,collections,media}.ts`; admin editors in `apps/web-admin/src/pages/tenant/content/`; design system rules in `apps/web-admin/DESIGN.md`. Build brief for parallel agents: `docs/09-BUILD-BRIEF.md`.
@@ -130,7 +130,7 @@ doc, and regenerate HANDOFF_BUNDLE.md.
 ==============================================================================
 
 # Jonoprotinidhi (জনপ্রতিনিধি) — Portfolio and public-engagement platform for MPs and ministers
-### Handoff document · last updated: 2 October 2026 (public site also published on GitHub Pages as a static export, `docs/11`; before that: pre-demo hardening BUG-2026-026..035)
+### Handoff document · last updated: 2 October 2026 (citizen complaint form now requires name, mobile, date of birth and NID, no anonymous option, `adr/0009`; before that: public site on GitHub Pages as a static export, `docs/11`, and pre-demo hardening BUG-2026-026..035)
 
 > To continue this work on another PC or with another Claude, read this whole file first.
 > Tell Claude: **"Read HANDOFF.md and continue from the 'Next steps' section. Talk to me in Bangla."**
@@ -205,17 +205,17 @@ Citizen fills in the form → (optional OTP) → tracking ID (e.g. NDP3-2026-012
   → after resolution the citizen can give feedback / a rating
 ```
 - **Form fields:** topic (editable in the CMS), upazila → union/municipality (cascading; wards for urban seats),
-  village/area, description (at least 20 characters and up to 10,000 characters if no voice record; optional if voice note provided), name (optional),
-  mobile (`01[3-9]` + 8 digits, Bangla digits allowed).
+  village/area, description (at least 20 characters and up to 10,000 characters if no voice record; optional if voice note provided), and **four required identity fields** (owner decision, 2 Oct 2026, `adr/0009`):
+  name (2–80 characters), mobile (`01[3-9]` + 8 digits, Bangla digits allowed), date of birth (`YYYY-MM-DD`, a real date, not in the future, year 1900 or later) and NID number (digits only after dropping spaces and dashes; 10, 13 or 17 digits).
 - **Direct Voice Recording & In-Browser Audio Playback:** WhatsApp-style microphone voice recorder (`MediaRecorder` + Web Audio API) with a green action button, a live pulsing red indicator, and a live timer (`🔴 ০০:১৫ / ৩:০০`), alongside re-record and delete controls. Plays back recorded audio immediately via native in-browser HTML5 `<audio>` player using object URLs (`blob:`) so citizens can clearly listen and verify before submitting. Spoken audio is recorded purely as audio; speech-to-text auto-transcription was removed to keep voice and text separate.
 - **Flexible Submission (Voice, Text, or Both):** Citizen can submit: (1) Voice recording only (written description optional), (2) Written description only (>= 20 characters, voice optional), or (3) Both voice recording and written description together.
 - **File Uploads (Photos & Documents):** Citizen can upload up to 5 files (JPG, PNG, WEBP, or PDF). Photos are shrunk in the browser to 1600 px JPEG before upload; PDFs up to 5 MB. Files and voice together are capped at 12 MB of base64 (MongoDB's 16 MB document limit), voice at 3 minutes / 4 MB, with Bangla messages in the form. Shows interactive thumbnails, PDF document icons, file sizes, and remove buttons.
 - **Attachments are never trusted:** the API decodes every data URL, checks the real type by its first bytes, re-encodes photos to WebP (EXIF/GPS dropped) and rebuilds what it stores; the admin shows attachments only through Blob object URLs of allowed types (BUG-2026-027).
 - **Admin View:** Staff who can see the complaint can play back citizen voice notes and inspect/download attached images and PDFs in the complaint detail card (the inbox list only carries flags: voice yes/no, number of files). A voice-only complaint shows "শুধু ভয়েস অভিযোগ" instead of an invented description. Only managers and the assigned officer see the status selector; anyone with note rights can add a note.
-- **Anonymous option:** can be submitted without name and number; then no SMS is sent.
+- **No anonymous option (since 2 Oct 2026, `adr/0009`):** the public form and API refuse a complaint without name, mobile, date of birth and NID, and refuse an `anonymous` key. Only hearing/phone entries by staff (`POST /complaints`, `staffComplaintSchema`) can still be anonymous; older anonymous records stay as they are.
 - **Privacy:**
-  - Name and number are seen only by the assigned officer, who must state a purpose; every view is logged. They are
-    encrypted in the database. Neither the MP nor Super Admin (not even acting as the site) can see them.
+  - Name, number, date of birth and NID are seen only by the assigned officer, who must state a purpose; every view is logged. They are
+    encrypted in the database (all four in one AES-GCM envelope; DOB and NID are never in logs, audit, events, SMS or CSV). Neither the MP nor Super Admin (not even acting as the site) can see them.
   - They may **not be used** for campaigning without separate consent.
   - A citizen's IP address and browser details are not stored in the audit log at all (BUG-2026-018/019).
 - **Only statistics are public:** received, resolved, average time, by topic. No complaint is ever published verbatim.
@@ -243,7 +243,7 @@ The user chose MERN because their team knows it. Reasons and alternatives: `adr/
 | Admin panel (Super Admin + MP admin) | React 18 + Vite SPA, own design system (`apps/web-admin/DESIGN.md`) |
 | Public site | **Next.js 14** (React 18) — server rendering for SEO and Facebook/WhatsApp link previews |
 | Tenant separation | One database, `tenantId` on every document, fail-closed Mongoose plugin (`adr/0003`) |
-| Complainant data | Name and number field-level encrypted, only the assigned officer sees them (`adr/0004`) |
+| Complainant data | Name, number, date of birth and NID field-level encrypted, only the assigned officer sees them (`adr/0004`, `adr/0009`) |
 | Photos / videos | Uploads re-encoded by `sharp` (WebP, EXIF removed); MP4/WebM streamed with Range support; YouTube via youtube-nocookie |
 | Security | Planned: Cloudflare WAF/DDoS, Turnstile, custom hostnames; admin 2FA (TOTP); daily encrypted backups |
 | SMS | Bangladeshi SMS gateway (OTP, complaint status); provider is swappable |
@@ -302,6 +302,7 @@ The user chose MERN because their team knows it. Reasons and alternatives: `adr/
 | **Admin panel demo (Super Admin + MP admin)** | `client-demo/admin/` | **Done** (30 Sep 2026), see below |
 | **Real product: API + admin panel (CMS) + public website** | `apps/api`, `apps/web-admin`, `apps/web-public`, `packages/shared` | **Working** (30 Sep 2026), see "State of the real product" |
 | **Bug register (FMEA/RPN)** | `bugs/` + `scripts/bugs.mjs` | 35 bugs; 34 fixed/verified (BUG-2026-026..035 are `fixed`, awaiting independent verification), 1 triaged (P2, e2e flake); release gate passes |
+| **Complaint identity rule (2 Oct 2026)** | `packages/shared/src/schemas.ts`, `bangla.ts`, `apps/api/src/services/complaints.ts`, `ComplaintBox.tsx`, `adr/0009` | **Done.** Name, mobile, DOB and NID required, no anonymous option; DOB/NID encrypted with name/phone, revealed only via `pii-view`. CMS texts that still say "anonymous" must be edited by the office (complaint page steps, privacy note, FAQ, home call-to-action) |
 | MP information form | `client-demo/MP_INFO.md` | Template for collecting a real client MP's information |
 | Photos | `client-demo/photos/`, `apps/api/seed-assets/` | The fictional MP's three AI-generated photos (waving at parliament, community food-centre inauguration, food-aid distribution) + two demo video clips |
 
@@ -377,7 +378,7 @@ each visitor separately behind the site server; BUG-2026-020).
 The code is there, only switched off; the API refuses to start with `false` in production. Set it to `true` before any real
 client; `e2e/run.sh` also needs `true`.
 
-**Tests:** `npm test` (API 327, web-admin 138, web-public 34, shared 21; Node 24 required, see `engines`), `npm run typecheck`, `bash e2e/run.sh` (real
+**Tests:** `npm test` (API 381, web-admin 146, web-public 63, shared 31; Node 24 required, see `engines`; the web-public component test uses jsdom + Testing Library), `npm run typecheck`, `bash e2e/run.sh` (real
 browser), `python e2e/cms_smoke.py` (CMS, 40 steps), `python apps/web-public/e2e/public_smoke.py` (public site, 124
 checks), `npm run bugs:check -- --gate`.
 
@@ -386,8 +387,8 @@ checks), `npm run bugs:check -- --gate`.
   password (argon2id) + TOTP (switchable) + recovery codes, rotating refresh tokens, CSRF, lockout, session list.
 - Posts: draft → review → publish (owner approval), separate live copy, versions, scheduled publishing, audit with before/after.
   Body is rich text (Tiptap editor), sanitised on the server (`sanitize-html`) and again on display.
-- Complaints: PII encrypted (AES-256-GCM envelope), only the assigned officer can reveal it with a purpose (logged); not even
-  Super Admin acting as the site; CSV without PII.
+- Complaints: PII (name, mobile, date of birth, NID) encrypted (AES-256-GCM envelope), only the assigned officer can reveal it with a purpose (logged); not even
+  Super Admin acting as the site; CSV without PII. The citizen form requires all four and has no anonymous option (`adr/0009`, 2 Oct 2026); records from before that (no DOB/NID) still load and show "—".
 - Site pages (`layout, home, profile, heroes, area, contact, complaint`) with draft/live copies, optimistic locking, publish
   and discard; events, gallery and videos as draft/published collections; media library (images → WebP with EXIF removed;
   MP4/WebM streamed with Range support; files in use cannot be deleted).
@@ -440,6 +441,7 @@ Then open `http://localhost:8765/demo-mp/` (public demo) and `http://localhost:8
    a real-device check of the voice recorder (Chrome/Android, Safari/iOS, Firefox) and the photo shrinking, and commit (nothing is
    committed yet).
 7c. ~~Public site on GitHub Pages~~ built (2 Oct 2026); to go live: push, enable Pages (source: GitHub Actions) with the `gh api` command in `docs/11` section 1, check `PUBLIC_SITE_ORIGINS` on the Render API, run the workflow once.
+7d. ~~Complaint identity rule~~ done (2 Oct 2026, owner request, `adr/0009`): name, mobile, date of birth and NID required on the citizen form, no anonymous option. To go live: deploy the API first (or together with the static site rebuild: an old page without DOB/NID gets a 400), then edit the CMS texts that still say anonymous is possible (complaint page: step 1 and 2, privacy note, the FAQ "বেনামে অভিযোগ…" and "আমার নাম আর নম্বর…" entries; home page: complaint call-to-action text). Those texts live in each tenant's CMS (the Render demo's included); only the seed (`apps/api/src/seedContent.ts`) was changed in code.
 8. **Next:** (a) CI (GitHub Actions: typecheck + test + `bugs:check --gate`; `.github/workflows/pages.yml` is the only workflow so far), (b) focal-point field for banners/photos,
    (c) Redis/BullMQ, (d) backup/restore and staff management, (e) real SMS gateway and hosting (ask the user),
    (f) regenerate the AI photos without the wrong text ("ঢাকা লোকনাথ", the plaque seal), (g) BUG-2026-014 (e2e flake),
@@ -452,7 +454,7 @@ Then open `http://localhost:8765/demo-mp/` (public demo) and `http://localhost:8
 **Made** (30 Sep 2026, see `adr/`):
 - Project name: **Jonoprotinidhi (জনপ্রতিনিধি)** — renamed from "Jonoshetu (জনসেতু)" on 30 Sep 2026 at the user's request (code, UI, docs, packages `@jonoprotinidhi/*`, dev domain `*.jonoprotinidhi.localhost`, database `jonoprotinidhi_dev`, GitHub repo). The local folder is still `D:\AI\Jonoshetu`.
 - Tech stack: **MERN** (public site Next.js)
-- OTP for complaints: **optional**; an MP can make it mandatory in their settings. Anonymous complaints always work.
+- OTP for complaints: **optional**; an MP can make it mandatory in their settings. ~~Anonymous complaints always work.~~ Superseded on 2 Oct 2026 (owner, `adr/0009`): no anonymous complaints; name, mobile, date of birth and NID are required.
 - Other developers: **both Claude Code and claude.ai**, hence `CLAUDE.md` in the repo and `HANDOFF_BUNDLE.md` for claude.ai.
 - Two-step login switched off locally for now (user request); must be on for real clients.
 - Repository public on GitHub (user request).
@@ -536,10 +538,10 @@ The product is a fresh build following docs 01–08.
 | D1 | One multi-tenant platform we host (not one server per MP). Strict tenant isolation; rival parties' MPs can share it | ADR-0001 |
 | D2 | Stack: **MERN** — MongoDB + Express API + React. Public sites in **Next.js** (React, server-rendered for SEO and Facebook/WhatsApp link previews); admin panels as a **React (Vite) SPA** | ADR-0002 |
 | D3 | Tenant isolation in MongoDB: single database, `tenantId` on every tenant document, enforced by a fail-closed Mongoose plugin + tests | ADR-0003 |
-| D4 | Complainant name/phone encrypted at field level; only the assigned officer can view, and each view is logged. Not even Super Admin sees them | ADR-0004 |
+| D4 | Complainant name, phone, date of birth and NID encrypted at field level; only the assigned officer can view, and each view is logged. Not even Super Admin sees them | ADR-0004 |
 | D5 | Content workflow Draft → Review → Publish; nothing goes live without the MP (owner) approving | ADR-0005 |
 | D6 | Sites served on `<slug>.<platform-domain>`; optional custom domain per MP, routed by `Host` header, TLS via Cloudflare for SaaS | ADR-0006 |
-| D7 | Complaint OTP is **optional by default, and each MP can make it mandatory**; anonymous complaints always allowed | ADR-0007 |
+| D7 | Complaint OTP is **optional by default, and each MP can make it mandatory**; no anonymous complaints: name, mobile, date of birth and NID are required (owner, 2 Oct 2026) | ADR-0007, ADR-0009 |
 | D8 | Invented content never goes under a real politician's name; full-content demos use the fictional MP only | ADR-0008 |
 | D9 | Project name: **জনপ্রতিনিধি (Jonoprotinidhi)** | — |
 | D10 | Other devs may use Claude Code (repo + `CLAUDE.md`) or claude.ai (upload `HANDOFF_BUNDLE.md`) | — |
@@ -729,8 +731,8 @@ citizen feedback survey analytics (C), multi-MP comparison dashboards (W — sen
 
 | ID | P | Requirement | Acceptance criteria |
 |---|---|---|---|
-| FR-CMP-01 | M | Form: category, upazila → union/pourashava (cascading), village/ward, description (20–1000 chars), ≤ 3 photos, name (optional), mobile | Bangla digits accepted in phone; mobile must match `01[3-9]` + 8 digits |
-| FR-CMP-02 | M | Anonymous option: no name/phone stored; no SMS; tracking ID shown prominently | — |
+| FR-CMP-01 | M | Form: category, upazila → union/pourashava (cascading), village/ward, description (20–1000 chars), ≤ 3 photos, name, mobile, date of birth and NID (all four required, ADR-0009) | Bangla digits accepted in phone and NID; mobile must match `01[3-9]` + 8 digits; NID 10, 13 or 17 digits; date of birth a real past date |
+| FR-CMP-02 | — | ~~Anonymous option~~ removed on 2 Oct 2026 (ADR-0009). Only hearing/phone entries by staff can still be anonymous | — |
 | FR-CMP-03 | M | Spam control: Cloudflare Turnstile + rate limits (per IP, per phone hash) | Blocked attempts counted for super admin dashboard |
 | FR-CMP-04 | M | OTP verification: optional by default; mandatory when tenant setting on (not for anonymous) | OTP 6 digits, 5 min, 5 attempts, resend after 60 s |
 | FR-CMP-05 | M | Tracking ID `<PREFIX>-<YEAR>-<5-digit seq>` per tenant; SMS with ID to non-anonymous | Sequential per tenant/year, never reused |
@@ -933,7 +935,7 @@ sequenceDiagram
   end
   C->>A: POST /public/complaints {…, turnstileToken, otpTicket?}
   A->>A: verify Turnstile, rate limits, validate, strip EXIF of photos
-  A->>A: encrypt name+phone (AES-256-GCM, tenant DEK), HMAC phone for limits
+  A->>A: encrypt name+phone+DOB+NID (AES-256-GCM, tenant DEK), HMAC phone for limits
   A->>A: trackingId = counter(tenant, year)
   A-->>C: {trackingId}
   A->>W: queue SMS "গৃহীত {id}" (if not anonymous)
@@ -1137,8 +1139,8 @@ Index: `{ tenantId: 1, createdAt: -1 }`.
 | `voiceNote` | `{ audioData, durationSec }?` | [Confidential] | in-browser recording as a data URL rebuilt by the server (audio webm, ogg, mp4, mpeg or wav; magic bytes checked), max 180 s / 4 MB; removed by the retention job |
 | `files` | `[{ name, mimeType, size, data }]` | [Confidential] | up to 5 attachments as data URLs; photos re-encoded to WebP ≤ 1600 px (EXIF dropped), PDFs checked for `%PDF-`; files + voice ≤ 12 MB of base64 so the document stays far below 16 MB; never in list/export responses; removed by the retention job |
 | `channel` | `'web'\|'hearing'\|'phone'` | | |
-| `anonymous` | boolean | | |
-| `pii` | `{ nameEnc?, phoneEnc?, keyVersion }` | **[Restricted]** | AES-256-GCM with tenant DEK; absent when anonymous |
+| `anonymous` | boolean | | always `false` for public-form complaints since ADR-0009; `true` only on older records and on hearing/phone entries by staff |
+| `pii` | `{ nameEnc?, phoneEnc?, dobEnc?, nidEnc?, keyVersion }` | **[Restricted]** | AES-256-GCM with tenant DEK, AAD = tenant, record and field. `dobEnc` (`YYYY-MM-DD`) and `nidEnc` (digits only, 10/13/17) are required on the public form (ADR-0009) but absent on older and staff-entered records; the whole object is absent when anonymous. Plaintext DOB/NID are never stored, hashed or logged |
 | `phoneHmac` | string? | [Confidential] | HMAC-SHA256(phone, platform pepper) for rate limits / dedupe; not reversible |
 | `otpVerified` | boolean | | |
 | `status` | `'new'\|'verify'\|'progress'\|'solved'\|'closed'\|'spam'` | | |
@@ -1218,7 +1220,7 @@ creation happens in migrations (not `autoIndex` in production).
 | GET | `/public/complaint-form` | categories, upazilas → unions, `otpRequired`, Turnstile site key | FR-CMP-01 |
 | POST | `/public/otp/send` | `{ phone, turnstileToken }` → 202 always (no enumeration) | FR-CMP-04 |
 | POST | `/public/otp/verify` | `{ phone, code }` → `{ otpTicket }` (10 min, single use) | FR-CMP-04 |
-| POST | `/public/complaints` | `{ category, upazila, union, place?, description, voiceNote?, files?, anonymous, name?, phone?, otpTicket?, turnstileToken }` → `{ trackingId }`. The only route with a large body (13 MB, parsed after host resolution and the pre-parse `complaintBody` tier, 10/min per IP; every other route 1 MB). Attachments are base64 data URLs: files + voice ≤ 12 MB together, voice ≤ 180 s; the server checks magic bytes, re-encodes photos to WebP ≤ 1600 px (EXIF dropped) and rebuilds the data URLs; bad data → 422 `BAD_FILE` / `BAD_IMAGE` / `BAD_VOICE` (BUG-2026-027/028/031) | FR-CMP-01..05 |
+| POST | `/public/complaints` | `{ category, upazila, union, place?, description, voiceNote?, files?, name, phone, dob, nid, otpTicket?, turnstileToken }` → `{ trackingId }`. **name (2–80), phone, dob (`YYYY-MM-DD`, real date, ≥ 1900, not in the future) and nid (10, 13 or 17 digits, spaces/dashes ignored) are all required, there is no anonymous option** (ADR-0009): a missing or bad field → 400 `VALIDATION_FAILED` with a Bangla message per field in `details.fieldErrors`; an `anonymous` key is refused (400). dob and nid are stored encrypted with name and phone. The only route with a large body (13 MB, parsed after host resolution and the pre-parse `complaintBody` tier, 10/min per IP; every other route 1 MB). Attachments are base64 data URLs: files + voice ≤ 12 MB together, voice ≤ 180 s; the server checks magic bytes, re-encodes photos to WebP ≤ 1600 px (EXIF dropped) and rebuilds the data URLs; bad data → 422 `BAD_FILE` / `BAD_IMAGE` / `BAD_VOICE` (BUG-2026-027/028/031) | FR-CMP-01..05 |
 | GET | `/public/complaints/:trackingId` | `{ category, area, status, publicSteps }` — no PII/notes | FR-CMP-06 |
 | POST | `/public/feedback/:token` | `{ rating, text }` single-use token from SMS | FR-CMP-12 |
 | POST | `/public/analytics/hit` | `{ path }` beacon; no cookies | FR-PUB-13 |
@@ -1262,7 +1264,7 @@ Middleware chain: `authenticate → loadMembership(tenantId) | actAs → require
 | PATCH | `/complaints/:id` | `complaints.manage` (owner) or assigned officer: `{ status?, assignedTo?, version, note? }` (a note alone goes to `/notes`) | FR-CMP-08 |
 | POST | `/complaints/:id/notes` | `complaints.note` | FR-CMP-08 |
 | POST | `/complaints/:id/sms` | assigned officer or owner · `{ templateKey, vars }` (free text limited to 300 chars) | FR-CMP-08 |
-| POST | `/complaints/:id/pii-view` | **assigned officer only**, not via act-as, `pii` rate tier · body `{ purpose }` → `{ name, phone }` + audit `complaint.pii_view` | FR-CMP-09 |
+| POST | `/complaints/:id/pii-view` | **assigned officer only**, not via act-as, `pii` rate tier · body `{ purpose }` → `{ name, phone, dob, nid }` (`dob`/`nid` are `''` on older and staff-entered complaints) + audit `complaint.pii_view` | FR-CMP-09 |
 | POST | `/complaints` | `complaints.create_staff` (hearing/phone channel) | FR-CMP-14 |
 | GET | `/complaints/export.csv` | `complaints.export` — no PII columns, audited | FR-CMP-10 |
 | GET/POST/DELETE | `/team`, `/team/invites`, `/team/:membershipId` | `team.manage` | FR-CMS-11 |
@@ -1704,7 +1706,7 @@ Requirement IDs refer to `docs/01-PRD.md`.
 |---|---|---|---|---|
 | T4.1 | Envelope encryption lib (master key → tenant DEK → AES-256-GCM, AAD), key rotation script | T1.2 | CMP-09, ADR-0004 | Tamper test fails decryption; rotation re-wraps DEKs |
 | T4.2 | Complaint model, counters, submit endpoint, Turnstile, rate limits (IP + phone HMAC), attachments to private bucket | T4.1, T2.1 | CMP-01..05, MIS-03 | 6th submit/min from same IP → 429 |
-| T4.3 | OTP send/verify (Redis, hashed code, attempts, cooldown), per-tenant mandatory flag | T4.2 | CMP-04 | Anonymous path skips OTP |
+| T4.3 | OTP send/verify (Redis, hashed code, attempts, cooldown), per-tenant mandatory flag | T4.2 | CMP-04 | No anonymous path (ADR-0009): a mandatory OTP applies to every public complaint |
 | T4.4 | Public tracking endpoint + page (uniform responses) | T4.2 | CMP-06, MIS-05 | Timing difference known/unknown < 20 ms p50 |
 | T4.5 | Inbox API + UI: filters, scope, assign, status machine, notes, events timeline | T4.2 | CMP-07, 08 | Officer of Charkandi never sees Notunhat items (test) |
 | T4.6 | SMS provider adapter (first BD gateway), templates, Unicode segment count, delivery webhook, daily cap | T0.3 | NTF-01, 02 | Switching provider = env change |
@@ -1780,7 +1782,7 @@ form must not ask for NID.
 |---|---|
 | Purpose | Handle the citizen's complaint and inform them of progress. **Not** campaigning, not voter profiling |
 | Legal basis / consent | Complaint form states purpose; separate unticked opt-in required for any other contact (not built in v1) |
-| Minimisation | Name optional; anonymous allowed; no NID; phone only when SMS updates wanted |
+| Minimisation | Owner decision 2 Oct 2026 (ADR-0009): the citizen form requires name, mobile, date of birth and NID; no anonymous option. All four are encrypted in the `pii` envelope and shown only to the assigned officer. Staff-entered hearing/phone records may still be anonymous |
 | Access | Assigned officer only for PII; owner/editor/super admin/support never |
 | Retention (configurable per tenant, platform defaults) | PII purged **12 months after closure** (record anonymised, stats kept); attachments deleted 12 months after closure; audit logs 3 years; SMS logs (no numbers) 2 years; staff sessions 90 days |
 | Data subject requests | Citizen can request deletion via tracking ID + OTP to the same phone → PII purge workflow (manual in v1, audited) |
@@ -2196,7 +2198,7 @@ two seeded tenants.
 
 # ADR-0004: Field-level encryption and need-to-know for complainant PII
 
-- Status: accepted
+- Status: accepted (2 Oct 2026: date of birth and NID are now in the same envelope, see ADR-0009)
 - Date: 2026-09-30
 - Deciders: product owner
 
@@ -2216,7 +2218,7 @@ not used for promotion without separate consent.
 
 ## Alternatives considered
 - Database-at-rest encryption only: does not stop authorised staff or super admin from reading.
-- Never store phone: makes SMS updates impossible; anonymous mode already covers that need.
+- Never store phone: makes SMS updates impossible. (Anonymous mode covered that need until ADR-0009 removed it.)
 
 ## Consequences
 + Strong answer to the harvesting risk and to regulator questions.
@@ -2285,7 +2287,7 @@ Admin panel. Access to the provider is behind a `DomainProvider` interface.
 
 # ADR-0007: Complaint OTP optional by default, mandatory per tenant on request
 
-- Status: accepted
+- Status: accepted (2 Oct 2026: anonymous complaints no longer exist on the public form, see ADR-0009)
 - Date: 2026-09-30
 - Deciders: product owner
 
@@ -2339,6 +2341,58 @@ and words are copyrighted or personal.
 
 
 ==============================================================================
+<!-- FILE: adr/0009-no-anonymous-complaints-dob-nid-required.md -->
+==============================================================================
+
+# ADR-0009: No anonymous complaints; name, mobile, date of birth and NID are required
+
+- Status: accepted (amends ADR-0004 and ADR-0007)
+- Date: 2026-10-02
+- Deciders: product owner
+
+## Context
+ADR-0004 and ADR-0007 kept an "anonymous safety valve": the citizen's name was optional, a complaint could be sent
+without any identity, and the NID was not collected at all (docs/08 §3 "Minimisation"). On 2 Oct 2026 the owner
+decided that the citizen complaint form must collect the complainant's **name, mobile number, date of birth and NID
+number**, and that there is no anonymous option any more.
+
+## Decision
+- The public form (`/complaint`) and `POST /public/complaints` require all four. The shared schema
+  `complaintSubmitSchema` enforces them for every client (normal site, static GitHub Pages export, direct API calls):
+  - name 2–80 characters; mobile = the existing Bangladeshi rule (`01[3-9]` + 8 digits, Bangla digits and `+880` accepted);
+  - date of birth `YYYY-MM-DD`, a real calendar date, year 1900 or later, not after today (Dhaka day);
+  - NID digits only after removing spaces and dashes (Bangla digits accepted), length 10, 13 or 17.
+- The `anonymous` key is no longer part of the public schema: the strict schema refuses it (400), true or false.
+- Date of birth and NID go into the **same encrypted `pii` envelope** as name and phone (AES-256-GCM, tenant data key,
+  AAD per tenant/record/field `dob` and `nid`). They are revealed only by `POST /complaints/:id/pii-view` to the assigned
+  officer with a stated purpose, audited, exactly like name and phone. They never appear in logs (`dob` and `nid` are in
+  the redaction list), audit entries, complaint events, SMS, the CSV export or any list/detail response. No hash of the
+  NID is stored.
+- Complaints stored before this decision, and hearing/phone complaints entered by staff, may lack date of birth and NID:
+  they still load and the reveal shows "—" for the missing values.
+- Staff-entered hearing/phone complaints (`POST /complaints` with a `channel`) keep their earlier rules (`staffComplaintSchema`):
+  anonymous allowed, no DOB/NID. Records with `anonymous: true` remain valid and are handled as before (no reveal, no SMS).
+- OTP (ADR-0007) is unchanged, but with no anonymous path a tenant that turns `otpRequired` on now applies it to every
+  public complaint.
+
+## Alternatives considered
+- Keep an anonymous checkbox next to the new fields: contradicts the owner's decision.
+- Require only name and mobile: not what the owner asked for.
+- Store only a hash of the NID: the officer could not read it back, and a hash of a 10-17 digit number is easy to brute force.
+
+## Consequences
+- More friction: fewer complaints are likely, especially from citizens who fear retaliation, which was the reason for the
+  anonymous option in ADR-0004. This follows directly from the owner's decision; it was not weighed against the old valve.
+- NID plus date of birth is much more sensitive than a phone number. The lawyer check of Bangladesh data-protection and
+  cyber law (docs/08 §9, task T6.7) matters more now; the privacy notice, the retention period (12 months after closure)
+  and the master-key escrow (risk R-09) should be reviewed with it.
+- The API does not verify an NID against the Election Commission, nor check that NID and date of birth belong together:
+  only the format is checked.
+- Public texts that mention anonymous complaints or "name and number" (CMS content: complaint page steps, privacy note, FAQ,
+  home call-to-action) must be updated by the office; the code cannot edit them.
+
+
+==============================================================================
 <!-- FILE: adr/README.md -->
 ==============================================================================
 
@@ -2357,6 +2411,7 @@ supersede with a new ADR instead.
 | 0006 | Subdomains + optional custom domains via Cloudflare for SaaS |
 | 0007 | Complaint OTP optional by default, mandatory per tenant |
 | 0008 | No invented content under real politicians; consent before any real site |
+| 0009 | No anonymous complaints; name, mobile, date of birth and NID required (amends 0004, 0007) |
 
 
 ==============================================================================

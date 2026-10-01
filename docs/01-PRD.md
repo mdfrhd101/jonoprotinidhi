@@ -91,8 +91,8 @@ citizen feedback survey analytics (C), multi-MP comparison dashboards (W — sen
 
 | ID | P | Requirement | Acceptance criteria |
 |---|---|---|---|
-| FR-CMP-01 | M | Form: category, upazila → union/pourashava (cascading), village/ward, description (20–1000 chars), ≤ 3 photos, name (optional), mobile | Bangla digits accepted in phone; mobile must match `01[3-9]` + 8 digits |
-| FR-CMP-02 | M | Anonymous option: no name/phone stored; no SMS; tracking ID shown prominently | — |
+| FR-CMP-01 | M | Form: category, upazila → union/pourashava (cascading), village/ward, description (20–1000 chars), ≤ 3 photos, name, mobile, date of birth and NID (all four required, ADR-0009) | Bangla digits accepted in phone and NID; mobile must match `01[3-9]` + 8 digits; NID 10, 13 or 17 digits; date of birth a real past date |
+| FR-CMP-02 | — | ~~Anonymous option~~ removed on 2 Oct 2026 (ADR-0009). Only hearing/phone entries by staff can still be anonymous | — |
 | FR-CMP-03 | M | Spam control: Cloudflare Turnstile + rate limits (per IP, per phone hash) | Blocked attempts counted for super admin dashboard |
 | FR-CMP-04 | M | OTP verification: optional by default; mandatory when tenant setting on (not for anonymous) | OTP 6 digits, 5 min, 5 attempts, resend after 60 s |
 | FR-CMP-05 | M | Tracking ID `<PREFIX>-<YEAR>-<5-digit seq>` per tenant; SMS with ID to non-anonymous | Sequential per tenant/year, never reused |

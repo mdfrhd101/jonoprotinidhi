@@ -35,8 +35,8 @@ export default function Complaints() {
   ];
   return (
     <>
-      <PageHead kicker="অভিযোগ" icon="complaints" title="অভিযোগের ইনবক্স" sub={officer ? 'আপনার উপজেলার অভিযোগ।' : 'সব উপজেলার অভিযোগ।'} actions={can('complaints.export') && <button className="btn btn-g" onClick={exportCsv}><Icon name="download" />রিপোর্ট (CSV, নাম-নম্বর ছাড়া)</button>} />
-      <p className="note info" style={{ margin: '0 0 20px' }}><Icon name="lock" />নাগরিকের নাম ও নম্বর শুধু দায়িত্বপ্রাপ্ত কর্মকর্তা দেখতে পারেন, আর দেখলে সেটা অডিট লগে যায়।</p>
+      <PageHead kicker="অভিযোগ" icon="complaints" title="অভিযোগের ইনবক্স" sub={officer ? 'আপনার উপজেলার অভিযোগ।' : 'সব উপজেলার অভিযোগ।'} actions={can('complaints.export') && <button className="btn btn-g" onClick={exportCsv}><Icon name="download" />রিপোর্ট (CSV, পরিচয় ছাড়া)</button>} />
+      <p className="note info" style={{ margin: '0 0 20px' }}><Icon name="lock" />নাগরিকের নাম, নম্বর, জন্মতারিখ ও NID শুধু দায়িত্বপ্রাপ্ত কর্মকর্তা দেখতে পারেন, আর দেখলে সেটা অডিট লগে যায়।</p>
       <div className="bar">
         <Chips label="ফিল্টার" value={chip} options={STATUS_CHIPS.filter(([k]) => officer || k !== 'mine').map(([value, label]) => ({ value, label }))} onChange={(v) => { setChip(v); setPage(1); }} />
         <SearchInput label="আইডি বা বিষয় দিয়ে খুঁজুন" value={q} onChange={(v) => { setQ(v); setPage(1); }} />
@@ -62,7 +62,7 @@ function Detail({ cid }: { cid: string }) {
   const [note, setNote] = useState(''); const [askPii, setAskPii] = useState(false);
   const [statusDraft, setStatusDraft] = useState<string | null>(null);
   const [statusNote, setStatusNote] = useState('');
-  const [pii, setPii] = useState<{ name: string; phone: string } | null>(null);
+  const [pii, setPii] = useState<{ name: string; phone: string; dob: string; nid: string } | null>(null);
   const [previewIdx, setPreviewIdx] = useState<number | null>(null);
   const c = useQuery({ queryKey: ['tenant', id, 'complaint', cid], queryFn: () => api.get(`/complaints/${cid}`) });
   const team = useQuery({ queryKey: ['tenant', id, 'team'], enabled: can('team.manage'), queryFn: () => api.get<any[]>('/team') });
@@ -117,10 +117,18 @@ function Detail({ cid }: { cid: string }) {
 
       <section aria-label="নাগরিকের পরিচয়">
         {d.anonymous ? <div className="pii"><span>বেনামী অভিযোগ: নাম ও নম্বর নেই, তাই SMS যাবে না।</span></div>
-          : pii ? <div className="pii" role="status"><span><b>{pii.name || 'নাম দেননি'}</b> · <span className="num">{pii.phone}</span></span><button type="button" className="btn btn-g btn-s" style={{ marginLeft: 'auto' }} onClick={() => setPii(null)}>লুকান</button></div>
+          : pii ? <div className="pii" role="status" style={{ alignItems: 'flex-start' }}>
+            {/* dob/nid are empty on complaints from before they were required, and on hearing/phone entries */}
+            <dl className="dl" style={{ flex: 1 }}>
+              <dt>নাম</dt><dd><b>{pii.name || '—'}</b></dd>
+              <dt>মোবাইল</dt><dd className="num">{pii.phone || '—'}</dd>
+              <dt>জন্মতারিখ</dt><dd className="num">{pii.dob ? bnDate(pii.dob) || pii.dob : '—'}</dd>
+              <dt>NID নম্বর</dt><dd className="num">{pii.nid || '—'}</dd>
+            </dl>
+            <button type="button" className="btn btn-g btn-s" style={{ marginLeft: 'auto' }} onClick={() => setPii(null)}>লুকান</button></div>
             : !d.pii.available ? <div className="pii"><span>নির্ধারিত সময় পেরোনোয় পরিচয় মুছে ফেলা হয়েছে।</span></div>
-              : d.canViewPii ? <div className="pii"><span>নাম ও নম্বর এনক্রিপ্ট করা আছে।</span><button type="button" className="btn btn-g btn-s" style={{ marginLeft: 'auto' }} onClick={() => setAskPii(true)}>দেখুন (লগ হবে)</button></div>
-                : <div className="pii"><span>নাম ও নম্বর শুধু দায়িত্বপ্রাপ্ত কর্মকর্তা দেখতে পারেন।{info.viaSuperAdmin ? ' Super Admin-ও দেখতে পারেন না।' : ''}</span></div>}
+              : d.canViewPii ? <div className="pii"><span>নাম, নম্বর, জন্মতারিখ ও NID এনক্রিপ্ট করা আছে।</span><button type="button" className="btn btn-g btn-s" style={{ marginLeft: 'auto' }} onClick={() => setAskPii(true)}>দেখুন (লগ হবে)</button></div>
+                : <div className="pii"><span>নাম, নম্বর, জন্মতারিখ ও NID শুধু দায়িত্বপ্রাপ্ত কর্মকর্তা দেখতে পারেন।{info.viaSuperAdmin ? ' Super Admin-ও দেখতে পারেন না।' : ''}</span></div>}
       </section>
 
       {canUpdate && (

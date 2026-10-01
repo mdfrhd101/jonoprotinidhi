@@ -226,7 +226,8 @@ with sync_playwright() as p:
     ctx, pg, errs = new_page(browser, 1440)
     pg.goto(SITE + '/complaint', wait_until='networkidle')
     pg.click('button[type=submit]:has-text("অভিযোগ জমা দিন")'); time.sleep(0.3)
-    step('complaint: empty form shows Bangla field errors', pg.locator('.cmp .err').count() >= 4 and pg.locator('[aria-invalid=true]').count() >= 4)
+    step('complaint: empty form shows Bangla field errors', pg.locator('.cmp .err').count() >= 8 and pg.locator('[aria-invalid=true]').count() >= 8)
+    step('complaint: no anonymous option, name/mobile/DOB/NID fields present', pg.locator('#fAnon').count() == 0 and all(pg.locator(i).count() == 1 for i in ['#fName', '#fPhone', '#fDob', '#fNid']))
     tid = None
     if SKIP_WRITE or not form['enabled']:
         print('SKIP complaint submission', 'box disabled' if not form['enabled'] else '(--skip-write)')
@@ -240,7 +241,11 @@ with sync_playwright() as p:
         pg.select_option('#fUnion', index=1)
         pg.fill('#fPlace', 'ই২ই পরীক্ষা')
         pg.fill('#fText', 'স্বয়ংক্রিয় পরীক্ষা: রাস্তার পাশের ড্রেন বন্ধ হয়ে পানি জমে থাকে, দয়া করে দেখুন। ' + time.strftime('%H%M%S'))
-        pg.fill('#fPhone', '0171' + str(int(time.time() * 1000))[-7:])  # a fresh test number: the API caps submissions per phone per day
+        # name, mobile, date of birth and NID are all required (adr/0009); fictional values, a fresh number: the API caps submissions per phone per day
+        pg.fill('#fName', 'ই২ই পরীক্ষা নাগরিক')
+        pg.fill('#fPhone', '0171' + str(int(time.time() * 1000))[-7:])
+        pg.fill('#fDob', '1985-03-14')
+        pg.fill('#fNid', '1990123456')
         pg.click('button[type=submit]:has-text("অভিযোগ জমা দিন")')
         try:
             pg.wait_for_selector('[data-testid=tracking-id]', timeout=20000)

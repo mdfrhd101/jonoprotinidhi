@@ -1,6 +1,6 @@
 # ADR-0007: Complaint OTP optional by default, mandatory per tenant on request
 
-- Status: accepted
+- Status: accepted (2 Oct 2026: anonymous complaints no longer exist on the public form, see ADR-0009)
 - Date: 2026-09-30
 - Deciders: product owner
 

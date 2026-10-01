@@ -7,8 +7,9 @@ const { models, model } = mongoose;
 type Scoped<T> = T & { tenantId: mongoose.Types.ObjectId };
 const define = <T>(name: string, schema: Schema<any>): mongoose.Model<Scoped<T>> => (models[name] as mongoose.Model<Scoped<T>>) || model<Scoped<T>>(name, schema as never);
 
-/* Complainant name/phone live ONLY as ciphertext in `pii` (ADR-0004). `select: false` keeps them out of every
-   query unless a service asks for them explicitly (only viewPii and the SMS notifier do). */
+/* Complainant name/phone/date of birth/NID live ONLY as ciphertext in `pii` (ADR-0004, adr/0009). `select: false` keeps
+   them out of every query unless a service asks for them explicitly (only viewPii and the SMS notifier do). Older
+   complaints (and staff-entered ones) may lack dobEnc/nidEnc. */
 const complaintSchema = new Schema(
   {
     trackingId: { type: String, required: true, unique: true },
@@ -35,6 +36,8 @@ const complaintSchema = new Schema(
     pii: {
       nameEnc: { type: String, select: false },
       phoneEnc: { type: String, select: false },
+      dobEnc: { type: String, select: false },
+      nidEnc: { type: String, select: false },
       keyVersion: { type: Number, select: false },
     },
     phoneHmac: { type: String, select: false },

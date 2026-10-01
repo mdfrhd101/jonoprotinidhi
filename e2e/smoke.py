@@ -114,7 +114,7 @@ with sync_playwright() as p:
     officer.wait_for_selector('.tbl tbody tr', timeout=10000)
     upz = set(officer.locator('.tbl tbody tr td:nth-child(2) small').all_inner_texts())
     step('officer: inbox shows only their own upazila', upz == {'নতুনহাট'}, str(upz))
-    # some seeded complaints are anonymous (nothing to reveal); open rows until one has a named citizen
+    # open rows until one has an identity to reveal (older or hearing-entered complaints can be anonymous)
     btn = officer.get_by_role('button', name='দেখুন (লগ হবে)')
     for i in range(officer.locator('.tbl tbody tr').count()):
         officer.locator('.tbl tbody tr').nth(i).click()

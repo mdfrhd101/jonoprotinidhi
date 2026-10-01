@@ -23,7 +23,7 @@ beforeAll(async () => {
   bPost = (await api(env).post(admin(B, '/posts')).set(bearer(B.owner)).send(good)).body._id;
   await api(env).post(admin(B, `/posts/${bPost}/approve`)).set(bearer(B.owner)).send({});
   bPromise = (await api(env).post(admin(B, '/promises')).set(bearer(B.owner)).send({ sector: 'road', name: 'দ্বিতীয় দলের প্রতিশ্রুতি', pct: 10, status: 'ongoing' })).body._id;
-  const c = await api(env).post('/api/v1/public/complaints').set('Host', B.host).send({ category: 'বিদ্যুৎ', upazila: 'চরকান্দি', union: 'কাশবন', description: 'দ্বিতীয় দলের এলাকার একটি অভিযোগ যা গোপন', phone: '01755555555', name: 'গোপন নাম', turnstileToken: 'ok' });
+  const c = await api(env).post('/api/v1/public/complaints').set('Host', B.host).send({ category: 'বিদ্যুৎ', upazila: 'চরকান্দি', union: 'কাশবন', description: 'দ্বিতীয় দলের এলাকার একটি অভিযোগ যা গোপন', phone: '01755555555', name: 'গোপন নাম', dob: '1990-06-01', nid: '5555555555', turnstileToken: 'ok' });
   bComplaint = String((await runInTenant(B.id, () => Complaint.findOne({ trackingId: c.body.trackingId })))!._id);
   const team = await api(env).get(admin(B, '/team')).set(bearer(B.owner));
   bMembership = team.body[0].id;

@@ -23,7 +23,7 @@ const DAY = 86400_000;
 
 const submit = (over: Record<string, unknown> = {}, host = t.host) => api(env).post('/api/v1/public/complaints').set('Host', host).send({
   category: 'রাস্তা-ঘাট ও সেতু', upazila: 'চরকান্দি', union: 'কাশবন', place: 'বাজারের সামনে', description: 'বাজারের সামনের রাস্তায় বড় গর্ত হয়েছে, রিকশা উল্টে যাচ্ছে।',
-  anonymous: false, name: 'আব্দুর রহিম', phone: '01712345678', turnstileToken: 'ok', ...over,
+  name: 'আব্দুর রহিম', phone: '01712345678', dob: '1985-03-14', nid: '1990123456', turnstileToken: 'ok', ...over,
 });
 const idOf = async (trackingId: string, tenant = t) => String((await inT(tenant, () => Complaint.findOne({ trackingId })))!._id);
 
@@ -51,7 +51,7 @@ describe('shape and content', () => {
 
   it('counts complaints per day, status, category and upazila, and the latest ones carry no identity', async () => {
     for (let i = 0; i < 3; i++) expect((await submit()).status).toBe(201);
-    expect((await submit({ upazila: 'শালবাগান', category: 'পানি ও পয়ঃনিষ্কাশন', anonymous: true, name: '', phone: '' })).status).toBe(201);
+    expect((await submit({ upazila: 'শালবাগান', category: 'পানি ও পয়ঃনিষ্কাশন' })).status).toBe(201);
     const d = (await dash(t.owner)).body.complaints;
     expect(d.total).toBe(4); expect(d.open).toBe(4); expect(d.byStatus).toEqual({ new: 4 });
     const today = d.series[29];
@@ -174,7 +174,7 @@ describe('scoped officer', () => {
 describe('no PII, ever', () => {
   it('names, phones, descriptions and purposes from complaints never appear in any role\'s dashboard', async () => {
     await submit();
-    await submit({ anonymous: true, name: '', phone: '' });
+    await submit({ name: 'গোপন নাগরিক', phone: '01899999999', dob: '1972-11-30', nid: '19721234567890123' });
     const assigned = await idOf((await submit()).body.trackingId);
     await api(env).patch(admin(t, `/complaints/${assigned}`)).set(bearer(t.owner)).send({ assignedTo: t.officerId });
     await api(env).post(admin(t, `/complaints/${assigned}/pii-view`)).set(bearer(t.officer)).send({ purpose: 'নাগরিকের সাথে যোগাযোগ করতে' });
@@ -182,9 +182,10 @@ describe('no PII, ever', () => {
       const txt = JSON.stringify((await dash(tok)).body);
       expect(txt).not.toContain('আব্দুর রহিম');
       expect(txt).not.toMatch(/01\d{9}|\+8801/);
+      expect(txt).not.toMatch(/গোপন নাগরিক|1985-03-14|1972-11-30|1990123456|19721234567890123/); // date of birth and NID (adr/0009)
       expect(txt).not.toContain('বাজারের সামনের রাস্তায়'); // description
       expect(txt).not.toContain('নাগরিকের সাথে যোগাযোগ করতে'); // pii-view purpose lives in audit.reason
-      expect(txt).not.toMatch(/nameEnc|phoneEnc|phoneHmac/);
+      expect(txt).not.toMatch(/nameEnc|phoneEnc|dobEnc|nidEnc|phoneHmac/);
     }
   });
 });

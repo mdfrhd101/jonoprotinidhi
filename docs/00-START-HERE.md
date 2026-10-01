@@ -47,10 +47,10 @@ The product is a fresh build following docs 01–08.
 | D1 | One multi-tenant platform we host (not one server per MP). Strict tenant isolation; rival parties' MPs can share it | ADR-0001 |
 | D2 | Stack: **MERN** — MongoDB + Express API + React. Public sites in **Next.js** (React, server-rendered for SEO and Facebook/WhatsApp link previews); admin panels as a **React (Vite) SPA** | ADR-0002 |
 | D3 | Tenant isolation in MongoDB: single database, `tenantId` on every tenant document, enforced by a fail-closed Mongoose plugin + tests | ADR-0003 |
-| D4 | Complainant name/phone encrypted at field level; only the assigned officer can view, and each view is logged. Not even Super Admin sees them | ADR-0004 |
+| D4 | Complainant name, phone, date of birth and NID encrypted at field level; only the assigned officer can view, and each view is logged. Not even Super Admin sees them | ADR-0004 |
 | D5 | Content workflow Draft → Review → Publish; nothing goes live without the MP (owner) approving | ADR-0005 |
 | D6 | Sites served on `<slug>.<platform-domain>`; optional custom domain per MP, routed by `Host` header, TLS via Cloudflare for SaaS | ADR-0006 |
-| D7 | Complaint OTP is **optional by default, and each MP can make it mandatory**; anonymous complaints always allowed | ADR-0007 |
+| D7 | Complaint OTP is **optional by default, and each MP can make it mandatory**; no anonymous complaints: name, mobile, date of birth and NID are required (owner, 2 Oct 2026) | ADR-0007, ADR-0009 |
 | D8 | Invented content never goes under a real politician's name; full-content demos use the fictional MP only | ADR-0008 |
 | D9 | Project name: **জনপ্রতিনিধি (Jonoprotinidhi)** | — |
 | D10 | Other devs may use Claude Code (repo + `CLAUDE.md`) or claude.ai (upload `HANDOFF_BUNDLE.md`) | — |

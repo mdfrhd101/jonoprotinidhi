@@ -178,14 +178,14 @@ describe('Complaint detail: identity is never shown unless the API says the view
     expect(await screen.findByText(/Super Admin-ও দেখতে পারেন না/)).toBeInTheDocument();
   });
 
-  it('anonymous complaints say so and offer no reveal', async () => {
+  it('older / hearing-entered anonymous complaints still say so and offer no reveal', async () => {
     open('officer', { anonymous: true, canViewPii: false, pii: { available: false } });
     expect(await screen.findByText(/বেনামী অভিযোগ: নাম ও নম্বর নেই/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /দেখুন \(লগ হবে\)/ })).not.toBeInTheDocument();
   });
 
-  it('assigned officer: reveal needs a purpose (5+ chars), then shows name+phone, and can hide it again', async () => {
-    const t = open('officer', { canViewPii: true }, { 'POST /complaints/c1/pii-view': { name: 'আব্দুর রহিম', phone: '01712345678' } });
+  it('assigned officer: reveal needs a purpose (5+ chars), then shows name, phone, date of birth and NID, and can hide it again', async () => {
+    const t = open('officer', { canViewPii: true }, { 'POST /complaints/c1/pii-view': { name: 'আব্দুর রহিম', phone: '01712345678', dob: '1985-03-14', nid: '1990123456' } });
     await userEvent.click(await screen.findByRole('button', { name: /দেখুন \(লগ হবে\)/ }));
     expect(screen.getByText(/অডিট লগে রেকর্ড হবে/)).toBeInTheDocument();
     expect(t.api.post).not.toHaveBeenCalled(); // nothing is fetched just by opening the dialog
@@ -198,8 +198,31 @@ describe('Complaint detail: identity is never shown unless the API says the view
     expect(await screen.findByText('আব্দুর রহিম')).toBeInTheDocument();
     expect(t.api.post).toHaveBeenCalledWith('/complaints/c1/pii-view', { purpose: 'ফোন করে সমাধান জানাতে' });
     expect(screen.getByText('01712345678')).toBeInTheDocument();
+    const pii = screen.getByRole('region', { name: 'নাগরিকের পরিচয়' });
+    expect(within(pii).getByText('জন্মতারিখ').nextElementSibling).toHaveTextContent('১৪ মার্চ ১৯৮৫');
+    expect(within(pii).getByText('NID নম্বর').nextElementSibling).toHaveTextContent('1990123456');
     await userEvent.click(screen.getByRole('button', { name: 'লুকান' }));
     expect(screen.queryByText('আব্দুর রহিম')).not.toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/1990123456|১৪ মার্চ ১৯৮৫/); // hidden again: nothing left on the page
+  });
+
+  it('a complaint from before DOB/NID were required (or entered by staff) shows "—" for them instead of failing', async () => {
+    open('officer', { canViewPii: true }, { 'POST /complaints/c1/pii-view': { name: 'আব্দুর রহিম', phone: '01712345678', dob: '', nid: '' } });
+    await userEvent.click(await screen.findByRole('button', { name: /দেখুন \(লগ হবে\)/ }));
+    await userEvent.type(screen.getByLabelText(/কী কারণে দেখছেন/), 'ফোন করে সমাধান জানাতে');
+    await userEvent.click(screen.getByRole('button', { name: 'দেখুন' }));
+    const pii = screen.getByRole('region', { name: 'নাগরিকের পরিচয়' });
+    expect(await within(pii).findByText('আব্দুর রহিম')).toBeInTheDocument();
+    expect(within(pii).getByText('জন্মতারিখ').nextElementSibling).toHaveTextContent('—');
+    expect(within(pii).getByText('NID নম্বর').nextElementSibling).toHaveTextContent('—');
+    expect(within(pii).getByText('আব্দুর রহিম')).toBeInTheDocument();
+  });
+
+  it('a new (non-anonymous) complaint never implies anonymity, and the notes say who may see the four identity fields', async () => {
+    open('owner', { canViewPii: false });
+    expect(await screen.findByText(/নাম, নম্বর, জন্মতারিখ ও NID শুধু দায়িত্বপ্রাপ্ত কর্মকর্তা দেখতে পারেন/, { selector: 'span' })).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/বেনামী/);
+    expect(screen.getByText(/নাগরিকের নাম, নম্বর, জন্মতারিখ ও NID শুধু/, { selector: 'p' })).toBeInTheDocument();
   });
 
   it('owner status control offers only legal next states', async () => {

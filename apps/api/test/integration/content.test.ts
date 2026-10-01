@@ -111,7 +111,7 @@ describe('team management (FR-CMS-11, FR-AUTH-06)', () => {
 
   it('officer scope can be changed; widening it takes effect on the next request', async () => {
     const off = (await api(env).get(admin(t, '/team')).set(bearer(t.owner))).body.find((m: { role: string }) => m.role === 'officer');
-    await api(env).post('/api/v1/public/complaints').set('Host', t.host).send({ category: 'বিদ্যুৎ', upazila: 'শালবাগান', union: 'বনগ্রাম', description: 'শালবাগানের একটি অভিযোগ যা লম্বা যথেষ্ট', anonymous: true, turnstileToken: 'ok' });
+    await api(env).post('/api/v1/public/complaints').set('Host', t.host).send({ category: 'বিদ্যুৎ', upazila: 'শালবাগান', union: 'বনগ্রাম', description: 'শালবাগানের একটি অভিযোগ যা লম্বা যথেষ্ট', name: 'শালবাগানের নাগরিক', phone: '01712345678', dob: '1985-03-14', nid: '1990123456', turnstileToken: 'ok' });
     expect((await api(env).get(admin(t, '/complaints')).set(bearer(t.officer))).body.items).toHaveLength(0);
     expect((await api(env).patch(admin(t, `/team/${off.id}`)).set(bearer(t.owner)).send({ upazilas: ['চরকান্দি', 'শালবাগান'] })).status).toBe(204);
     expect((await api(env).get(admin(t, '/complaints')).set(bearer(t.officer))).body.items).toHaveLength(1);

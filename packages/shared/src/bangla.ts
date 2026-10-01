@@ -34,6 +34,31 @@ export const isValidBdMobile = (input: string): boolean => /^01[3-9]\d{8}$/.test
 /** E.164 form used as the stored login id. */
 export const toE164Bd = (input: string): string => '+88' + normalizeBdPhone(input);
 
+/** Bangladeshi NID as typed: Bangla digits allowed, spaces and dashes dropped ("১৯৯০ ১২৩৪-৫৬"). */
+export const normalizeNid = (input: string): string => toEn(String(input ?? '')).replace(/[\s\-\u2010-\u2015]/g, '');
+/** 10 digits (smart card), 13 or 17 digits (older cards; the 17-digit form carries the birth year). */
+export const NID_LENGTHS = [10, 13, 17] as const;
+export const isValidNid = (input: string): boolean => {
+  const n = normalizeNid(input);
+  return /^\d+$/.test(n) && (NID_LENGTHS as readonly number[]).includes(n.length);
+};
+
+/** Date of birth as `YYYY-MM-DD` (what <input type="date"> gives); Bangla digits and stray spaces are tolerated. */
+export const normalizeDob = (input: string): string => toEn(String(input ?? '')).trim();
+export type DobProblem = 'invalid' | 'future';
+/** Today in Dhaka as `YYYY-MM-DD`: also the `max` of a date input. */
+export const todayDhaka = (now: number = Date.now()): string => new Date(now + 6 * 3600_000).toISOString().slice(0, 10);
+/** null = fine. A real calendar date, year 1900 or later, not after today in Dhaka (UTC+6). */
+export function dobProblem(input: string, now: number = Date.now()): DobProblem | null {
+  const s = normalizeDob(input);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (!m) return 'invalid';
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])] as [number, number, number];
+  const t = new Date(Date.UTC(y, mo - 1, d));
+  if (y < 1900 || t.getUTCFullYear() !== y || t.getUTCMonth() !== mo - 1 || t.getUTCDate() !== d) return 'invalid';
+  return s > todayDhaka(now) ? 'future' : null;
+}
+
 /** Number of SMS segments for a message (Unicode messages carry 70 chars, then 67 per part). */
 export function smsSegments(text: string): number {
   const isUnicode = /[^\x00-\x7F]/.test(text);

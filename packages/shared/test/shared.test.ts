@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
-  toBn, toEn, groupIndian, formatBn, bnDate, normalizeBdPhone, isValidBdMobile, toE164Bd, smsSegments,
+  toBn, toEn, groupIndian, formatBn, bnDate, normalizeBdPhone, isValidBdMobile, toE164Bd, smsSegments, normalizeNid, isValidNid, dobProblem, todayDhaka,
   hasPermission, hasAnyPermission, permissionsFor, ROLE_PERMS, PERMS,
   nextPostStatus, availablePostActions, canComplaintTransition, postTransitions, complaintTransitions, POST_STATUSES, COMPLAINT_STATUSES,
-  promiseInputSchema, complaintSubmitSchema, postInputSchema, postPatchSchema, postDraftSchema, tenantCreateSchema, passwordSchema, inviteSchema, mfaCodeSchema, loginSchema, siteConfigSchema,
+  promiseInputSchema, complaintSubmitSchema, staffComplaintSchema, postInputSchema, postPatchSchema, postDraftSchema, tenantCreateSchema, passwordSchema, inviteSchema, mfaCodeSchema, loginSchema, siteConfigSchema,
   COMPLAINT_MAX_TOTAL_B64, COMPLAINT_MAX_VOICE_SEC,
 } from '../src/index.js';
 
@@ -35,6 +35,25 @@ describe('Bangladeshi mobile numbers', () => {
     for (const bad of ['01212345678', '01012345678', '0171234567', '017123456789', '02123456789', '', 'abc', '+44712345678']) expect(isValidBdMobile(bad)).toBe(false);
   });
   it('builds the E.164 login id', () => { expect(toE164Bd('01712345678')).toBe('+8801712345678'); expect(toE164Bd('+8801712345678')).toBe('+8801712345678'); });
+});
+
+describe('NID and date of birth helpers', () => {
+  it('normalises NIDs: Bangla digits, spaces and dashes', () => {
+    expect(normalizeNid('১৯৯০ ১২৩৪-৫৬')).toBe('1990123456');
+    expect(normalizeNid(' 12 34\u201356 ')).toBe('123456');
+    expect(isValidNid('1990123456')).toBe(true);
+    expect(isValidNid('')).toBe(false);
+  });
+  it('dobProblem: invalid vs future, judged on the Dhaka calendar day', () => {
+    const noon = Date.parse('2026-10-02T06:00:00Z'); // 12:00 on 2 Oct in Dhaka
+    expect(dobProblem('2026-10-02', noon)).toBeNull();
+    expect(dobProblem('2026-10-03', noon)).toBe('future');
+    const lateEvening = Date.parse('2026-10-02T19:00:00Z'); // already 3 Oct 01:00 in Dhaka
+    expect(dobProblem('2026-10-03', lateEvening)).toBeNull();
+    expect(todayDhaka(lateEvening)).toBe('2026-10-03');
+    expect(dobProblem('', noon)).toBe('invalid');
+    expect(dobProblem('1900-02-29', noon)).toBe('invalid'); // 1900 was not a leap year
+  });
 });
 
 describe('SMS segments', () => {
@@ -90,25 +109,82 @@ describe('input schemas', () => {
     expect(promiseInputSchema.safeParse({ ...prom, status: 'late', delayReason: 'জমি অধিগ্রহণে দেরি' }).success).toBe(true);
     expect(promiseInputSchema.safeParse({ ...prom, extra: 1 }).success).toBe(false);
   });
-  it('complaint: anonymous needs no phone, otherwise a valid one; description bounds and voice note', () => {
-    const c = { category: 'বিদ্যুৎ', upazila: 'চরকান্দি', union: 'কাশবন', description: 'ক'.repeat(20) };
-    expect(complaintSubmitSchema.safeParse({ ...c, anonymous: true }).success).toBe(true);
-    expect(complaintSubmitSchema.safeParse({ ...c }).success).toBe(false);
-    expect(complaintSubmitSchema.safeParse({ ...c, phone: '01712345678' }).success).toBe(true);
-    expect(complaintSubmitSchema.safeParse({ ...c, phone: '01712345678', description: 'ক'.repeat(19) }).success).toBe(false);
-    expect(complaintSubmitSchema.safeParse({ ...c, phone: '01712345678', description: 'ক'.repeat(10000) }).success).toBe(true);
-    expect(complaintSubmitSchema.safeParse({ ...c, phone: '01712345678', description: 'ক'.repeat(10001) }).success).toBe(false);
+  // owner decision 2 Oct 2026 (adr/0009): name, mobile, date of birth and NID are all required, nobody is anonymous
+  const who = { name: 'আব্দুর রহিম', phone: '01712345678', dob: '1985-03-14', nid: '1990123456' };
+  it('complaint: description bounds and voice note', () => {
+    const c = { category: 'বিদ্যুৎ', upazila: 'চরকান্দি', union: 'কাশবন', ...who, description: 'ক'.repeat(20) };
+    expect(complaintSubmitSchema.safeParse(c).success).toBe(true);
+    expect(complaintSubmitSchema.safeParse({ ...c, description: 'ক'.repeat(19) }).success).toBe(false);
+    expect(complaintSubmitSchema.safeParse({ ...c, description: 'ক'.repeat(10000) }).success).toBe(true);
+    expect(complaintSubmitSchema.safeParse({ ...c, description: 'ক'.repeat(10001) }).success).toBe(false);
     // Voice note alone without description or with short description is valid
-    const withVoice = { category: 'বিদ্যুৎ', upazila: 'চরকান্দি', union: 'কাশবন', phone: '01712345678', voiceNote: { audioData: 'data:audio/webm;base64,AAA' } };
+    const withVoice = { category: 'বিদ্যুৎ', upazila: 'চরকান্দি', union: 'কাশবন', ...who, voiceNote: { audioData: 'data:audio/webm;base64,AAA' } };
     expect(complaintSubmitSchema.safeParse({ ...withVoice, description: '' }).success).toBe(true);
     expect(complaintSubmitSchema.safeParse({ ...withVoice, description: 'ছোট বিবরণ' }).success).toBe(true);
     expect(complaintSubmitSchema.safeParse({ ...withVoice, description: 'ক'.repeat(50) }).success).toBe(true);
     // Neither voice nor description >= 20 fails
-    expect(complaintSubmitSchema.safeParse({ category: 'বিদ্যুৎ', upazila: 'চরকান্দি', union: 'কাশবন', phone: '01712345678', description: '' }).success).toBe(false);
+    expect(complaintSubmitSchema.safeParse({ category: 'বিদ্যুৎ', upazila: 'চরকান্দি', union: 'কাশবন', ...who, description: '' }).success).toBe(false);
+  });
+  describe('complaint identity: name, mobile, date of birth and NID are required (adr/0009)', () => {
+    const c = { category: 'বিদ্যুৎ', upazila: 'চরকান্দি', union: 'কাশবন', description: 'ক'.repeat(20), ...who };
+    const errs = (o: Record<string, unknown>) => complaintSubmitSchema.safeParse(o).error?.flatten().fieldErrors as Record<string, string[]> | undefined;
+
+    it('accepts a full identity and stores the normalised forms', () => {
+      const r = complaintSubmitSchema.safeParse({ ...c, name: '  আব্দুর রহিম ', dob: '১৯৮৫-০৩-১৪', nid: ' 1990-1234 56 ' });
+      expect(r.success && r.data).toMatchObject({ name: 'আব্দুর রহিম', dob: '1985-03-14', nid: '1990123456' });
+    });
+    it('every identity field is required, each with a Bangla message', () => {
+      for (const k of ['name', 'phone', 'dob', 'nid'] as const) {
+        const { [k]: _gone, ...rest } = c;
+        const e = errs(rest);
+        expect(e?.[k]?.[0], `${k} missing`).toMatch(/[\u0980-\u09FF]/);
+        expect(complaintSubmitSchema.safeParse({ ...c, [k]: '' }).success, `${k} empty`).toBe(false);
+        expect(complaintSubmitSchema.safeParse({ ...c, [k]: '   ' }).success, `${k} blank`).toBe(false);
+        expect(complaintSubmitSchema.safeParse({ ...c, [k]: 12345 }).success, `${k} number`).toBe(false);
+      }
+      const all = errs({ category: c.category, upazila: c.upazila, union: c.union, description: c.description })!;
+      expect(Object.keys(all).sort()).toEqual(['dob', 'name', 'nid', 'phone']);
+    });
+    it('name: 2 to 80 characters, no control characters', () => {
+      for (const [name, ok] of [['ক', false], ['কক', true], ['ক'.repeat(80), true], ['ক'.repeat(81), false], ['রহিম\u0007', false]] as const) expect(complaintSubmitSchema.safeParse({ ...c, name }).success, name.slice(0, 5)).toBe(ok);
+    });
+    it('phone keeps the existing Bangladeshi mobile rule', () => {
+      for (const [phone, ok] of [['12345', false], ['01212345678', false], ['0171234567', false], ['abcdefghijk', false], ['০১৭১২৩৪৫৬৭৮', true], ['+8801812345678', true]] as const) expect(complaintSubmitSchema.safeParse({ ...c, phone }).success, phone).toBe(ok);
+    });
+    it('date of birth: YYYY-MM-DD, a real date, 1900 or later, not in the future', () => {
+      const ok = (dob: string) => complaintSubmitSchema.safeParse({ ...c, dob }).success;
+      expect([ok('1985-03-14'), ok('1900-01-01'), ok('2000-02-29'), ok(todayDhaka())]).toEqual([true, true, true, true]);
+      expect([ok('1899-12-31'), ok('2001-02-29'), ok('1985-13-01'), ok('1985-00-10'), ok('1985-04-31'), ok('14-03-1985'), ok('1985/03/14'), ok('1985-3-4'), ok('not a date')]).toEqual(Array(9).fill(false));
+      expect(ok('2999-01-01')).toBe(false);
+      expect(errs({ ...c, dob: '2999-01-01' })?.dob?.[0]).toMatch(/পরে হতে পারে না/);
+      expect(errs({ ...c, dob: '1985-02-30' })?.dob?.[0]).toMatch(/সঠিক জন্মতারিখ/);
+    });
+    it('NID: digits only after dropping spaces and dashes, 10, 13 or 17 digits', () => {
+      const ok = (nid: string) => complaintSubmitSchema.safeParse({ ...c, nid }).success;
+      expect([ok('1234567890'), ok('1234567890123'), ok('12345678901234567'), ok('1234 567 890'), ok('1234-5678-90'), ok('১২৩৪৫৬৭৮৯০')]).toEqual(Array(6).fill(true));
+      for (const bad of ['123456789', '12345678901', '123456789012', '12345678901234', '1234567890123456', '123456789012345678', '12345X7890', '1234567890a', '+1234567890', '১২৩৪৫'])
+        expect(ok(bad), bad).toBe(false);
+      expect(errs({ ...c, nid: '123' })?.nid?.[0]).toMatch(/১০, ১৩ বা ১৭ সংখ্যা/);
+    });
+    it('anonymous is gone: the key is refused, true or false', () => {
+      expect(complaintSubmitSchema.safeParse({ ...c, anonymous: true }).success).toBe(false);
+      expect(complaintSubmitSchema.safeParse({ ...c, anonymous: false }).success).toBe(false);
+      expect(complaintSubmitSchema.safeParse({ category: c.category, upazila: c.upazila, union: c.union, description: c.description, anonymous: true }).success).toBe(false);
+      expect(complaintSubmitSchema.safeParse(c).success).toBe(true);
+    });
+  });
+  it('staff (hearing/phone) entries keep the earlier rules: anonymous allowed, otherwise a valid phone, no DOB/NID', () => {
+    const c = { category: 'বিদ্যুৎ', upazila: 'চরকান্দি', union: 'কাশবন', description: 'ক'.repeat(20) };
+    expect(staffComplaintSchema.safeParse({ ...c, anonymous: true }).success).toBe(true);
+    expect(staffComplaintSchema.safeParse({ ...c }).success).toBe(false);
+    expect(staffComplaintSchema.safeParse({ ...c, phone: '01712345678' }).success).toBe(true);
+    expect(staffComplaintSchema.safeParse({ ...c, phone: '01712345678', name: 'ক'.repeat(81) }).success).toBe(false);
+    expect(staffComplaintSchema.safeParse({ ...c, phone: '01712345678', dob: '1985-03-14', nid: '1234567890' }).success).toBe(false); // strict: not part of the staff form
+    expect(staffComplaintSchema.safeParse({ ...c, phone: '01712345678', description: 'ছোট' }).success).toBe(false);
   });
   // BUG-2026-028: attachments together stay far below MongoDB's 16 MB document limit; voice limit = the form's 3 minutes
   it('complaint attachments: data URL shape, 12 MB total cap with a Bangla message, 180 s voice (BUG-2026-028)', () => {
-    const c = { category: 'বিদ্যুৎ', upazila: 'চরকান্দি', union: 'কাশবন', phone: '01712345678', description: 'ক'.repeat(20) };
+    const c = { category: 'বিদ্যুৎ', upazila: 'চরকান্দি', union: 'কাশবন', ...who, description: 'ক'.repeat(20) };
     const pdf = (n: number) => ({ name: 'a.pdf', mimeType: 'application/pdf', size: 100, data: 'data:application/pdf;base64,' + 'A'.repeat(n) });
     expect(complaintSubmitSchema.safeParse({ ...c, files: [pdf(4)] }).success).toBe(true);
     expect(complaintSubmitSchema.safeParse({ ...c, files: [{ ...pdf(4), data: 'javascript:alert(1)' }] }).success).toBe(false);

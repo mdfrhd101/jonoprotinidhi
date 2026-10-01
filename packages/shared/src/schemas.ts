@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { PROMISE_STATUSES } from './workflows.js';
-import { isValidBdMobile } from './bangla.js';
+import { dobProblem, isValidBdMobile, isValidNid, normalizeDob, normalizeNid } from './bangla.js';
 import { BODY_MAX_HTML, BODY_MAX_TEXT, plainTextLength } from './richtext.js';
 import { COMPLAINT_MAX_FILES, COMPLAINT_MAX_FILE_B64, COMPLAINT_MAX_FILE_BYTES, COMPLAINT_MAX_TOTAL_B64, COMPLAINT_MAX_VOICE_B64, COMPLAINT_MAX_VOICE_SEC } from './complaintLimits.js';
 
@@ -99,42 +99,74 @@ export const complaintFileSchema = z
   .strict();
 export type ComplaintFile = z.infer<typeof complaintFileSchema>;
 
+/* Complainant identity on the public form (owner decision, 2 Oct 2026, adr/0009): name, mobile, date of birth and NID are
+   all required and there is no anonymous option. Encrypted by the API like name and phone (ADR-0004). */
+const NAME_MSG = 'নাম লিখুন (২ থেকে ৮০ অক্ষর)';
+const PHONE_MSG = 'সঠিক মোবাইল নম্বর দিন';
+const DOB_MSG = 'সঠিক জন্মতারিখ দিন (বছর-মাস-দিন)';
+const DOB_FUTURE_MSG = 'জন্মতারিখ আজকের তারিখের পরে হতে পারে না';
+const NID_MSG = 'সঠিক জাতীয় পরিচয়পত্র (NID) নম্বর দিন: ১০, ১৩ বা ১৭ সংখ্যা';
+const req = (msg: string) => ({ required_error: msg, invalid_type_error: msg });
+
+const complainantName = z.string(req(NAME_MSG)).trim().min(2, NAME_MSG).max(80, NAME_MSG).refine(noControl, NAME_MSG);
+const complainantPhone = z.string(req(PHONE_MSG)).max(20, PHONE_MSG).refine(isValidBdMobile, PHONE_MSG);
+/** Stored as `YYYY-MM-DD`. */
+const complainantDob = z.string(req(DOB_MSG)).max(40, DOB_MSG).transform(normalizeDob).superRefine((v, ctx) => {
+  const problem = dobProblem(v);
+  if (problem) ctx.addIssue({ code: 'custom', message: problem === 'future' ? DOB_FUTURE_MSG : DOB_MSG });
+});
+/** Stored as plain digits (spaces, dashes and Bangla digits normalised). */
+const complainantNid = z.string(req(NID_MSG)).max(60, NID_MSG).transform(normalizeNid).refine(isValidNid, NID_MSG);
+
+const complaintContent = {
+  category: text(2, 60),
+  upazila: text(2, 60),
+  union: text(2, 60),
+  place: text(0, 100).optional().default(''),
+  description: text(0, 10000).optional().default(''),
+  otpTicket: z.string().max(200).optional(),
+  turnstileToken: z.string().max(2000).optional().default(''),
+  voiceNote: z
+    .object({
+      audioData: base64DataUrl(COMPLAINT_MAX_VOICE_B64),
+      durationSec: z.number().int().min(1).max(COMPLAINT_MAX_VOICE_SEC).optional(),
+    })
+    .strict()
+    .optional(),
+  files: z.array(complaintFileSchema).max(COMPLAINT_MAX_FILES).optional().default([]),
+};
+const checkComplaintContent = (v: { description?: string; voiceNote?: { audioData: string }; files?: Array<{ data: string }> }, ctx: z.RefinementCtx) => {
+  const hasVoice = Boolean(v.voiceNote?.audioData);
+  const descLen = (v.description ?? '').trim().length;
+  if (!hasVoice && descLen < 20) {
+    ctx.addIssue({ code: 'custom', path: ['description'], message: 'সমস্যার বিবরণ অন্তত ২০ অক্ষরে লিখুন অথবা ভয়েস রেকর্ড করুন' });
+  }
+  // BUG-2026-028: keep the stored document far below MongoDB's 16 MB limit
+  const total = (v.voiceNote?.audioData.length ?? 0) + (v.files ?? []).reduce((n, f) => n + f.data.length, 0);
+  if (total > COMPLAINT_MAX_TOTAL_B64) ctx.addIssue({ code: 'custom', path: ['files'], message: 'সংযুক্তি অনেক বড়: সব ছবি, PDF ও ভয়েস মিলিয়ে সীমার বেশি হয়ে গেছে। কিছু ফাইল বাদ দিয়ে আবার পাঠান।' });
+};
+
+/** The citizen's form. `.strict()` also refuses the old `anonymous` key. */
 export const complaintSubmitSchema = z
+  .object({ ...complaintContent, name: complainantName, phone: complainantPhone, dob: complainantDob, nid: complainantNid })
+  .strict()
+  .superRefine(checkComplaintContent);
+export type ComplaintSubmit = z.infer<typeof complaintSubmitSchema>;
+
+/** Hearing/phone entries by an officer keep their earlier, looser rules: anonymous allowed, no DOB/NID. */
+export const staffComplaintSchema = z
   .object({
-    category: text(2, 60),
-    upazila: text(2, 60),
-    union: text(2, 60),
-    place: text(0, 100).optional().default(''),
-    description: text(0, 10000).optional().default(''),
+    ...complaintContent,
     anonymous: z.boolean().optional().default(false),
     name: text(0, 80).optional().default(''),
     phone: z.string().max(20).optional().default(''),
-    otpTicket: z.string().max(200).optional(),
-    turnstileToken: z.string().max(2000).optional().default(''),
-    voiceNote: z
-      .object({
-        audioData: base64DataUrl(COMPLAINT_MAX_VOICE_B64),
-        durationSec: z.number().int().min(1).max(COMPLAINT_MAX_VOICE_SEC).optional(),
-      })
-      .strict()
-      .optional(),
-    files: z.array(complaintFileSchema).max(COMPLAINT_MAX_FILES).optional().default([]),
   })
   .strict()
   .superRefine((v, ctx) => {
-    if (!v.anonymous && !isValidBdMobile(v.phone)) ctx.addIssue({ code: 'custom', path: ['phone'], message: 'সঠিক মোবাইল নম্বর দিন' });
-    const hasVoice = Boolean(v.voiceNote?.audioData);
-    const descLen = (v.description ?? '').trim().length;
-    if (!hasVoice && descLen < 20) {
-      ctx.addIssue({ code: 'custom', path: ['description'], message: 'সমস্যার বিবরণ অন্তত ২০ অক্ষরে লিখুন অথবা ভয়েস রেকর্ড করুন' });
-    }
-    // BUG-2026-028: keep the stored document far below MongoDB's 16 MB limit
-    const total = (v.voiceNote?.audioData.length ?? 0) + (v.files ?? []).reduce((n, f) => n + f.data.length, 0);
-    if (total > COMPLAINT_MAX_TOTAL_B64) ctx.addIssue({ code: 'custom', path: ['files'], message: 'সংযুক্তি অনেক বড়: সব ছবি, PDF ও ভয়েস মিলিয়ে সীমার বেশি হয়ে গেছে। কিছু ফাইল বাদ দিয়ে আবার পাঠান।' });
+    if (!v.anonymous && !isValidBdMobile(v.phone)) ctx.addIssue({ code: 'custom', path: ['phone'], message: PHONE_MSG });
+    checkComplaintContent(v, ctx);
   });
-export type ComplaintSubmit = z.infer<typeof complaintSubmitSchema>;
-
-export const staffComplaintSchema = complaintSubmitSchema;
+export type StaffComplaintSubmit = z.infer<typeof staffComplaintSchema>;
 
 export const complaintPatchSchema = z
   .object({ status: z.enum(['new', 'verify', 'progress', 'solved', 'closed', 'spam']).optional(), assignedTo: objectId.nullable().optional(), version: z.number().int().min(1).optional(), note: text(2, 600).optional() })

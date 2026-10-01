@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Turnstile from './Turnstile';
 import { IconCheck } from './icons';
-import { isValidBdMobile, normalizeBdPhone, toBn, toEn } from '@jonoprotinidhi/shared/src/bangla.js';
+import { dobProblem, isValidBdMobile, isValidNid, normalizeBdPhone, normalizeDob, normalizeNid, toBn, toEn, todayDhaka } from '@jonoprotinidhi/shared/src/bangla.js';
 import { COMPLAINT_MAX_FILES, COMPLAINT_MAX_FILE_B64, COMPLAINT_MAX_FILE_BYTES, COMPLAINT_MAX_VOICE_B64, COMPLAINT_MAX_VOICE_SEC } from '@jonoprotinidhi/shared/src/complaintLimits.js';
 import { overTotal, plainDataUrl, readAsDataUrl, shrinkImage } from '@/lib/attachments';
 import { COMPLAINT_STATUS, bnDateSafe, joinParts } from '@/lib/format';
@@ -10,14 +10,29 @@ import { publicApiUrl } from '@/lib/publicApi';
 import type { TrackResult, Upazila } from '@/lib/types';
 
 type Props = { categories: string[]; upazilas: Upazila[]; otpRequired: boolean; enabled: boolean; privacyNote: string; turnstileSiteKey: string };
-type Errs = Partial<Record<'category' | 'upazila' | 'union' | 'description' | 'phone' | 'name' | 'place' | 'otp', string>>;
+type Errs = Partial<Record<'category' | 'upazila' | 'union' | 'description' | 'phone' | 'name' | 'dob' | 'nid' | 'place' | 'otp', string>>;
+type Identity = { name: string; phone: string; dob: string; nid: string };
 type ApiErr = { error?: { code?: string; message?: string; details?: { fieldErrors?: Record<string, string[]>; retryAfterSec?: number } } };
 
 const FIELD_MSG: Record<string, string> = {
   category: 'বিষয় বেছে নিন।', upazila: 'উপজেলা বেছে নিন।', union: 'ইউনিয়ন বা পৌরসভা বেছে নিন।',
   description: 'সমস্যাটা অন্তত ২০ অক্ষরে লিখুন (সর্বোচ্চ ১০,০০০)।', phone: 'সঠিক মোবাইল নম্বর দিন, ১১ সংখ্যার, ০১ দিয়ে শুরু।',
-  name: 'নাম সর্বোচ্চ ৮০ অক্ষর।', place: 'ঠিকানা সর্বোচ্চ ১০০ অক্ষর।',
+  name: 'আপনার নাম লিখুন (২ থেকে ৮০ অক্ষর)।', place: 'ঠিকানা সর্বোচ্চ ১০০ অক্ষর।',
+  dob: 'সঠিক জন্মতারিখ দিন, বছর-মাস-দিন ক্রমে (যেমন ১৯৮৫-০৩-১৪)।', nid: 'সঠিক জাতীয় পরিচয়পত্র (NID) নম্বর দিন: ১০, ১৩ বা ১৭ সংখ্যা।',
 };
+const DOB_FUTURE_MSG = 'জন্মতারিখ আজকের তারিখের পরে হতে পারে না।';
+
+/** Name, mobile, date of birth and NID are all required and checked by the same rules as the API (packages/shared, adr/0009). */
+function identityErrors(v: Identity): Partial<Record<keyof Identity, string>> {
+  const e: Partial<Record<keyof Identity, string>> = {};
+  const name = v.name.trim();
+  if (name.length < 2 || name.length > 80) e.name = FIELD_MSG.name;
+  if (!isValidBdMobile(v.phone)) e.phone = FIELD_MSG.phone;
+  const dob = dobProblem(v.dob);
+  if (dob) e.dob = dob === 'future' ? DOB_FUTURE_MSG : FIELD_MSG.dob;
+  if (!isValidNid(v.nid)) e.nid = FIELD_MSG.nid;
+  return e;
+}
 
 async function call<T>(path: string, body?: unknown): Promise<{ ok: true; data: T } | { ok: false; status: number; err: ApiErr }> {
   try {
@@ -261,14 +276,15 @@ function VoicePreviewPlayer({ audioUrl, durationSec }: { audioUrl: string; durat
 
 export default function ComplaintBox({ categories, upazilas, otpRequired, enabled, privacyNote, turnstileSiteKey }: Props) {
   const [tab, setTab] = useState<'new' | 'track'>('new');
-  const [f, setF] = useState({ category: '', upazila: '', union: '', place: '', description: '', anonymous: false, name: '', phone: '' });
+  const [f, setF] = useState({ category: '', upazila: '', union: '', place: '', description: '', name: '', phone: '', dob: '', nid: '' });
+  const [maxDob, setMaxDob] = useState<string | undefined>(undefined); // set after mount: a date baked into server HTML would go stale
   const [errs, setErrs] = useState<Errs>({});
   const [alert, setAlert] = useState('');
   const [busy, setBusy] = useState(false);
   const [token, setToken] = useState('');
   const [tsKey, setTsKey] = useState(0);
   const [otp, setOtp] = useState({ sent: false, code: '', ticket: '', busy: false, msg: '', phone: '' });
-  const [done, setDone] = useState<{ id: string; anonymous: boolean; phone: string } | null>(null);
+  const [done, setDone] = useState<{ id: string; phone: string } | null>(null);
   const [trackId, setTrackId] = useState('');
   const [track, setTrack] = useState<{ busy: boolean; res: TrackResult | null; err: string }>({ busy: false, res: null, err: '' });
   const formRef = useRef<HTMLFormElement>(null);
@@ -312,11 +328,12 @@ export default function ComplaintBox({ categories, upazilas, otpRequired, enable
     };
   }, []);
   useEffect(() => { if (done) ticketRef.current?.focus(); }, [done]);
+  useEffect(() => setMaxDob(todayDhaka()), []);
 
   const upz = upazilas.find((u) => (u.short || u.name) === f.upazila);
   const unions = upz?.unions ?? [];
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => { setF((x) => ({ ...x, [k]: v, ...(k === 'upazila' ? { union: '' } : {}) })); setErrs((e) => ({ ...e, [k]: undefined })); };
-  const needOtp = otpRequired && !f.anonymous;
+  const needOtp = otpRequired;
   const phoneN = normalizeBdPhone(f.phone);
   // the number changed after it was verified: it has to be verified again
   useEffect(() => { if (otp.phone && otp.phone !== phoneN) setOtp({ sent: false, code: '', ticket: '', busy: false, msg: '', phone: '' }); }, [phoneN, otp.phone]);
@@ -333,8 +350,7 @@ export default function ComplaintBox({ categories, upazilas, otpRequired, enable
     } else if (d > 10000) {
       e.description = 'বিবরণ সর্বোচ্চ ১০,০০০ অক্ষর।';
     }
-    if (!targetF.anonymous && !isValidBdMobile(targetF.phone)) e.phone = FIELD_MSG.phone;
-    if (targetF.name.length > 80) e.name = FIELD_MSG.name;
+    Object.assign(e, identityErrors(targetF));
     if (needOtp && !otp.ticket) e.otp = 'মোবাইল নম্বরটি কোড দিয়ে যাচাই করুন।';
     return e;
   }
@@ -589,7 +605,7 @@ export default function ComplaintBox({ categories, upazilas, otpRequired, enable
     setBusy(true);
     const body = {
       category: curF.category, upazila: curF.upazila.trim(), union: curF.union.trim(), place: curF.place.trim(), description: curF.description.trim(),
-      anonymous: curF.anonymous, name: curF.anonymous ? '' : curF.name.trim(), phone: curF.anonymous ? '' : phoneN,
+      name: curF.name.trim(), phone: phoneN, dob: normalizeDob(curF.dob), nid: normalizeNid(curF.nid),
       ...(needOtp && otp.ticket ? { otpTicket: otp.ticket } : {}), turnstileToken: token,
       ...(voiceNote ? { voiceNote: { audioData: voiceNote.audioData, durationSec: voiceNote.durationSec } } : {}),
       ...(attachedFiles.length > 0 ? { files: attachedFiles } : {}),
@@ -597,7 +613,7 @@ export default function ComplaintBox({ categories, upazilas, otpRequired, enable
     const r = await call<{ trackingId: string }>('complaints', body);
     setBusy(false);
     setTsKey((k) => k + 1);
-    if (r.ok) { setDone({ id: r.data.trackingId, anonymous: curF.anonymous, phone: phoneN }); return; }
+    if (r.ok) { setDone({ id: r.data.trackingId, phone: phoneN }); return; }
     const fe = r.err.error?.details?.fieldErrors;
     if (fe && Object.keys(fe).length) {
       const mapped: Errs = {};
@@ -619,7 +635,7 @@ export default function ComplaintBox({ categories, upazilas, otpRequired, enable
   }
 
   const reset = () => {
-    setF({ category: '', upazila: '', union: '', place: '', description: '', anonymous: false, name: '', phone: '' });
+    setF({ category: '', upazila: '', union: '', place: '', description: '', name: '', phone: '', dob: '', nid: '' });
     setErrs({});
     setAlert('');
     setOtp({ sent: false, code: '', ticket: '', busy: false, msg: '', phone: '' });
@@ -628,6 +644,8 @@ export default function ComplaintBox({ categories, upazilas, otpRequired, enable
     setAttachedFiles([]);
     setFileError('');
   };
+  // inline check when the citizen leaves one of the four identity fields; the whole form is checked again on submit
+  const blurCheck = (k: keyof Identity) => { if (f[k].trim() || errs[k]) setErrs((e) => ({ ...e, [k]: identityErrors(f)[k] })); };
   const E = ({ k }: { k: keyof Errs }) => (errs[k] ? <p className="err" id={`e-${k}`}>{errs[k]}</p> : null);
   const inv = (k: keyof Errs) => ({ 'aria-invalid': errs[k] ? true : undefined, 'aria-describedby': errs[k] ? `e-${k}` : undefined, 'data-f': k });
 
@@ -644,9 +662,7 @@ export default function ComplaintBox({ categories, upazilas, otpRequired, enable
             <p className="kicker">অভিযোগ জমা হয়েছে</p>
             <p className="hint" style={{ marginTop: 10 }}>আপনার ট্র্যাকিং আইডি</p>
             <p className="tid" data-testid="tracking-id">{done.id}</p>
-            <p style={{ margin: 0 }}>{done.anonymous
-              ? 'বেনামী অভিযোগে SMS যায় না। আইডিটি লিখে রাখুন, এটা দিয়েই অবস্থা দেখতে পারবেন।'
-              : `আইডিসহ একটি SMS যাবে ${toBn(done.phone.slice(0, 3))}•••••${toBn(done.phone.slice(-3))} নম্বরে।`}</p>
+            <p style={{ margin: 0 }}>{`আইডিসহ একটি SMS যাবে ${toBn(done.phone.slice(0, 3))}•••••${toBn(done.phone.slice(-3))} নম্বরে।`}</p>
             <div className="acts">
               <CopyId id={done.id} />
               <button type="button" className="btn btn-brass" onClick={() => { setTrackId(done.id); setTab('track'); void doTrack(done.id); }}>অবস্থা দেখুন</button>
@@ -1007,22 +1023,29 @@ export default function ComplaintBox({ categories, upazilas, otpRequired, enable
               )}
             </div>
 
-            <label className="check" htmlFor="fAnon">
-              <input type="checkbox" id="fAnon" checked={f.anonymous} onChange={(e) => set('anonymous', e.target.checked)} />
-              <span>বেনামে অভিযোগ করতে চাই<small className="hint">নাম ও নম্বর জমা হবে না। তখন SMS যাবে না, ট্র্যাকিং আইডি লিখে রাখতে হবে।</small></span>
-            </label>
-            {!f.anonymous && (
-              <div className="frow">
-                <div className="field">
-                  <label htmlFor="fName">আপনার নাম (ঐচ্ছিক)</label>
-                  <input type="text" id="fName" maxLength={80} autoComplete="name" value={f.name} onChange={(e) => set('name', e.target.value)} {...inv('name')} /><E k="name" />
-                </div>
-                <div className="field">
-                  <label htmlFor="fPhone">মোবাইল নম্বর <span className="req">*</span></label>
-                  <input type="tel" id="fPhone" inputMode="numeric" maxLength={16} placeholder="০১XXXXXXXXX" autoComplete="tel" value={f.phone} onChange={(e) => set('phone', e.target.value)} {...inv('phone')} /><E k="phone" />
-                </div>
+            <p className="hint" style={{ margin: 0 }}>নিচের চারটি তথ্যই দেওয়া বাধ্যতামূলক।</p>
+            <div className="frow">
+              <div className="field">
+                <label htmlFor="fName">আপনার নাম <span className="req">*</span></label>
+                <input type="text" id="fName" maxLength={80} autoComplete="name" value={f.name} onChange={(e) => set('name', e.target.value)} onBlur={() => blurCheck('name')} {...inv('name')} /><E k="name" />
               </div>
-            )}
+              <div className="field">
+                <label htmlFor="fPhone">মোবাইল নম্বর <span className="req">*</span></label>
+                <input type="tel" id="fPhone" inputMode="numeric" maxLength={16} placeholder="০১XXXXXXXXX" autoComplete="tel" value={f.phone} onChange={(e) => set('phone', e.target.value)} onBlur={() => blurCheck('phone')} {...inv('phone')} /><E k="phone" />
+              </div>
+            </div>
+            <div className="frow">
+              <div className="field">
+                <label htmlFor="fDob">জন্মতারিখ <span className="req">*</span></label>
+                <input type="date" id="fDob" min="1900-01-01" max={maxDob} autoComplete="bday" value={f.dob} onChange={(e) => set('dob', e.target.value)} onBlur={() => blurCheck('dob')} {...inv('dob')} />
+                <small className="hint">ক্যালেন্ডার থেকে বেছে নিন বা বছর-মাস-দিন ক্রমে লিখুন।</small><E k="dob" />
+              </div>
+              <div className="field">
+                <label htmlFor="fNid">জাতীয় পরিচয়পত্র (NID) নম্বর <span className="req">*</span></label>
+                <input type="text" id="fNid" inputMode="numeric" maxLength={30} autoComplete="off" spellCheck={false} placeholder="১০, ১৩ বা ১৭ সংখ্যা" value={f.nid} onChange={(e) => set('nid', e.target.value)} onBlur={() => blurCheck('nid')} {...inv('nid')} />
+                <small className="hint">১০, ১৩ বা ১৭ সংখ্যার নম্বর। মাঝে ফাঁকা বা ড্যাশ (-) থাকলেও চলবে।</small><E k="nid" />
+              </div>
+            </div>
             {needOtp && (
               <div className="otp" data-f="otp" tabIndex={-1}>
                 <p className="hint" style={{ margin: 0 }}>এই অভিযোগ বক্সে মোবাইল নম্বর যাচাই করা বাধ্যতামূলক।</p>

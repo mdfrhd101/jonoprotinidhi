@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { canComplaintTransition, complaintSubmitSchema, complaintPatchSchema, hasPermission, normalizeBdPhone, toE164Bd, type ComplaintStatus, type ComplaintSubmit, type Perm } from '@jonoprotinidhi/shared';
+import { canComplaintTransition, complaintSubmitSchema, complaintPatchSchema, hasPermission, normalizeBdPhone, staffComplaintSchema, toE164Bd, type ComplaintStatus, type Perm } from '@jonoprotinidhi/shared';
 import type { Deps } from '../deps.js';
 import { ApiError } from '../errors.js';
 import { Complaint, ComplaintEvent, Membership, Tenant, nextSeq, type TenantDoc } from '../models/index.js';
@@ -9,8 +9,8 @@ import { cleanAttachments } from '../lib/attachments.js';
 import { csvCell, escapeRegex, isObjectId } from '../lib/sanitize.js';
 import { ctx, runInTenant } from '../context.js';
 
-/* Complaints (FR-CMP-*, ADR-0004, ADR-0007).
-   - name/phone exist ONLY as AES-GCM ciphertext bound to (tenant, complaint, field)
+/* Complaints (FR-CMP-*, ADR-0004, ADR-0007, adr/0009).
+   - name/phone/date of birth/NID exist ONLY as AES-GCM ciphertext bound to (tenant, complaint, field)
    - only the ASSIGNED officer can decrypt, one at a time, with a purpose, rate-limited and logged
    - owner / editor / support / super admin (even acting-as) can never see identity
    - the public sees a tracking view and aggregate statistics only */
@@ -59,7 +59,9 @@ export class ComplaintService {
 
   /* ---------- submit ---------- */
   async submit(tenant: TenantDoc, raw: unknown, info: { ip: string }, staff?: { channel: 'hearing' | 'phone'; userName: string }) {
-    const input: ComplaintSubmit = complaintSubmitSchema.parse(raw);
+    // The public form always carries name, phone, DOB and NID and cannot be anonymous (adr/0009). Staff (hearing/phone)
+    // entries keep the earlier rules: anonymous allowed, no DOB/NID.
+    const input = staff ? { ...staffComplaintSchema.parse(raw), dob: undefined, nid: undefined } : { ...complaintSubmitSchema.parse(raw), anonymous: false };
     if (!tenant.settings.complaintBoxEnabled) throw ApiError.unprocessable('BOX_DISABLED', 'অভিযোগ বক্স এখন বন্ধ');
     if (!tenant.settings.complaintCategories.includes(input.category)) throw ApiError.unprocessable('BAD_CATEGORY', 'বিষয়টি তালিকায় নেই');
 
@@ -84,9 +86,12 @@ export class ComplaintService {
     const _id = new mongoose.Types.ObjectId();
     const key = await this.dek(tenant._id);
     const kv = tenant.dek?.keyVersion ?? 1;
+    const enc = (field: 'name' | 'phone' | 'dob' | 'nid', value: string) => encryptField(key, value, piiAad(tenant._id, _id, field), kv);
     const pii = input.anonymous ? undefined : {
-      nameEnc: input.name ? encryptField(key, input.name, piiAad(tenant._id, _id, 'name'), kv) : undefined,
-      phoneEnc: encryptField(key, phone, piiAad(tenant._id, _id, 'phone'), kv),
+      nameEnc: input.name ? enc('name', input.name) : undefined,
+      phoneEnc: enc('phone', phone),
+      dobEnc: input.dob ? enc('dob', input.dob) : undefined,
+      nidEnc: input.nid ? enc('nid', input.nid) : undefined,
       keyVersion: kv,
     };
     const year = this.dhakaYear();
@@ -254,16 +259,17 @@ export class ComplaintService {
     if (m.viaSuperAdmin) throw ApiError.forbidden('প্ল্যাটফর্ম অ্যাডমিন নাগরিকের পরিচয় দেখতে পারেন না');
     const r = this.d.rateLimiter.check('pii', `user:${m.userId}`);
     if (!r.allowed) throw ApiError.tooMany(r.retryAfterSec);
-    const c = await Complaint.findOne({ _id: id, ...this.scopeFilter(m) }).select('+pii.nameEnc +pii.phoneEnc trackingId anonymous assignedTo piiPurgedAt');
+    const c = await Complaint.findOne({ _id: id, ...this.scopeFilter(m) }).select('+pii.nameEnc +pii.phoneEnc +pii.dobEnc +pii.nidEnc trackingId anonymous assignedTo piiPurgedAt');
     if (!c) throw ApiError.notFound();
     if (!this.canViewPii(m, c)) throw ApiError.forbidden('শুধু দায়িত্বপ্রাপ্ত কর্মকর্তা পরিচয় দেখতে পারেন');
     if (!c.pii?.phoneEnc) throw ApiError.unprocessable('PII_UNAVAILABLE', 'পরিচয় পাওয়া যায় না');
     const key = await this.dek(tenant._id);
-    const name = c.pii.nameEnc ? decryptField(key, c.pii.nameEnc, piiAad(tenant._id, c._id, 'name')) : '';
-    const phone = decryptField(key, c.pii.phoneEnc, piiAad(tenant._id, c._id, 'phone'));
+    // dob/nid are absent on complaints from before adr/0009 and on staff-entered ones: shown as empty, the admin prints "—"
+    const plain = (field: 'name' | 'phone' | 'dob' | 'nid', packed?: string | null) => (packed ? decryptField(key, packed, piiAad(tenant._id, c._id, field)) : '');
+    const name = plain('name', c.pii.nameEnc), phone = plain('phone', c.pii.phoneEnc), dob = plain('dob', c.pii.dobEnc), nid = plain('nid', c.pii.nidEnc);
     await ComplaintEvent.create({ complaintId: c._id, type: 'pii_view', by: { userId: m.userId as never, name: m.name }, data: { purpose } });
     await audit({ action: 'complaint.pii_view', entity: { type: 'complaint', id: c._id, label: c.trackingId }, reason: purpose });
-    return { name, phone };
+    return { name, phone, dob, nid };
   }
 
   async exportCsv(m: MemberCtx) {

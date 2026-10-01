@@ -99,7 +99,7 @@ sequenceDiagram
   end
   C->>A: POST /public/complaints {…, turnstileToken, otpTicket?}
   A->>A: verify Turnstile, rate limits, validate, strip EXIF of photos
-  A->>A: encrypt name+phone (AES-256-GCM, tenant DEK), HMAC phone for limits
+  A->>A: encrypt name+phone+DOB+NID (AES-256-GCM, tenant DEK), HMAC phone for limits
   A->>A: trackingId = counter(tenant, year)
   A-->>C: {trackingId}
   A->>W: queue SMS "গৃহীত {id}" (if not anonymous)

@@ -256,7 +256,8 @@ form.cmp{display:flex;flex-direction:column;gap:20px}
 .field{display:flex;flex-direction:column;gap:7px;min-width:0}
 .field>label{font-size:14.5px;font-weight:600}
 .req{color:var(--brass-2)}
-.dark input[type=text],.dark input[type=tel],.dark select,.dark textarea{font:inherit;font-size:16px;color:var(--text-light);background:rgba(239,234,224,.05);border:1px solid rgba(239,234,224,.18);border-radius:2px;padding:12px 14px;width:100%;min-width:0}
+.dark input[type=text],.dark input[type=tel],.dark input[type=date],.dark select,.dark textarea{font:inherit;font-size:16px;color:var(--text-light);background:rgba(239,234,224,.05);border:1px solid rgba(239,234,224,.18);border-radius:2px;padding:12px 14px;width:100%;min-width:0}
+.dark input[type=date]{color-scheme:dark}
 .dark select option{background:var(--ink-2);color:var(--text-light)}
 .dark select:disabled{opacity:.55}
 .dark textarea{min-height:130px;resize:vertical}

@@ -21,8 +21,11 @@ const inT = <T,>(fn: () => Promise<T> | T) => runInTenant(t.id, fn);
 
 const body = (o: Record<string, unknown> = {}) => ({
   category: 'রাস্তা-ঘাট ও সেতু', upazila: 'চরকান্দি', union: 'কাশবন', place: 'বাজারের সামনে', description: 'বাজারের সামনের রাস্তায় বড় গর্ত হয়েছে, রিকশা উল্টে যাচ্ছে।',
-  anonymous: false, name: 'আব্দুর রহিম', phone: '01712345678', turnstileToken: 'ok', ...o,
+  name: 'আব্দুর রহিম', phone: '01712345678', dob: '1985-03-14', nid: '1990123456', turnstileToken: 'ok', ...o,
 });
+/** Hearing/phone entries by an officer keep the earlier rules (anonymous allowed, no DOB/NID): the only way to make an anonymous record now. */
+const { dob: _dob, nid: _nid, ...staffBase } = body();
+const staffSubmit = (o: Record<string, unknown> = {}, tok = t.officer) => api(env).post(admin(t, '/complaints')).set(bearer(tok)).send({ ...staffBase, channel: 'hearing', ...o });
 const submit = (o: Record<string, unknown> = {}, host = t.host) => api(env).post('/api/v1/public/complaints').set('Host', host).send(body(o));
 const list = (tok: string, qs = '') => api(env).get(admin(t, `/complaints${qs}`)).set(bearer(tok));
 const get = (tok: string, id: string) => api(env).get(admin(t, `/complaints/${id}`)).set(bearer(tok));
@@ -57,9 +60,9 @@ describe('submitting a complaint (FR-CMP-01..05)', () => {
     expect(new Set(ids).size).toBe(12); // atomic counter under concurrency
   });
 
-  it('anonymous complaints store no identity and send no SMS', async () => {
+  it('staff-entered anonymous complaints (hearing/phone) still store no identity and send no SMS', async () => {
     const sentBefore = env.sms.outbox.length; // onboarding already sent invite SMS
-    const r = await submit({ anonymous: true, name: '', phone: '' });
+    const r = await staffSubmit({ anonymous: true, name: '', phone: '' });
     expect(r.status).toBe(201);
     const raw = await inT(() => Complaint.findOne({ trackingId: r.body.trackingId }).select('+pii +phoneHmac').lean()) as { pii?: unknown; phoneHmac?: string } | null;
     expect(raw?.pii).toBeUndefined();
@@ -67,10 +70,53 @@ describe('submitting a complaint (FR-CMP-01..05)', () => {
     expect(env.sms.outbox).toHaveLength(sentBefore);
   });
 
-  it('a non-anonymous complaint needs a valid Bangladeshi mobile number', async () => {
+  it('a complaint needs a valid Bangladeshi mobile number', async () => {
     for (const phone of ['', '12345', '01212345678', '0171234567', 'abcdefghijk']) expect((await submit({ phone })).status).toBe(400);
     expect((await submit({ phone: '০১৭১২৩৪৫৬৭৮' })).status).toBe(201);
     expect((await submit({ phone: '+8801812345678' })).status).toBe(201);
+  });
+
+  // owner decision 2 Oct 2026 (adr/0009): the citizen's form always carries name, phone, date of birth and NID; no anonymous option
+  describe('identity is mandatory: name, phone, date of birth and NID (adr/0009)', () => {
+    it('each missing or blank field gives 400 with a Bangla field error, and nothing is stored', async () => {
+      for (const k of ['name', 'phone', 'dob', 'nid']) {
+        for (const v of [undefined, '', '   ']) {
+          const r = await submit({ [k]: v });
+          expect(r.status, `${k}=${JSON.stringify(v)}`).toBe(400);
+          expect(r.body.error.code).toBe('VALIDATION_FAILED');
+          expect(r.body.error.details.fieldErrors[k]?.[0], k).toMatch(/[\u0980-\u09FF]/);
+        }
+      }
+      const none = await api(env).post('/api/v1/public/complaints').set('Host', t.host).send({ category: 'রাস্তা-ঘাট ও সেতু', upazila: 'চরকান্দি', union: 'কাশবন', description: 'ক'.repeat(30), turnstileToken: 'ok' });
+      expect(Object.keys(none.body.error.details.fieldErrors).sort()).toEqual(['dob', 'name', 'nid', 'phone']);
+      expect(await inT(() => Complaint.countDocuments({}))).toBe(0);
+    });
+
+    it('rejects an impossible, future or too-old date of birth', async () => {
+      for (const dob of ['2001-02-29', '1985-13-01', '1899-12-31', '85-03-14', '1985/03/14', 'আজ', '2999-01-01']) expect((await submit({ dob })).status, dob).toBe(400);
+      expect((await submit({ dob: '2999-01-01' })).body.error.details.fieldErrors.dob[0]).toMatch(/পরে হতে পারে না/);
+      const today = new Date(Date.now() + 6 * 3600_000).toISOString().slice(0, 10); // the schema judges "future" on the real Dhaka day
+      expect((await submit({ dob: today })).status).toBe(201); // born today is odd, but not in the future
+    });
+
+    it('accepts an NID of 10, 13 or 17 digits only, ignoring spaces and dashes', async () => {
+      for (const nid of ['123456789', '12345678901', '123456789012', '12345678901234', '1234567890123456', '123456789012345678', '12345X7890', '+1234567890']) expect((await submit({ nid })).status, nid).toBe(400);
+      for (const nid of ['1234567890', '1234567890123', '12345678901234567', '1234 567 890', '1234-5678-90']) expect((await submit({ nid })).status, nid).toBe(201);
+    });
+
+    it('refuses the old anonymous switch, true or false, and stores nothing', async () => {
+      expect((await submit({ anonymous: true })).status).toBe(400);
+      expect((await submit({ anonymous: true, name: '', phone: '', dob: '', nid: '' })).status).toBe(400);
+      expect((await submit({ anonymous: false })).status).toBe(400);
+      expect(await inT(() => Complaint.countDocuments({}))).toBe(0);
+    });
+
+    it('Bangla digits, spaces and dashes are normalised before encryption', async () => {
+      const { trackingId } = (await submit({ dob: '১৯৮৫-০৩-১৪', nid: '১৯৯০-১২৩ ৪৫৬' })).body;
+      const id = await idOf(trackingId);
+      await patch(t.owner, id, { assignedTo: t.officerId });
+      expect((await pii(t.officer, id)).body).toMatchObject({ dob: '1985-03-14', nid: '1990123456' });
+    });
   });
 
   it('validates description length, category, unknown keys and NoSQL operator probes', async () => {
@@ -117,6 +163,29 @@ describe('identity is encrypted at rest (ADR-0004)', () => {
     expect(raw!.phoneHmac).toMatch(/^[a-f0-9]{64}$/);
   });
 
+  it('date of birth and NID sit in the same encrypted envelope as name and phone: no plaintext anywhere in the raw document (adr/0009)', async () => {
+    const { body: r } = await submit({ dob: '1985-03-14', nid: '19901234567890123' });
+    const raw = await mongoose.connection.db!.collection('complaints').findOne({ trackingId: r.trackingId });
+    const dump = JSON.stringify(raw);
+    for (const plain of ['1985-03-14', '19850314', '14-03-1985', '19901234567890123', '1990123456']) expect(dump).not.toContain(plain);
+    expect(Object.keys(raw!.pii).sort()).toEqual(['dobEnc', 'keyVersion', 'nameEnc', 'nidEnc', 'phoneEnc']);
+    for (const f of ['nameEnc', 'phoneEnc', 'dobEnc', 'nidEnc']) expect(raw!.pii[f], f).toMatch(/^v1:1:/);
+    expect(Object.keys(raw!).filter((k) => /dob|nid/i.test(k))).toEqual([]); // no plaintext (or hashed) side field next to pii
+    expect(await inT(() => Complaint.findOne({ trackingId: r.trackingId }).lean())).not.toHaveProperty('pii.dobEnc'); // select:false: never loaded by accident
+  });
+
+  it('DOB and NID ciphertext is bound to its record and field: swapping breaks decryption', async () => {
+    const a = (await submit({ phone: '01711111111', nid: '1111111111' })).body.trackingId, b = (await submit({ phone: '01722222222', nid: '2222222222' })).body.trackingId;
+    const coll = mongoose.connection.db!.collection('complaints');
+    const A = await coll.findOne({ trackingId: a });
+    const idB = await idOf(b);
+    await patch(t.owner, idB, { assignedTo: t.officerId });
+    await coll.updateOne({ trackingId: b }, { $set: { 'pii.nidEnc': A!.pii.nidEnc } });
+    expect((await pii(t.officer, idB)).status).toBe(500); // another record's NID never comes out
+    await coll.updateOne({ trackingId: b }, { $set: { 'pii.nidEnc': (await coll.findOne({ trackingId: b }))!.pii.dobEnc } });
+    expect((await pii(t.officer, idB)).status).toBe(500); // nor the DOB read as an NID
+  });
+
   it('encrypted values are bound to their record: swapping ciphertext between two complaints breaks decryption', async () => {
     const a = (await submit({ phone: '01711111111' })).body.trackingId, b = (await submit({ phone: '01722222222' })).body.trackingId;
     const A = await inT(() => Complaint.findOne({ trackingId: a }).select('+pii.phoneEnc').lean());
@@ -134,19 +203,58 @@ describe('identity is encrypted at rest (ADR-0004)', () => {
     expect(logs).toMatch(/phoneHmac/);
     expect(JSON.stringify(await AuditLog.find().lean())).not.toContain('01712345678');
   });
+
+  it('DOB and NID never reach audit entries, the event history, SMS records, the CSV export or any read response (adr/0009)', async () => {
+    const { id, trackingId } = await assigned({ dob: '1985-03-14', nid: '19901234567890123' });
+    expect((await pii(t.officer, id)).status).toBe(200); // the reveal itself is logged, with the purpose only
+    await patch(t.owner, id, { status: 'verify' });
+    const dumps = [
+      JSON.stringify(await AuditLog.find().lean()), JSON.stringify(await inT(() => ComplaintEvent.find().lean())), JSON.stringify(await SmsLog.find().lean()),
+      (await api(env).get(admin(t, '/complaints/export.csv')).set(bearer(t.owner))).text,
+      JSON.stringify([(await list(t.owner)).body, (await get(t.owner, id)).body, (await list(t.officer)).body, (await get(t.officer, id)).body]),
+      JSON.stringify((await api(env).get(`/api/v1/public/complaints/${trackingId}`).set('Host', t.host)).body),
+      JSON.stringify((await patch(t.owner, id, { note: 'ভেতরের নোট' })).body),
+    ];
+    for (const d of dumps) { expect(d).not.toContain('1985-03-14'); expect(d).not.toContain('19901234567890123'); expect(d).not.toMatch(/dobEnc|nidEnc/); }
+    expect(env.sms.outbox.map((m) => m.text).join('\n')).not.toMatch(/1985|19901234567890123/);
+  });
 });
 
 describe('who can see a complainant (MIS-02): only the assigned officer', () => {
-  it('the assigned officer sees name + phone, with a purpose, and the view is logged', async () => {
+  it('the assigned officer sees name, phone, date of birth and NID, with a purpose, and the view is logged', async () => {
     const { id } = await assigned();
     const r = await pii(t.officer, id, 'দ্রুত সমাধানের জন্য ফোন করা');
     expect(r.status).toBe(200);
-    expect(r.body).toEqual({ name: 'আব্দুর রহিম', phone: '01712345678' });
+    expect(r.body).toEqual({ name: 'আব্দুর রহিম', phone: '01712345678', dob: '1985-03-14', nid: '1990123456' });
     const ev = await inT(() => ComplaintEvent.find({ complaintId: id, type: 'pii_view' }).lean());
     expect(ev).toHaveLength(1);
     expect(ev[0]!.by?.name).toBe('কর্মকর্তা');
     const a = await AuditLog.findOne({ action: 'complaint.pii_view' }).lean();
     expect(a?.reason).toBe('দ্রুত সমাধানের জন্য ফোন করা');
+  });
+
+  it('only the assigned officer gets DOB and NID: everyone else is refused and the fields are never in the detail', async () => {
+    const { id } = await assigned();
+    for (const tok of [t.owner, t.editor]) expect((await pii(tok, id)).status).toBe(403);
+    const sup = await makeSupport(env);
+    const act = await api(env).post(`/api/v1/super/tenants/${t.id}/act-as`).set(bearer(sup)).send({ reason: 'গ্রাহক সহায়তার অনুরোধ' });
+    expect((await pii(act.body.actAsToken, id)).status).toBe(403);
+    expect(JSON.stringify((await get(t.owner, id)).body)).not.toMatch(/1990123456|1985-03-14|"dob"|"nid"/);
+    const unassigned = await idOf((await submit()).body.trackingId);
+    expect((await pii(t.officer, unassigned)).status).toBe(403); // an officer in scope, but not the assignee
+  });
+
+  it('complaints from before adr/0009 (no DOB/NID stored) still load; the reveal returns empty values the admin prints as "—"', async () => {
+    const { id } = await assigned();
+    await mongoose.connection.db!.collection('complaints').updateOne({ _id: new mongoose.Types.ObjectId(id) }, { $unset: { 'pii.dobEnc': '', 'pii.nidEnc': '' } });
+    expect((await get(t.officer, id)).status).toBe(200);
+    const r = await pii(t.officer, id);
+    expect(r.status).toBe(200);
+    expect(r.body).toEqual({ name: 'আব্দুর রহিম', phone: '01712345678', dob: '', nid: '' });
+    // a staff-entered complaint never had them
+    const staffId = await idOf((await staffSubmit()).body.trackingId);
+    await patch(t.owner, staffId, { assignedTo: t.officerId });
+    expect((await pii(t.officer, staffId)).body).toEqual({ name: 'আব্দুর রহিম', phone: '01712345678', dob: '', nid: '' });
   });
 
   it('a purpose is mandatory', async () => {
@@ -194,7 +302,7 @@ describe('who can see a complainant (MIS-02): only the assigned officer', () => 
   });
 
   it('nobody can see an anonymous complaint (there is nothing to see)', async () => {
-    const { trackingId } = (await submit({ anonymous: true, name: '', phone: '' })).body;
+    const { trackingId } = (await staffSubmit({ anonymous: true, name: '', phone: '' })).body;
     const id = await idOf(trackingId);
     await patch(t.owner, id, { assignedTo: t.officerId });
     expect((await pii(t.officer, id)).status).toBe(403);
@@ -208,6 +316,7 @@ describe('who can see a complainant (MIS-02): only the assigned officer', () => 
       expect(txt).not.toContain('01712345678');
       expect(txt).not.toContain('phoneEnc');
       expect(txt).not.toContain('phoneHmac');
+      expect(txt).not.toMatch(/1985-03-14|1990123456|dobEnc|nidEnc/);
     }
     const track = JSON.stringify((await api(env).get(`/api/v1/public/complaints/NDP3-${new Date().getUTCFullYear()}-00001`).set('Host', t.host)).body);
     expect(track).not.toContain('আব্দুর রহিম');
@@ -284,7 +393,7 @@ describe('status machine, SLA and notifications', () => {
     await patch(t.owner, id, { status: 'verify' });
     expect(env.sms.outbox.length).toBe(before + 1);
     expect(env.sms.outbox.at(-1)!.to).toBe('+8801712345678');
-    const anon = await idOf((await submit({ anonymous: true, name: '', phone: '' })).body.trackingId);
+    const anon = await idOf((await staffSubmit({ anonymous: true, name: '', phone: '' })).body.trackingId);
     const n = env.sms.outbox.length;
     await patch(t.owner, anon, { status: 'verify' });
     expect(env.sms.outbox.length).toBe(n);
@@ -386,7 +495,7 @@ describe('OTP (ADR-0007): optional by default, mandatory when the MP turns it on
     const r = await submit();
     expect(r.status).toBe(422);
     expect(r.body.error.code).toBe('OTP_REQUIRED');
-    expect((await submit({ anonymous: true, name: '', phone: '' })).status).toBe(201); // anonymous is always allowed
+    expect((await staffSubmit()).status).toBe(201); // an officer logging a hearing/phone complaint is not asked for an OTP
   });
 
   it('send -> verify -> ticket -> complaint works, and the ticket is single use', async () => {
@@ -430,11 +539,13 @@ describe('OTP (ADR-0007): optional by default, mandatory when the MP turns it on
 
 describe('staff-entered complaints, CSV export, retention', () => {
   it('officers can log a hearing/phone complaint; it still gets a tracking id and SMS', async () => {
-    const r = await api(env).post(admin(t, '/complaints')).set(bearer(t.officer)).send({ ...body(), channel: 'hearing' });
+    const r = await staffSubmit();
     expect(r.status).toBe(201);
     expect((await inT(() => Complaint.findOne({ trackingId: r.body.trackingId })))!.channel).toBe('hearing');
-    expect((await api(env).post(admin(t, '/complaints')).set(bearer(t.officer)).send({ ...body(), channel: 'web' })).status).toBe(400);
-    expect((await api(env).post(admin(t, '/complaints')).set(bearer(t.editor)).send({ ...body(), channel: 'hearing' })).status).toBe(403);
+    expect((await staffSubmit({ channel: 'web' })).status).toBe(400);
+    expect((await staffSubmit({}, t.editor)).status).toBe(403);
+    // the staff form does not take DOB/NID (adr/0009 only changes the citizen's form)
+    expect((await staffSubmit({ dob: '1985-03-14', nid: '1990123456' })).status).toBe(400);
   });
 
   it('CSV export has no identity columns, is owner-only, is audited, and neutralises spreadsheet formulas', async () => {
@@ -606,10 +717,10 @@ describe('complaint attachments: decoded, checked and rebuilt on the server', ()
   });
 
   // BUG-2026-032: retention removes voice and files too, anonymous or not
-  it('retention job removes voice notes and attachments, including on anonymous complaints (BUG-2026-032)', async () => {
+  it('retention job removes voice notes and attachments, including on anonymous (staff-entered) complaints (BUG-2026-032)', async () => {
     const att = { voiceNote: voice(), files: [file('application/pdf', b64url('application/pdf', pdf), 'a.pdf', pdf.length)] };
     const named = await assigned(att);
-    const anon = (await submit({ ...att, anonymous: true, name: '', phone: '' })).body.trackingId;
+    const anon = (await staffSubmit({ ...att, anonymous: true, name: '', phone: '' })).body.trackingId;
     const anonId = await idOf(anon);
     for (const id of [named.id, anonId]) for (const s of ['verify', 'progress', 'solved', 'closed']) await patch(t.owner, id, { status: s });
     env.clock.now += 13 * 30 * 86400_000;

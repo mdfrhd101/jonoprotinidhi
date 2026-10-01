@@ -25,8 +25,11 @@ const file = (mimeType: string, data: string, name = 'proof.bin', size = 100) =>
 const voice = (audioData: string, durationSec = 12) => ({ audioData, durationSec });
 const body = (o: Record<string, unknown> = {}) => ({
   category: 'রাস্তা-ঘাট ও সেতু', upazila: 'চরকান্দি', union: 'কাশবন', place: 'বাজারের সামনে', description: 'বাজারের সামনের রাস্তায় বড় গর্ত হয়েছে, রিকশা উল্টে যাচ্ছে।',
-  anonymous: false, name: 'আব্দুর রহিম', phone: '01712345678', turnstileToken: 'ok', ...o,
+  name: 'আব্দুর রহিম', phone: '01712345678', dob: '1985-03-14', nid: '1990123456', turnstileToken: 'ok', ...o,
 });
+// the only anonymous records left: an officer logging a hearing/phone complaint (staff form: no DOB/NID, anonymous allowed)
+const { dob: _dob, nid: _nid, ...staffBase } = body();
+const staffSubmit = (o: Record<string, unknown> = {}) => api(env).post(admin(t, '/complaints')).set(bearer(t.officer)).send({ ...staffBase, channel: 'hearing', ...o });
 const submit = (o: Record<string, unknown> = {}, host = t.host) => api(env).post('/api/v1/public/complaints').set('Host', host).send(body(o));
 const raw = (trackingId: string) => mongoose.connection.db!.collection('complaints').findOne({ trackingId });
 const idOf = async (trackingId: string) => String((await raw(trackingId))!._id);
@@ -327,14 +330,14 @@ describe('QA BUG-2026-029: list / export / patch never carry payloads', () => {
 
 /* ============================== 030 ============================== */
 describe('QA BUG-2026-030: voice-only complaint', () => {
-  it('empty / whitespace description with voice -> 201 and stored ""; without voice -> 400; anonymous voice-only works (BUG-2026-030)', async () => {
+  it('empty / whitespace description with voice -> 201 and stored ""; without voice -> 400; a staff-entered anonymous voice-only record works (BUG-2026-030)', async () => {
     const v = voice(b64url('audio/webm', webm));
     for (const d of ['', '   ', '\n\t']) {
       const r = await submit({ description: d, voiceNote: v });
       expect([d, r.status]).toEqual([d, 201]);
       expect((await raw(r.body.trackingId))!.description).toBe('');
     }
-    expect((await submit({ description: '', voiceNote: v, anonymous: true, name: '', phone: '' })).status).toBe(201);
+    expect((await staffSubmit({ description: '', voiceNote: v, anonymous: true, name: '', phone: '' })).status).toBe(201);
     expect((await submit({ description: '' })).status).toBe(400);
     expect((await submit({ description: 'ছোট' })).status).toBe(400);
     const r = await submit({ description: '', voiceNote: v });
@@ -391,7 +394,7 @@ describe('QA BUG-2026-032: retention purges attachments, but only the expired on
   const close = async (id: string) => { for (const s of ['verify', 'progress', 'solved', 'closed']) expect((await patch(t.owner, id, { status: s })).status).toBe(200); };
   it('expired complaints lose voice/files; unexpired, never-closed and other-tenant complaints keep theirs (BUG-2026-032)', async () => {
     const expired = (await submit(att())).body.trackingId;
-    const expiredAnon = (await submit({ ...att(), anonymous: true, name: '', phone: '' })).body.trackingId;
+    const expiredAnon = (await staffSubmit({ ...att(), anonymous: true, name: '', phone: '' })).body.trackingId;
     await close(await idOf(expired)); await close(await idOf(expiredAnon));
     env.clock.now += 13 * 30 * 86400_000; // past the retention of the first two
     const lateClosed = (await submit(att())).body.trackingId; // closed AFTER the clock jump: not expired

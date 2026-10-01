@@ -79,7 +79,7 @@ Requirement IDs refer to `docs/01-PRD.md`.
 |---|---|---|---|---|
 | T4.1 | Envelope encryption lib (master key → tenant DEK → AES-256-GCM, AAD), key rotation script | T1.2 | CMP-09, ADR-0004 | Tamper test fails decryption; rotation re-wraps DEKs |
 | T4.2 | Complaint model, counters, submit endpoint, Turnstile, rate limits (IP + phone HMAC), attachments to private bucket | T4.1, T2.1 | CMP-01..05, MIS-03 | 6th submit/min from same IP → 429 |
-| T4.3 | OTP send/verify (Redis, hashed code, attempts, cooldown), per-tenant mandatory flag | T4.2 | CMP-04 | Anonymous path skips OTP |
+| T4.3 | OTP send/verify (Redis, hashed code, attempts, cooldown), per-tenant mandatory flag | T4.2 | CMP-04 | No anonymous path (ADR-0009): a mandatory OTP applies to every public complaint |
 | T4.4 | Public tracking endpoint + page (uniform responses) | T4.2 | CMP-06, MIS-05 | Timing difference known/unknown < 20 ms p50 |
 | T4.5 | Inbox API + UI: filters, scope, assign, status machine, notes, events timeline | T4.2 | CMP-07, 08 | Officer of Charkandi never sees Notunhat items (test) |
 | T4.6 | SMS provider adapter (first BD gateway), templates, Unicode segment count, delivery webhook, daily cap | T0.3 | NTF-01, 02 | Switching provider = env change |

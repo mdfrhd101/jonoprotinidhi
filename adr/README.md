@@ -13,3 +13,4 @@ supersede with a new ADR instead.
 | 0006 | Subdomains + optional custom domains via Cloudflare for SaaS |
 | 0007 | Complaint OTP optional by default, mandatory per tenant |
 | 0008 | No invented content under real politicians; consent before any real site |
+| 0009 | No anonymous complaints; name, mobile, date of birth and NID required (amends 0004, 0007) |

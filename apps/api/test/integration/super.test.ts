@@ -182,13 +182,13 @@ describe('domains (FR-SA-04, ADR-0006)', () => {
 describe('overview and audit', () => {
   it('dashboard and list show counts only and flag stale sites (no complaint text or identities)', async () => {
     const t = await makeTenant(env, sa, 'ndp3');
-    await api(env).post('/api/v1/public/complaints').set('Host', t.host).send({ category: 'বিদ্যুৎ', upazila: 'চরকান্দি', union: 'কাশবন', description: 'গোপন বিবরণ যা সুপার অ্যাডমিন দেখবে না', phone: '01712345678', name: 'গোপন নাম', turnstileToken: 'ok' });
+    await api(env).post('/api/v1/public/complaints').set('Host', t.host).send({ category: 'বিদ্যুৎ', upazila: 'চরকান্দি', union: 'কাশবন', description: 'গোপন বিবরণ যা সুপার অ্যাডমিন দেখবে না', phone: '01712345678', name: 'গোপন নাম', dob: '1985-03-14', nid: '1990123456', turnstileToken: 'ok' });
     const list = await api(env).get('/api/v1/super/tenants').set(bearer(sa));
     expect(list.body[0]).toMatchObject({ slug: 'ndp3', status: 'live', complaintsLast30d: 1, stale: true, daysSinceLastPost: null });
     const dash = await api(env).get('/api/v1/super/dashboard').set(bearer(sa));
     expect(dash.body).toMatchObject({ tenants: 1, live: 1, complaintsLast30d: 1 });
     const txt = JSON.stringify([list.body, dash.body, (await api(env).get(`/api/v1/super/tenants/${t.id}`).set(bearer(sa))).body]);
-    expect(txt).not.toMatch(/গোপন|01712345678|phoneEnc|wrapped|dek/);
+    expect(txt).not.toMatch(/গোপন|01712345678|1990123456|1985-03-14|phoneEnc|nidEnc|dobEnc|wrapped|dek/);
   });
 
   it('the global audit log filters by tenant, actor type and action; only platform staff can read it', async () => {

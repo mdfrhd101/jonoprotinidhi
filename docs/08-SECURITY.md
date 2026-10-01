@@ -37,7 +37,7 @@ form must not ask for NID.
 |---|---|
 | Purpose | Handle the citizen's complaint and inform them of progress. **Not** campaigning, not voter profiling |
 | Legal basis / consent | Complaint form states purpose; separate unticked opt-in required for any other contact (not built in v1) |
-| Minimisation | Name optional; anonymous allowed; no NID; phone only when SMS updates wanted |
+| Minimisation | Owner decision 2 Oct 2026 (ADR-0009): the citizen form requires name, mobile, date of birth and NID; no anonymous option. All four are encrypted in the `pii` envelope and shown only to the assigned officer. Staff-entered hearing/phone records may still be anonymous |
 | Access | Assigned officer only for PII; owner/editor/super admin/support never |
 | Retention (configurable per tenant, platform defaults) | PII purged **12 months after closure** (record anonymised, stats kept); attachments deleted 12 months after closure; audit logs 3 years; SMS logs (no numbers) 2 years; staff sessions 90 days |
 | Data subject requests | Citizen can request deletion via tracking ID + OTP to the same phone → PII purge workflow (manual in v1, audited) |

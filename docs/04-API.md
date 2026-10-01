@@ -34,7 +34,7 @@
 | GET | `/public/complaint-form` | categories, upazilas → unions, `otpRequired`, Turnstile site key | FR-CMP-01 |
 | POST | `/public/otp/send` | `{ phone, turnstileToken }` → 202 always (no enumeration) | FR-CMP-04 |
 | POST | `/public/otp/verify` | `{ phone, code }` → `{ otpTicket }` (10 min, single use) | FR-CMP-04 |
-| POST | `/public/complaints` | `{ category, upazila, union, place?, description, voiceNote?, files?, anonymous, name?, phone?, otpTicket?, turnstileToken }` → `{ trackingId }`. The only route with a large body (13 MB, parsed after host resolution and the pre-parse `complaintBody` tier, 10/min per IP; every other route 1 MB). Attachments are base64 data URLs: files + voice ≤ 12 MB together, voice ≤ 180 s; the server checks magic bytes, re-encodes photos to WebP ≤ 1600 px (EXIF dropped) and rebuilds the data URLs; bad data → 422 `BAD_FILE` / `BAD_IMAGE` / `BAD_VOICE` (BUG-2026-027/028/031) | FR-CMP-01..05 |
+| POST | `/public/complaints` | `{ category, upazila, union, place?, description, voiceNote?, files?, name, phone, dob, nid, otpTicket?, turnstileToken }` → `{ trackingId }`. **name (2–80), phone, dob (`YYYY-MM-DD`, real date, ≥ 1900, not in the future) and nid (10, 13 or 17 digits, spaces/dashes ignored) are all required, there is no anonymous option** (ADR-0009): a missing or bad field → 400 `VALIDATION_FAILED` with a Bangla message per field in `details.fieldErrors`; an `anonymous` key is refused (400). dob and nid are stored encrypted with name and phone. The only route with a large body (13 MB, parsed after host resolution and the pre-parse `complaintBody` tier, 10/min per IP; every other route 1 MB). Attachments are base64 data URLs: files + voice ≤ 12 MB together, voice ≤ 180 s; the server checks magic bytes, re-encodes photos to WebP ≤ 1600 px (EXIF dropped) and rebuilds the data URLs; bad data → 422 `BAD_FILE` / `BAD_IMAGE` / `BAD_VOICE` (BUG-2026-027/028/031) | FR-CMP-01..05 |
 | GET | `/public/complaints/:trackingId` | `{ category, area, status, publicSteps }` — no PII/notes | FR-CMP-06 |
 | POST | `/public/feedback/:token` | `{ rating, text }` single-use token from SMS | FR-CMP-12 |
 | POST | `/public/analytics/hit` | `{ path }` beacon; no cookies | FR-PUB-13 |
@@ -78,7 +78,7 @@ Middleware chain: `authenticate → loadMembership(tenantId) | actAs → require
 | PATCH | `/complaints/:id` | `complaints.manage` (owner) or assigned officer: `{ status?, assignedTo?, version, note? }` (a note alone goes to `/notes`) | FR-CMP-08 |
 | POST | `/complaints/:id/notes` | `complaints.note` | FR-CMP-08 |
 | POST | `/complaints/:id/sms` | assigned officer or owner · `{ templateKey, vars }` (free text limited to 300 chars) | FR-CMP-08 |
-| POST | `/complaints/:id/pii-view` | **assigned officer only**, not via act-as, `pii` rate tier · body `{ purpose }` → `{ name, phone }` + audit `complaint.pii_view` | FR-CMP-09 |
+| POST | `/complaints/:id/pii-view` | **assigned officer only**, not via act-as, `pii` rate tier · body `{ purpose }` → `{ name, phone, dob, nid }` (`dob`/`nid` are `''` on older and staff-entered complaints) + audit `complaint.pii_view` | FR-CMP-09 |
 | POST | `/complaints` | `complaints.create_staff` (hearing/phone channel) | FR-CMP-14 |
 | GET | `/complaints/export.csv` | `complaints.export` — no PII columns, audited | FR-CMP-10 |
 | GET/POST/DELETE | `/team`, `/team/invites`, `/team/:membershipId` | `team.manage` | FR-CMS-11 |

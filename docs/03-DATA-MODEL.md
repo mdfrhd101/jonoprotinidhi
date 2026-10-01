@@ -143,8 +143,8 @@ Index: `{ tenantId: 1, createdAt: -1 }`.
 | `voiceNote` | `{ audioData, durationSec }?` | [Confidential] | in-browser recording as a data URL rebuilt by the server (audio webm, ogg, mp4, mpeg or wav; magic bytes checked), max 180 s / 4 MB; removed by the retention job |
 | `files` | `[{ name, mimeType, size, data }]` | [Confidential] | up to 5 attachments as data URLs; photos re-encoded to WebP ≤ 1600 px (EXIF dropped), PDFs checked for `%PDF-`; files + voice ≤ 12 MB of base64 so the document stays far below 16 MB; never in list/export responses; removed by the retention job |
 | `channel` | `'web'\|'hearing'\|'phone'` | | |
-| `anonymous` | boolean | | |
-| `pii` | `{ nameEnc?, phoneEnc?, keyVersion }` | **[Restricted]** | AES-256-GCM with tenant DEK; absent when anonymous |
+| `anonymous` | boolean | | always `false` for public-form complaints since ADR-0009; `true` only on older records and on hearing/phone entries by staff |
+| `pii` | `{ nameEnc?, phoneEnc?, dobEnc?, nidEnc?, keyVersion }` | **[Restricted]** | AES-256-GCM with tenant DEK, AAD = tenant, record and field. `dobEnc` (`YYYY-MM-DD`) and `nidEnc` (digits only, 10/13/17) are required on the public form (ADR-0009) but absent on older and staff-entered records; the whole object is absent when anonymous. Plaintext DOB/NID are never stored, hashed or logged |
 | `phoneHmac` | string? | [Confidential] | HMAC-SHA256(phone, platform pepper) for rate limits / dedupe; not reversible |
 | `otpVerified` | boolean | | |
 | `status` | `'new'\|'verify'\|'progress'\|'solved'\|'closed'\|'spam'` | | |

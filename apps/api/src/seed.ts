@@ -107,8 +107,9 @@ async function main() {
   let n = 0;
   await runInTenant(tid, async () => {
     for (const [upz, union, description, category] of samples) {
-      const anon = n % 5 === 4;
-      const r = await s.complaints.submit(tenant, { category, upazila: UPZ[upz], union, description, anonymous: anon, name: anon ? '' : `নাগরিক ${n + 1}`, phone: anon ? '' : `0171000${String(1000 + n)}`, turnstileToken: 'seed' }, { ip: `10.0.0.${n + 1}` });
+      // fictional identities: every public complaint carries name, phone, date of birth and NID (adr/0009)
+      const who = { name: `নাগরিক ${n + 1}`, phone: `0171000${String(1000 + n)}`, dob: `${1975 + n * 2}-0${(n % 9) + 1}-1${n}`, nid: String(1990000001 + n) };
+      const r = await s.complaints.submit(tenant, { category, upazila: UPZ[upz], union, description, ...who, turnstileToken: 'seed' }, { ip: `10.0.0.${n + 1}` });
       ids.push(r.trackingId); n++;
     }
     const mk = { userId: String(owner._id), name: owner.name, role: 'owner', perms: ['complaints.manage', 'complaints.view_all', 'complaints.view_scoped'] as never, scope: [] as string[], viaSuperAdmin: false };

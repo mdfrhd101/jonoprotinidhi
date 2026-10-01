@@ -1,6 +1,6 @@
 # ADR-0004: Field-level encryption and need-to-know for complainant PII
 
-- Status: accepted
+- Status: accepted (2 Oct 2026: date of birth and NID are now in the same envelope, see ADR-0009)
 - Date: 2026-09-30
 - Deciders: product owner
 
@@ -20,7 +20,7 @@ not used for promotion without separate consent.
 
 ## Alternatives considered
 - Database-at-rest encryption only: does not stop authorised staff or super admin from reading.
-- Never store phone: makes SMS updates impossible; anonymous mode already covers that need.
+- Never store phone: makes SMS updates impossible. (Anonymous mode covered that need until ADR-0009 removed it.)
 
 ## Consequences
 + Strong answer to the harvesting risk and to regulator questions.

@@ -24,7 +24,7 @@ async function complaint(t: Tenant, over: Record<string, unknown>) {
   const now = env.clock.now;
   await Complaint.collection.insertOne({
     tenantId: new Types.ObjectId(t.id), trackingId: `T-${Math.random().toString(36).slice(2, 9)}`, category: 'বিদ্যুৎ', upazila: 'চরকান্দি', union: 'কাশবন',
-    description: SECRET_TEXT, pii: { nameEnc: 'ENC:' + SECRET_NAME, phoneEnc: 'ENC:01712345678', keyVersion: 1 }, phoneHmac: 'HMAC-SECRET-VALUE',
+    description: SECRET_TEXT, pii: { nameEnc: 'ENC:' + SECRET_NAME, phoneEnc: 'ENC:01712345678', dobEnc: 'ENC:1985-03-14', nidEnc: 'ENC:1990123456', keyVersion: 1 }, phoneHmac: 'HMAC-SECRET-VALUE',
     status: 'new', createdAt: new Date(now - DAY), updatedAt: new Date(now), slaDueAt: new Date(now + 6 * DAY), ...over,
   });
 }
@@ -106,11 +106,11 @@ describe('GET /super/dashboard (FR-SA-01)', () => {
   it('never contains complaint text, complainant identity, hashes or key material; tenant users are refused', async () => {
     const t = await makeTenant(env, sa, 'ndp3');
     await complaint(t, {});
-    await api(env).post('/api/v1/public/complaints').set('Host', t.host).send({ category: 'বিদ্যুৎ', upazila: 'চরকান্দি', union: 'কাশবন', description: `${SECRET_TEXT} আরও বিস্তারিত লেখা`, phone: '01712345678', name: SECRET_NAME, turnstileToken: 'ok' });
+    await api(env).post('/api/v1/public/complaints').set('Host', t.host).send({ category: 'বিদ্যুৎ', upazila: 'চরকান্দি', union: 'কাশবন', description: `${SECRET_TEXT} আরও বিস্তারিত লেখা`, phone: '01712345678', name: SECRET_NAME, dob: '1985-03-14', nid: '1990123456', turnstileToken: 'ok' });
     const bodies = await Promise.all(['/dashboard', '/tenants', `/tenants/${t.id}`, '/domains', '/audit?limit=100'].map((p) => get(p)));
     for (const b of bodies) expect(b.status).toBe(200);
     const txt = JSON.stringify(bodies.map((b) => b.body));
-    expect(txt).not.toMatch(/গোপন|01712345678|8801712345678|phoneEnc|nameEnc|phoneHmac|HMAC-SECRET|wrapped|"dek"|userAgent/);
+    expect(txt).not.toMatch(/গোপন|01712345678|8801712345678|1990123456|1985-03-14|phoneEnc|nameEnc|dobEnc|nidEnc|phoneHmac|HMAC-SECRET|wrapped|"dek"|userAgent/);
     for (const tok of [t.owner, t.editor, t.officer]) {
       for (const p of ['/dashboard', '/domains', '/slug-available?slug=abc']) expect((await get(p, tok)).status).toBe(403);
     }
@@ -176,7 +176,7 @@ describe('slug check and domains list', () => {
 describe('GET /super/audit (FR-SA-06)', () => {
   it('BUG-2026-018: never returns a citizen IP / user agent or an identity-view reason; support never sees IPs', async () => {
     const t = await makeTenant(env, sa, 'ndp3');
-    await api(env).post('/api/v1/public/complaints').set('Host', t.host).set('User-Agent', 'CitizenBrowser/1.0').send({ category: 'বিদ্যুৎ', upazila: 'চরকান্দি', union: 'কাশবন', description: 'রাস্তার বাতি দুই সপ্তাহ ধরে নষ্ট হয়ে আছে', phone: '01712345678', name: 'নাগরিক', turnstileToken: 'ok' });
+    await api(env).post('/api/v1/public/complaints').set('Host', t.host).set('User-Agent', 'CitizenBrowser/1.0').send({ category: 'বিদ্যুৎ', upazila: 'চরকান্দি', union: 'কাশবন', description: 'রাস্তার বাতি দুই সপ্তাহ ধরে নষ্ট হয়ে আছে', phone: '01712345678', name: 'নাগরিক', dob: '1985-03-14', nid: '1990123456', turnstileToken: 'ok' });
     const stored = await AuditLog.findOne({ action: 'complaint.create' }).lean();
     expect(stored!.ip ?? null).toBeNull(); // BUG-2026-019: a citizen's IP is not even stored any more (defence in depth: the API also strips it)
     expect(stored!.userAgent ?? null).toBeNull();

@@ -1,5 +1,5 @@
 # Jonoprotinidhi (জনপ্রতিনিধি) — Portfolio and public-engagement platform for MPs and ministers
-### Handoff document · last updated: 2 October 2026 (public site also published on GitHub Pages as a static export, `docs/11`; before that: pre-demo hardening BUG-2026-026..035)
+### Handoff document · last updated: 2 October 2026 (citizen complaint form now requires name, mobile, date of birth and NID, no anonymous option, `adr/0009`; before that: public site on GitHub Pages as a static export, `docs/11`, and pre-demo hardening BUG-2026-026..035)
 
 > To continue this work on another PC or with another Claude, read this whole file first.
 > Tell Claude: **"Read HANDOFF.md and continue from the 'Next steps' section. Talk to me in Bangla."**
@@ -74,17 +74,17 @@ Citizen fills in the form → (optional OTP) → tracking ID (e.g. NDP3-2026-012
   → after resolution the citizen can give feedback / a rating
 ```
 - **Form fields:** topic (editable in the CMS), upazila → union/municipality (cascading; wards for urban seats),
-  village/area, description (at least 20 characters and up to 10,000 characters if no voice record; optional if voice note provided), name (optional),
-  mobile (`01[3-9]` + 8 digits, Bangla digits allowed).
+  village/area, description (at least 20 characters and up to 10,000 characters if no voice record; optional if voice note provided), and **four required identity fields** (owner decision, 2 Oct 2026, `adr/0009`):
+  name (2–80 characters), mobile (`01[3-9]` + 8 digits, Bangla digits allowed), date of birth (`YYYY-MM-DD`, a real date, not in the future, year 1900 or later) and NID number (digits only after dropping spaces and dashes; 10, 13 or 17 digits).
 - **Direct Voice Recording & In-Browser Audio Playback:** WhatsApp-style microphone voice recorder (`MediaRecorder` + Web Audio API) with a green action button, a live pulsing red indicator, and a live timer (`🔴 ০০:১৫ / ৩:০০`), alongside re-record and delete controls. Plays back recorded audio immediately via native in-browser HTML5 `<audio>` player using object URLs (`blob:`) so citizens can clearly listen and verify before submitting. Spoken audio is recorded purely as audio; speech-to-text auto-transcription was removed to keep voice and text separate.
 - **Flexible Submission (Voice, Text, or Both):** Citizen can submit: (1) Voice recording only (written description optional), (2) Written description only (>= 20 characters, voice optional), or (3) Both voice recording and written description together.
 - **File Uploads (Photos & Documents):** Citizen can upload up to 5 files (JPG, PNG, WEBP, or PDF). Photos are shrunk in the browser to 1600 px JPEG before upload; PDFs up to 5 MB. Files and voice together are capped at 12 MB of base64 (MongoDB's 16 MB document limit), voice at 3 minutes / 4 MB, with Bangla messages in the form. Shows interactive thumbnails, PDF document icons, file sizes, and remove buttons.
 - **Attachments are never trusted:** the API decodes every data URL, checks the real type by its first bytes, re-encodes photos to WebP (EXIF/GPS dropped) and rebuilds what it stores; the admin shows attachments only through Blob object URLs of allowed types (BUG-2026-027).
 - **Admin View:** Staff who can see the complaint can play back citizen voice notes and inspect/download attached images and PDFs in the complaint detail card (the inbox list only carries flags: voice yes/no, number of files). A voice-only complaint shows "শুধু ভয়েস অভিযোগ" instead of an invented description. Only managers and the assigned officer see the status selector; anyone with note rights can add a note.
-- **Anonymous option:** can be submitted without name and number; then no SMS is sent.
+- **No anonymous option (since 2 Oct 2026, `adr/0009`):** the public form and API refuse a complaint without name, mobile, date of birth and NID, and refuse an `anonymous` key. Only hearing/phone entries by staff (`POST /complaints`, `staffComplaintSchema`) can still be anonymous; older anonymous records stay as they are.
 - **Privacy:**
-  - Name and number are seen only by the assigned officer, who must state a purpose; every view is logged. They are
-    encrypted in the database. Neither the MP nor Super Admin (not even acting as the site) can see them.
+  - Name, number, date of birth and NID are seen only by the assigned officer, who must state a purpose; every view is logged. They are
+    encrypted in the database (all four in one AES-GCM envelope; DOB and NID are never in logs, audit, events, SMS or CSV). Neither the MP nor Super Admin (not even acting as the site) can see them.
   - They may **not be used** for campaigning without separate consent.
   - A citizen's IP address and browser details are not stored in the audit log at all (BUG-2026-018/019).
 - **Only statistics are public:** received, resolved, average time, by topic. No complaint is ever published verbatim.
@@ -112,7 +112,7 @@ The user chose MERN because their team knows it. Reasons and alternatives: `adr/
 | Admin panel (Super Admin + MP admin) | React 18 + Vite SPA, own design system (`apps/web-admin/DESIGN.md`) |
 | Public site | **Next.js 14** (React 18) — server rendering for SEO and Facebook/WhatsApp link previews |
 | Tenant separation | One database, `tenantId` on every document, fail-closed Mongoose plugin (`adr/0003`) |
-| Complainant data | Name and number field-level encrypted, only the assigned officer sees them (`adr/0004`) |
+| Complainant data | Name, number, date of birth and NID field-level encrypted, only the assigned officer sees them (`adr/0004`, `adr/0009`) |
 | Photos / videos | Uploads re-encoded by `sharp` (WebP, EXIF removed); MP4/WebM streamed with Range support; YouTube via youtube-nocookie |
 | Security | Planned: Cloudflare WAF/DDoS, Turnstile, custom hostnames; admin 2FA (TOTP); daily encrypted backups |
 | SMS | Bangladeshi SMS gateway (OTP, complaint status); provider is swappable |
@@ -171,6 +171,7 @@ The user chose MERN because their team knows it. Reasons and alternatives: `adr/
 | **Admin panel demo (Super Admin + MP admin)** | `client-demo/admin/` | **Done** (30 Sep 2026), see below |
 | **Real product: API + admin panel (CMS) + public website** | `apps/api`, `apps/web-admin`, `apps/web-public`, `packages/shared` | **Working** (30 Sep 2026), see "State of the real product" |
 | **Bug register (FMEA/RPN)** | `bugs/` + `scripts/bugs.mjs` | 35 bugs; 34 fixed/verified (BUG-2026-026..035 are `fixed`, awaiting independent verification), 1 triaged (P2, e2e flake); release gate passes |
+| **Complaint identity rule (2 Oct 2026)** | `packages/shared/src/schemas.ts`, `bangla.ts`, `apps/api/src/services/complaints.ts`, `ComplaintBox.tsx`, `adr/0009` | **Done.** Name, mobile, DOB and NID required, no anonymous option; DOB/NID encrypted with name/phone, revealed only via `pii-view`. CMS texts that still say "anonymous" must be edited by the office (complaint page steps, privacy note, FAQ, home call-to-action) |
 | MP information form | `client-demo/MP_INFO.md` | Template for collecting a real client MP's information |
 | Photos | `client-demo/photos/`, `apps/api/seed-assets/` | The fictional MP's three AI-generated photos (waving at parliament, community food-centre inauguration, food-aid distribution) + two demo video clips |
 
@@ -246,7 +247,7 @@ each visitor separately behind the site server; BUG-2026-020).
 The code is there, only switched off; the API refuses to start with `false` in production. Set it to `true` before any real
 client; `e2e/run.sh` also needs `true`.
 
-**Tests:** `npm test` (API 327, web-admin 138, web-public 34, shared 21; Node 24 required, see `engines`), `npm run typecheck`, `bash e2e/run.sh` (real
+**Tests:** `npm test` (API 381, web-admin 146, web-public 63, shared 31; Node 24 required, see `engines`; the web-public component test uses jsdom + Testing Library), `npm run typecheck`, `bash e2e/run.sh` (real
 browser), `python e2e/cms_smoke.py` (CMS, 40 steps), `python apps/web-public/e2e/public_smoke.py` (public site, 124
 checks), `npm run bugs:check -- --gate`.
 
@@ -255,8 +256,8 @@ checks), `npm run bugs:check -- --gate`.
   password (argon2id) + TOTP (switchable) + recovery codes, rotating refresh tokens, CSRF, lockout, session list.
 - Posts: draft → review → publish (owner approval), separate live copy, versions, scheduled publishing, audit with before/after.
   Body is rich text (Tiptap editor), sanitised on the server (`sanitize-html`) and again on display.
-- Complaints: PII encrypted (AES-256-GCM envelope), only the assigned officer can reveal it with a purpose (logged); not even
-  Super Admin acting as the site; CSV without PII.
+- Complaints: PII (name, mobile, date of birth, NID) encrypted (AES-256-GCM envelope), only the assigned officer can reveal it with a purpose (logged); not even
+  Super Admin acting as the site; CSV without PII. The citizen form requires all four and has no anonymous option (`adr/0009`, 2 Oct 2026); records from before that (no DOB/NID) still load and show "—".
 - Site pages (`layout, home, profile, heroes, area, contact, complaint`) with draft/live copies, optimistic locking, publish
   and discard; events, gallery and videos as draft/published collections; media library (images → WebP with EXIF removed;
   MP4/WebM streamed with Range support; files in use cannot be deleted).
@@ -309,6 +310,7 @@ Then open `http://localhost:8765/demo-mp/` (public demo) and `http://localhost:8
    a real-device check of the voice recorder (Chrome/Android, Safari/iOS, Firefox) and the photo shrinking, and commit (nothing is
    committed yet).
 7c. ~~Public site on GitHub Pages~~ built (2 Oct 2026); to go live: push, enable Pages (source: GitHub Actions) with the `gh api` command in `docs/11` section 1, check `PUBLIC_SITE_ORIGINS` on the Render API, run the workflow once.
+7d. ~~Complaint identity rule~~ done (2 Oct 2026, owner request, `adr/0009`): name, mobile, date of birth and NID required on the citizen form, no anonymous option. To go live: deploy the API first (or together with the static site rebuild: an old page without DOB/NID gets a 400), then edit the CMS texts that still say anonymous is possible (complaint page: step 1 and 2, privacy note, the FAQ "বেনামে অভিযোগ…" and "আমার নাম আর নম্বর…" entries; home page: complaint call-to-action text). Those texts live in each tenant's CMS (the Render demo's included); only the seed (`apps/api/src/seedContent.ts`) was changed in code.
 8. **Next:** (a) CI (GitHub Actions: typecheck + test + `bugs:check --gate`; `.github/workflows/pages.yml` is the only workflow so far), (b) focal-point field for banners/photos,
    (c) Redis/BullMQ, (d) backup/restore and staff management, (e) real SMS gateway and hosting (ask the user),
    (f) regenerate the AI photos without the wrong text ("ঢাকা লোকনাথ", the plaque seal), (g) BUG-2026-014 (e2e flake),
@@ -321,7 +323,7 @@ Then open `http://localhost:8765/demo-mp/` (public demo) and `http://localhost:8
 **Made** (30 Sep 2026, see `adr/`):
 - Project name: **Jonoprotinidhi (জনপ্রতিনিধি)** — renamed from "Jonoshetu (জনসেতু)" on 30 Sep 2026 at the user's request (code, UI, docs, packages `@jonoprotinidhi/*`, dev domain `*.jonoprotinidhi.localhost`, database `jonoprotinidhi_dev`, GitHub repo). The local folder is still `D:\AI\Jonoshetu`.
 - Tech stack: **MERN** (public site Next.js)
-- OTP for complaints: **optional**; an MP can make it mandatory in their settings. Anonymous complaints always work.
+- OTP for complaints: **optional**; an MP can make it mandatory in their settings. ~~Anonymous complaints always work.~~ Superseded on 2 Oct 2026 (owner, `adr/0009`): no anonymous complaints; name, mobile, date of birth and NID are required.
 - Other developers: **both Claude Code and claude.ai**, hence `CLAUDE.md` in the repo and `HANDOFF_BUNDLE.md` for claude.ai.
 - Two-step login switched off locally for now (user request); must be on for real clients.
 - Repository public on GitHub (user request).
