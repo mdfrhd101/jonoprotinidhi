@@ -5,6 +5,7 @@ import { ApiError } from '../errors.js';
 import { Complaint, ComplaintEvent, Membership, Tenant, nextSeq, type TenantDoc } from '../models/index.js';
 import { encryptField, decryptField, unwrapKey, hmacPhone, piiAad } from '../lib/crypto.js';
 import { audit } from '../lib/audit.js';
+import { cleanAttachments } from '../lib/attachments.js';
 import { csvCell, escapeRegex, isObjectId } from '../lib/sanitize.js';
 import { ctx, runInTenant } from '../context.js';
 
@@ -25,6 +26,7 @@ export const TEMPLATES: Record<string, string> = {
 };
 const STEP_LABEL: Partial<Record<ComplaintStatus, string>> = { verify: 'যাচাই চলছে', progress: 'প্রক্রিয়াধীন', solved: 'সমাধান হয়েছে', closed: 'বন্ধ', spam: 'গ্রহণযোগ্য নয়' };
 const MS_DAY = 86400_000;
+const NO_PAYLOAD = '-voiceNote.audioData -files.data';
 
 export class ComplaintService {
   constructor(private d: Deps, private now: () => number = Date.now) {}
@@ -76,6 +78,9 @@ export class ComplaintService {
       }
     }
 
+    // only after spam/rate checks: decoding and re-encoding attachments costs CPU (BUG-2026-027)
+    const attachments = await cleanAttachments(input);
+
     const _id = new mongoose.Types.ObjectId();
     const key = await this.dek(tenant._id);
     const kv = tenant.dek?.keyVersion ?? 1;
@@ -89,7 +94,7 @@ export class ComplaintService {
     const trackingId = `${tenant.trackingPrefix}-${year}-${String(seq).padStart(5, '0')}`;
     const c = await Complaint.create({
       _id: _id as never, trackingId, category: input.category, upazila: input.upazila, union: input.union, place: input.place, description: input.description,
-      channel: staff?.channel ?? 'web', anonymous: input.anonymous, pii, phoneHmac, otpVerified,
+      channel: staff?.channel ?? 'web', voiceNote: attachments.voiceNote, files: attachments.files, anonymous: input.anonymous, pii, phoneHmac, otpVerified,
       slaDueAt: new Date(this.now() + tenant.settings.slaDays * MS_DAY),
       publicSteps: [{ label: 'অভিযোগ গৃহীত', note: '', at: new Date(this.now()) }],
     });
@@ -150,15 +155,19 @@ export class ComplaintService {
     if (q.late) { filter.slaDueAt = { $lt: new Date(this.now()) }; filter.status = { $in: ['new', 'verify', 'progress'] }; }
     if (q.q) { const rx = new RegExp(escapeRegex(q.q), 'i'); filter.$or = [{ trackingId: rx }, { category: rx }, { description: rx }]; }
     const [rows, total] = await Promise.all([
-      Complaint.find(filter).sort({ createdAt: -1 }).skip((q.page - 1) * q.limit).limit(q.limit).lean(),
+      // BUG-2026-029: the inbox never loads voice or file payloads, only what the list needs to show
+      Complaint.find(filter).select(NO_PAYLOAD).sort({ createdAt: -1 }).skip((q.page - 1) * q.limit).limit(q.limit).lean(),
       Complaint.countDocuments(filter),
     ]);
     return { items: rows.map((c) => this.view(c)), page: q.page, limit: q.limit, total, totalPages: Math.ceil(total / q.limit) };
   }
 
+  /** Shared shape for list, detail and patch responses: attachment metadata only, never the payloads. */
   private view(c: Record<string, any>) {
     const open = ['new', 'verify', 'progress'].includes(c.status);
-    return { id: String(c._id), trackingId: c.trackingId, category: c.category, upazila: c.upazila, union: c.union, place: c.place, description: c.description, channel: c.channel, anonymous: c.anonymous, otpVerified: c.otpVerified, status: c.status, assignedTo: c.assignedTo ? String(c.assignedTo) : null, createdAt: c.createdAt, slaDueAt: c.slaDueAt, resolvedAt: c.resolvedAt, overdue: open && !!c.slaDueAt && new Date(c.slaDueAt).getTime() < this.now(), version: c.version, pii: { available: !c.anonymous && !c.piiPurgedAt } };
+    const files = (c.files ?? []) as Array<{ name: string; mimeType: string; size: number }>;
+    return { id: String(c._id), trackingId: c.trackingId, category: c.category, upazila: c.upazila, union: c.union, place: c.place, description: c.description ?? '', channel: c.channel, anonymous: c.anonymous, otpVerified: c.otpVerified, status: c.status, assignedTo: c.assignedTo ? String(c.assignedTo) : null, createdAt: c.createdAt, slaDueAt: c.slaDueAt, resolvedAt: c.resolvedAt, overdue: open && !!c.slaDueAt && new Date(c.slaDueAt).getTime() < this.now(), version: c.version, pii: { available: !c.anonymous && !c.piiPurgedAt },
+      hasVoice: !!c.voiceNote, voiceSec: c.voiceNote?.durationSec ?? null, fileCount: files.length, fileMeta: files.map((f) => ({ name: f.name, mimeType: f.mimeType, size: f.size })) };
   }
 
   async get(m: MemberCtx, id: string) {
@@ -166,7 +175,8 @@ export class ComplaintService {
     const c = await Complaint.findOne({ _id: id, ...this.scopeFilter(m) }).lean();
     if (!c) throw ApiError.notFound();
     const events = await ComplaintEvent.find({ complaintId: c._id }).sort({ at: 1 }).lean();
-    return { ...this.view(c), canViewPii: this.canViewPii(m, c), events: events.map((e) => ({ type: e.type, by: e.by?.name, data: e.type === 'pii_view' ? { purpose: (e.data as { purpose?: string })?.purpose } : e.data, at: e.at })) };
+    const canUpdate = hasPermission(m.perms, 'complaints.manage') || (!!c.assignedTo && String(c.assignedTo) === m.userId);
+    return { ...this.view(c), voiceNote: c.voiceNote?.audioData ? { audioData: c.voiceNote.audioData, durationSec: c.voiceNote.durationSec ?? null } : null, files: c.files ?? [], canViewPii: this.canViewPii(m, c), canUpdate, events: events.map((e) => ({ type: e.type, by: e.by?.name, data: e.type === 'pii_view' ? { purpose: (e.data as { purpose?: string })?.purpose } : e.data, at: e.at })) };
   }
 
   private canViewPii(m: MemberCtx, c: { assignedTo?: unknown; anonymous?: boolean; piiPurgedAt?: unknown }) {
@@ -176,13 +186,13 @@ export class ComplaintService {
   async patch(tenant: TenantDoc, m: MemberCtx, id: string, raw: unknown) {
     if (!isObjectId(id)) throw ApiError.notFound();
     const p = complaintPatchSchema.parse(raw);
-    const c = await Complaint.findOne({ _id: id, ...this.scopeFilter(m) });
+    const c = await Complaint.findOne({ _id: id, ...this.scopeFilter(m) }).select(NO_PAYLOAD);
     if (!c) throw ApiError.notFound();
     if (p.version !== undefined && p.version !== c.version) throw ApiError.conflict('VERSION_CONFLICT', 'অভিযোগটি অন্য কেউ বদলেছেন, রিফ্রেশ করুন');
     const manage = hasPermission(m.perms, 'complaints.manage');
     const isAssigned = !!c.assignedTo && String(c.assignedTo) === m.userId;
     if (!manage && !isAssigned) throw ApiError.forbidden('এই অভিযোগ আপনাকে দেওয়া হয়নি');
-    const set: Record<string, unknown> = {}, events: Array<{ type: 'status' | 'assign'; data: unknown }> = [];
+    const set: Record<string, unknown> = {}, events: Array<{ type: 'status' | 'assign' | 'note'; data: unknown }> = [];
     const at = new Date(this.now());
 
     if (p.assignedTo !== undefined) {
@@ -204,9 +214,12 @@ export class ComplaintService {
       if (STEP_LABEL[p.status]) set.publicSteps = [...(c.publicSteps ?? []), { label: STEP_LABEL[p.status], note: '', at }];
       events.push({ type: 'status', data: { from: c.status, to: p.status } });
     }
+    if (p.note) {
+      events.push({ type: 'note', data: { text: p.note } });
+    }
     if (!events.length) return this.view(c.toObject());
 
-    const res = await Complaint.findOneAndUpdate({ _id: c._id, version: c.version }, { $set: set, $inc: { version: 1 } }, { new: true });
+    const res = await Complaint.findOneAndUpdate({ _id: c._id, version: c.version }, { $set: set, $inc: { version: 1 } }, { new: true, projection: NO_PAYLOAD });
     if (!res) throw ApiError.conflict('VERSION_CONFLICT', 'অভিযোগটি অন্য কেউ বদলেছেন, রিফ্রেশ করুন');
     for (const e of events) await ComplaintEvent.create({ complaintId: c._id, type: e.type, by: { userId: m.userId as never, name: m.name }, data: e.data });
     await audit({ action: 'complaint.update', entity: { type: 'complaint', id: c._id, label: c.trackingId }, diff: { before: { status: c.status, assignedTo: c.assignedTo }, after: { status: res.status, assignedTo: res.assignedTo } } });
@@ -254,7 +267,7 @@ export class ComplaintService {
   }
 
   async exportCsv(m: MemberCtx) {
-    const rows = await Complaint.find(this.scopeFilter(m)).sort({ createdAt: -1 }).limit(20000).lean();
+    const rows = await Complaint.find(this.scopeFilter(m)).select('trackingId createdAt channel category upazila union status resolvedAt').sort({ createdAt: -1 }).limit(20000).lean();
     const head = ['trackingId', 'createdAt', 'channel', 'category', 'upazila', 'union', 'status', 'daysToResolve'];
     const lines = [head.map(csvCell).join(',')];
     for (const c of rows) lines.push([c.trackingId, c.createdAt.toISOString(), c.channel, c.category, c.upazila, c.union, c.status, c.resolvedAt ? Math.round(((c.resolvedAt.getTime() - c.createdAt.getTime()) / MS_DAY) * 10) / 10 : ''].map(csvCell).join(','));
@@ -262,13 +275,17 @@ export class ComplaintService {
     return '﻿' + lines.join('\r\n');
   }
 
-  /** Retention job: complainant identity is removed after the tenant retention period; the record stays for statistics. */
+  /** Retention job: complainant identity is removed after the tenant retention period; the record stays for statistics.
+      A recorded voice and attached photos/documents can identify the citizen too, so they go as well, anonymous or not
+      (BUG-2026-032). */
   async purgeExpiredPii(): Promise<number> {
     let total = 0;
     for (const t of await Tenant.find().select('_id')) {
       total += await runInTenant(t._id, async () => {
-        const res = await Complaint.updateMany({ retentionUntil: { $lte: new Date(this.now()) }, piiPurgedAt: { $exists: false }, anonymous: false }, { $set: { piiPurgedAt: new Date(this.now()) }, $unset: { pii: '', phoneHmac: '' } });
-        if (res.modifiedCount) await audit({ action: 'complaint.pii_purge', reason: `${res.modifiedCount} records` });
+        const due = { $lte: new Date(this.now()) };
+        const res = await Complaint.updateMany({ retentionUntil: due, piiPurgedAt: { $exists: false }, anonymous: false }, { $set: { piiPurgedAt: new Date(this.now()) }, $unset: { pii: '', phoneHmac: '', voiceNote: '', files: '' } });
+        const media = await Complaint.updateMany({ retentionUntil: due, $or: [{ voiceNote: { $exists: true } }, { 'files.0': { $exists: true } }] }, { $unset: { voiceNote: '', files: '' } });
+        if (res.modifiedCount || media.modifiedCount) await audit({ action: 'complaint.pii_purge', reason: `${res.modifiedCount} records${media.modifiedCount ? `, attachments removed from ${media.modifiedCount} more` : ''}` });
         return res.modifiedCount;
       });
     }

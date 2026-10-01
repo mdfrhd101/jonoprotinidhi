@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import SafeImg from '@/components/SafeImg';
-import { More, PageHero, SecHead, heroImage } from '@/components/blocks';
-import { getPage, getSite, soft } from '@/lib/api';
+import { More, PageHero, SecHead } from '@/components/blocks';
+import { getPage, getSite, soft, pageImage } from '@/lib/api';
 import { PAGE_NAME } from '@/lib/nav';
 import { splitYear, toBn } from '@/lib/format';
 
@@ -13,7 +13,7 @@ const BIO = [['edu', 'শিক্ষাজীবন', 'education'], ['work', '�
 export default async function About() {
   const site = await getSite();
   const [heroes, p] = await Promise.all([soft(getPage('heroes'), null), getPage('profile')]);
-  const img = heroImage(site, 'about');
+  const img = (await pageImage(site, 'about'));
   const bio = BIO.filter(([, , k]) => p[k].length > 0);
   return (
     <>
@@ -59,7 +59,7 @@ export default async function About() {
 
       {(p.committees.length > 0 || p.parliament.length > 0) && (
         <section className="band dark" aria-label="সংসদীয় দায়িত্ব">
-          <div className="band-bg" data-px=".18"><SafeImg src={heroImage(site, 'promises')?.url} /></div><div className="band-shade" />
+          <div className="band-bg" data-px=".18"><SafeImg src={(await pageImage(site, 'promises'))?.url} /></div><div className="band-shade" />
           <div className="wrap"><div className="reveal" style={{ maxWidth: 820 }}>
             <p className="kicker">সংসদীয় দায়িত্ব</p>
             <h2 className="h2">দায়িত্ব ও কমিটি</h2>
@@ -67,7 +67,7 @@ export default async function About() {
             {p.parliament.length > 0 && <div className="pnums">{p.parliament.map((x, i) => <div key={i}><b>{x.n}</b><span>{x.label}</span></div>)}</div>}
             {p.parliamentNote && <p className="src">{p.parliamentNote}</p>}
           </div></div>
-          {heroImage(site, 'promises')?.caption && <span className="credit">ছবি: {heroImage(site, 'promises')!.caption}</span>}
+          {(await pageImage(site, 'promises'))?.caption && <span className="credit">ছবি: {(await pageImage(site, 'promises'))!.caption}</span>}
         </section>
       )}
 

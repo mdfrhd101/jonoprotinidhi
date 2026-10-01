@@ -133,10 +133,9 @@ export default function GallerySlider({ items, albums = [], filter = false, wall
           )}
           <button type="button" className="rbtn sm" aria-label="ছবিটি বড় করে দেখুন" onClick={() => setLb({ items: lbItems, i: cur })}><IconExpand /></button>
         </div>
-        {n > 1 && <>
-          <button type="button" className="rbtn gs-nav prev" aria-label="আগের ছবি" onClick={() => go(cur - 1)}><IconLeft /></button>
-          <button type="button" className="rbtn gs-nav next" aria-label="পরের ছবি" onClick={() => go(cur + 1)}><IconRight /></button>
-        </>}
+      </div>
+      <div className="gs-bottom">
+        {n > 1 && <button type="button" className="rbtn gs-nav prev" aria-label="আগের ছবি" onClick={() => go(cur - 1)}><IconLeft /></button>}
         <div className="gs-cap">
           <div className="key" key={it.id}>
             {it.album && <span className="al">{it.album}</span>}
@@ -144,6 +143,7 @@ export default function GallerySlider({ items, albums = [], filter = false, wall
             {(it.credit || it.takenAt) && <p>{joinParts([bnDateSafe(it.takenAt), it.credit ? `ছবি: ${it.credit}` : ''])}</p>}
           </div>
         </div>
+        {n > 1 && <button type="button" className="rbtn gs-nav next" aria-label="পরের ছবি" onClick={() => go(cur + 1)}><IconRight /></button>}
         <p className="sr" aria-live={announce ? 'polite' : 'off'} aria-atomic="true">{`ছবি ${counterLabel(cur, n)}${it.caption ? ': ' + it.caption : ''}`}</p>
       </div>
       {thumbs && n > 1 && (

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import SafeImg from '@/components/SafeImg';
-import { More, PageHero, heroImage } from '@/components/blocks';
-import { getPage, getSite, soft } from '@/lib/api';
+import { More, PageHero } from '@/components/blocks';
+import { getPage, getSite, soft, pageImage } from '@/lib/api';
 import { PAGE_NAME } from '@/lib/nav';
 import { splitYear } from '@/lib/format';
 import type { ProfilePage } from '@/lib/types';
@@ -29,7 +29,7 @@ function Timeline({ list, mid, nowLast }: { list: ProfilePage['education']; mid?
 export default async function Biography() {
   const site = await getSite();
   const [heroes, p] = await Promise.all([soft(getPage('heroes'), null), getPage('profile')]);
-  const img = heroImage(site, 'biography');
+  const img = (await pageImage(site, 'biography'));
   const blocks = BIO.filter(([, , k]) => p[k].length > 0);
   return (
     <>

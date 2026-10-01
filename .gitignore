@@ -22,3 +22,13 @@ client-demo/mirza-abbas/
 
 # research notes on real people (kept local until their office consents; repo is public)
 research/
+
+# local dev HTTPS certificates (mic needs a secure origin on LAN devices)
+apps/web-public/certificates/
+# local one-off debugging scripts
+apps/api/script*.cjs
+apps/api/script*.js
+# local scripts that write or test real-politician content (keep off the public repo)
+scripts/update-hero.mjs
+scripts/remove-milestone.mjs
+scripts/test-voice-complaint.mjs

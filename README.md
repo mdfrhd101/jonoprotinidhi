@@ -14,6 +14,7 @@ docs/ adr/        requirements, architecture, data model, API, security, tasks, 
 ```
 
 ## Run locally (Windows-on-ARM friendly; needs MongoDB running)
+Requires **Node.js 24** (24.7 or newer, see `engines` in `package.json`).
 ```bash
 npm install
 cp apps/api/.env.example apps/api/.env      # then set the secrets

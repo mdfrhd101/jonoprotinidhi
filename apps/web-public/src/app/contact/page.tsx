@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { EventsList, Offices, PageHero, heroImage } from '@/components/blocks';
-import { getEvents, getPage, getSite, soft } from '@/lib/api';
+import { EventsList, Offices, PageHero } from '@/components/blocks';
+import { getEvents, getPage, getSite, soft, pageImage } from '@/lib/api';
 import { PAGE_NAME } from '@/lib/nav';
 import { isExternalHref, safeHref } from '@/lib/links';
 import { toEn } from '@/lib/format';
@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: PAGE_NAME.contact };
 export default async function Contact() {
   const site = await getSite();
   const [heroes, c, home, events] = await Promise.all([soft(getPage('heroes'), null), getPage('contact'), soft(getPage('home'), null), soft(getEvents(12), [])]);
-  const img = heroImage(site, 'contact');
+  const img = (await pageImage(site, 'contact'));
   const channels = c.channels.map((ch) => ({ ...ch, href: safeHref(ch.url) }));
   const tel = c.hotline.number ? toEn(c.hotline.number).replace(/[^\d+]/g, '') : '';
   const cta = home?.complaintCta;

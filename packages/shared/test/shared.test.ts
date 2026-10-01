@@ -4,6 +4,7 @@ import {
   hasPermission, hasAnyPermission, permissionsFor, ROLE_PERMS, PERMS,
   nextPostStatus, availablePostActions, canComplaintTransition, postTransitions, complaintTransitions, POST_STATUSES, COMPLAINT_STATUSES,
   promiseInputSchema, complaintSubmitSchema, postInputSchema, postPatchSchema, postDraftSchema, tenantCreateSchema, passwordSchema, inviteSchema, mfaCodeSchema, loginSchema, siteConfigSchema,
+  COMPLAINT_MAX_TOTAL_B64, COMPLAINT_MAX_VOICE_SEC,
 } from '../src/index.js';
 
 describe('Bangla digits, grouping and dates', () => {
@@ -89,13 +90,35 @@ describe('input schemas', () => {
     expect(promiseInputSchema.safeParse({ ...prom, status: 'late', delayReason: 'জমি অধিগ্রহণে দেরি' }).success).toBe(true);
     expect(promiseInputSchema.safeParse({ ...prom, extra: 1 }).success).toBe(false);
   });
-  it('complaint: anonymous needs no phone, otherwise a valid one; description bounds', () => {
+  it('complaint: anonymous needs no phone, otherwise a valid one; description bounds and voice note', () => {
     const c = { category: 'বিদ্যুৎ', upazila: 'চরকান্দি', union: 'কাশবন', description: 'ক'.repeat(20) };
     expect(complaintSubmitSchema.safeParse({ ...c, anonymous: true }).success).toBe(true);
     expect(complaintSubmitSchema.safeParse({ ...c }).success).toBe(false);
     expect(complaintSubmitSchema.safeParse({ ...c, phone: '01712345678' }).success).toBe(true);
     expect(complaintSubmitSchema.safeParse({ ...c, phone: '01712345678', description: 'ক'.repeat(19) }).success).toBe(false);
-    expect(complaintSubmitSchema.safeParse({ ...c, phone: '01712345678', description: 'ক'.repeat(1001) }).success).toBe(false);
+    expect(complaintSubmitSchema.safeParse({ ...c, phone: '01712345678', description: 'ক'.repeat(10000) }).success).toBe(true);
+    expect(complaintSubmitSchema.safeParse({ ...c, phone: '01712345678', description: 'ক'.repeat(10001) }).success).toBe(false);
+    // Voice note alone without description or with short description is valid
+    const withVoice = { category: 'বিদ্যুৎ', upazila: 'চরকান্দি', union: 'কাশবন', phone: '01712345678', voiceNote: { audioData: 'data:audio/webm;base64,AAA' } };
+    expect(complaintSubmitSchema.safeParse({ ...withVoice, description: '' }).success).toBe(true);
+    expect(complaintSubmitSchema.safeParse({ ...withVoice, description: 'ছোট বিবরণ' }).success).toBe(true);
+    expect(complaintSubmitSchema.safeParse({ ...withVoice, description: 'ক'.repeat(50) }).success).toBe(true);
+    // Neither voice nor description >= 20 fails
+    expect(complaintSubmitSchema.safeParse({ category: 'বিদ্যুৎ', upazila: 'চরকান্দি', union: 'কাশবন', phone: '01712345678', description: '' }).success).toBe(false);
+  });
+  // BUG-2026-028: attachments together stay far below MongoDB's 16 MB document limit; voice limit = the form's 3 minutes
+  it('complaint attachments: data URL shape, 12 MB total cap with a Bangla message, 180 s voice (BUG-2026-028)', () => {
+    const c = { category: 'বিদ্যুৎ', upazila: 'চরকান্দি', union: 'কাশবন', phone: '01712345678', description: 'ক'.repeat(20) };
+    const pdf = (n: number) => ({ name: 'a.pdf', mimeType: 'application/pdf', size: 100, data: 'data:application/pdf;base64,' + 'A'.repeat(n) });
+    expect(complaintSubmitSchema.safeParse({ ...c, files: [pdf(4)] }).success).toBe(true);
+    expect(complaintSubmitSchema.safeParse({ ...c, files: [{ ...pdf(4), data: 'javascript:alert(1)' }] }).success).toBe(false);
+    expect(complaintSubmitSchema.safeParse({ ...c, files: [pdf(4_000_000), pdf(4_000_000), pdf(4_000_000)] }).success).toBe(true); // 12,000,084 chars
+    const over = complaintSubmitSchema.safeParse({ ...c, files: [pdf(4_000_000), pdf(4_000_000), pdf(4_000_000)], voiceNote: { audioData: 'data:audio/webm;base64,' + 'A'.repeat(600_000) } });
+    expect(over.success).toBe(false);
+    expect(over.error?.flatten().fieldErrors.files?.[0]).toMatch(/সব ছবি, PDF ও ভয়েস মিলিয়ে/);
+    expect(COMPLAINT_MAX_TOTAL_B64).toBeLessThanOrEqual(12 * 1024 * 1024);
+    const v = (durationSec: number, audioData = 'data:audio/ogg; codecs=opus;base64,AAAA') => complaintSubmitSchema.safeParse({ ...c, voiceNote: { audioData, durationSec } }).success;
+    expect([v(COMPLAINT_MAX_VOICE_SEC), v(COMPLAINT_MAX_VOICE_SEC + 1), v(5, 'not-a-data-url')]).toEqual([true, false, false]);
   });
   it('post schemas: full vs draft vs patch (BUG-2026-004)', () => {
     const full = { title: 'একটি সম্পূর্ণ শিরোনাম', summary: 'একটি সম্পূর্ণ সারাংশ এখানে', category: 'dev', eventDate: '2026-09-01' };

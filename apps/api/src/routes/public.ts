@@ -1,15 +1,20 @@
-import { Router } from 'express';
+import express, { Router, type Request } from 'express';
 import { z } from 'zod';
 import { bdMobile } from '@jonoprotinidhi/shared';
 import type { Deps } from '../deps.js';
 import type { Services } from '../services/index.js';
 import { wrap, limit, byIp } from '../middleware/auth.js';
-import { parsePaging } from '../lib/sanitize.js';
+import { parsePaging, stripOperators } from '../lib/sanitize.js';
 import { ctx, runInTenant } from '../context.js';
 import { ApiError } from '../errors.js';
 import { Tenant } from '../models/index.js';
 
 /* Public API: the tenant comes from the Host header, never from a URL id. Only approved, public data is returned. */
+
+/** The one route allowed a large JSON body (complaint attachments, see COMPLAINT_MAX_TOTAL_B64 plus the form fields).
+    app.ts skips its 1 MB parser for exactly this method + path; the parser below runs only after the per-IP limits. */
+export const COMPLAINT_BODY_LIMIT = '13mb';
+export const isPublicComplaintSubmit = (req: Request) => req.method === 'POST' && req.path === '/api/v1/public/complaints';
 
 /** Uploaded images and videos. The URL carries the tenant id (a public file has no Host to resolve); ids are random and never reused.
     Supports HTTP Range so browsers can seek inside videos. */
@@ -88,7 +93,8 @@ export function publicRoutes(d: Deps, s: Services): Router {
     res.setHeader('Cache-Control', 'no-store');
     res.json({ otpTicket: s.complaints.verifyOtp(req.tenant!, b.phone, b.code) });
   }));
-  r.post('/complaints', wrap(async (req, res) => {
+  const complaintBody = express.json({ limit: COMPLAINT_BODY_LIMIT });
+  r.post('/complaints', limit(d.rateLimiter, 'complaintBody', byIp), complaintBody, (req, _res, next) => { req.body = stripOperators(req.body); next(); }, wrap(async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     const tenant = await Tenant.findById(req.tenant!._id).select('+dek.wrapped');
     res.status(201).json(await s.complaints.submit(tenant!, req.body, { ip: req.ip ?? '' }));

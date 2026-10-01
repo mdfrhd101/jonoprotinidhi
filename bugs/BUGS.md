@@ -6,12 +6,12 @@ Source of truth: `bugs/register.json`. Formula, lifecycle and rules: `bugs/READM
 
 | Metric | Value |
 |---|---|
-| Total bugs | 25 |
+| Total bugs | 35 |
 | Open | 1 (P0: 0, P1: 0, P2: 1, P3: 0) |
 | Sum of open RPN (risk load) | 12 |
 | Mean days report → fix | 0.0 |
 | Defect escape rate (found in staging/production) | 0% |
-| Found by phase | unit-test: 6, integration-test: 4, dev: 3, e2e-test: 8, review: 4 |
+| Found by phase | unit-test: 6, integration-test: 5, dev: 3, e2e-test: 8, review: 13 |
 
 ## Open
 
@@ -25,27 +25,37 @@ Source of truth: `bugs/register.json`. Formula, lifecycle and rules: `bugs/READM
 |---|---|---|---|---|---|---|---|
 | BUG-2026-018 | P0 | 80 (4×4×5) | verified | privacy | Super Admin audit API returned the citizen's IP address and browser user agent for public complaint submissions (and officers' free-text reasons for identity views) | api/routes/super | review |
 | BUG-2026-019 | P0 | 80 (4×4×5) | verified | privacy | Tenant audit API returns the complainant's IP address and user agent to the owner (complaint.create rows) | api/routes/admin | review |
+| BUG-2026-026 | P0 | 75 (5×3×5) | verified | security | Team invite with a password overwrote an existing platform user's password and status (account takeover) | api/services/team | review |
 | BUG-2026-003 | P0 | 60 (4×3×5) | verified | data-integrity | Soft-delete aggregate filter appended after $group, deleted rows still counted | api/plugins/softDelete | unit-test |
 | BUG-2026-007 | P0 | 60 (4×3×5) | verified | security | RATE_LIMIT_DISABLED=false still disabled rate limiting | api/config | dev |
 | BUG-2026-021 | P0 | 60 (5×3×4) | verified | data-integrity | Saving the profile from the old Site page wiped portrait, milestones, education and every other profile field (PUT /profile replaced the whole draft with 3 fields) | web-admin/pages/tenant/Site.tsx + api/routes/admin.ts PUT /profile | review |
+| BUG-2026-027 | P0 | 50 (5×2×5) | verified | security | Stored XSS: complaint attachments and voice notes were stored as arbitrary strings and rendered raw into iframe/a/img src in the admin | api/services/complaints, web-admin/pages/tenant/Complaints | review |
 | BUG-2026-005 | P1 | 48 (4×3×4) | verified | security | Tenant SMS cap overrode the platform cap, so the SMS cost limit did nothing | api/lib/sms | integration-test |
 | BUG-2026-020 | P1 | 48 (4×4×3) | verified | reliability | API: public per-IP rate limit (120/min) throttles the whole server-rendered public site; media files share the same bucket | api/routes/public | e2e-test |
+| BUG-2026-030 | P1 | 48 (3×4×4) | verified | data-integrity | Voice-only complaint: empty description crashed the model (500), so the form stored a canned sentence as the citizen's own words | api/models/complaints, web-public/components/ComplaintBox | review |
 | BUG-2026-010 | P1 | 40 (4×5×2) | verified | functional | Opening a second complaint navigated to a nested broken URL and bounced to the home page | web-admin/pages/Complaints | e2e-test |
 | BUG-2026-023 | P1 | 40 (4×5×2) | fixed | functional | Public site: server-side API calls lost the tenant Host header (Node fetch overrides Host), production tenant resolution would fail | web-public/lib/api | dev |
+| BUG-2026-032 | P1 | 40 (4×2×5) | verified | privacy | Retention job left voice notes and attachments in place after removing the complainant's identity | api/services/complaints | review |
 | BUG-2026-002 | P1 | 36 (3×4×3) | verified | tenant-isolation | Tenant context lost when a lazy Mongoose Query is returned from the tenant runner | api/context | unit-test |
 | BUG-2026-009 | P1 | 36 (3×4×3) | verified | reliability | Auth rate limit was per IP (10 per 15 min): offices and mobile-carrier users get locked out | api/routes/auth | e2e-test |
+| BUG-2026-029 | P1 | 36 (4×3×3) | verified | performance | Complaint inbox list and CSV export loaded every voice note and attachment (megabytes per row) | api/services/complaints | review |
 | BUG-2026-006 | P1 | 32 (4×2×4) | verified | security | Unverified custom domain served the MP's site | api/services/tenants | integration-test |
+| BUG-2026-031 | P1 | 32 (4×2×4) | fixed | security | 25 MB JSON body parser ran before auth and rate limits for any POST path ending in /complaints | api/app, web-public/app/api/public | review |
 | BUG-2026-004 | P1 | 30 (3×5×2) | verified | functional | PATCH /posts/:id demanded a title on every partial update | api/services/posts | integration-test |
 | BUG-2026-013 | P1 | 30 (3×5×2) | verified | functional | Save draft with only a title failed: empty form fields were sent as empty strings | web-admin/pages/Posts | unit-test |
 | BUG-2026-025 | P2 | 27 (3×3×3) | verified | functional | Photo picker's 'earlier uploads' library also listed uploaded videos (a .webm could be chosen as an image) | web-admin/components/ImagePicker.tsx | review |
 | BUG-2026-011 | P2 | 24 (2×4×3) | verified | privacy | Dashboard API sent complaint statistics to editors (and content data to officers) | api/routes/admin | e2e-test |
+| BUG-2026-028 | P2 | 24 (4×2×3) | verified | reliability | Complaint with large attachments could exceed MongoDB's 16 MB document limit and fail with a 500 | packages/shared/schemas, web-public/components/ComplaintBox | review |
 | BUG-2026-016 | P2 | 20 (2×5×2) | verified | ui | Public site API showed the seat number with an English digit (নদীপুর-3) | api/services/site | integration-test |
 | BUG-2026-008 | P2 | 18 (3×3×2) | verified | validation | Valid Wikimedia image URLs with Bangla file names were rejected (500 char limit) | shared/schemas | dev |
 | BUG-2026-024 | P2 | 18 (3×2×3) | verified | functional | Banners page lost edits typed in quick succession (state updates built from a stale copy of the form) | web-admin/pages/tenant/Site.tsx | e2e-test |
+| BUG-2026-033 | P2 | 18 (3×3×2) | verified | functional | Complaint status/note form: a note from an unassigned in-scope officer failed with 403 | web-admin/pages/tenant/Complaints | review |
 | BUG-2026-017 | P2 | 16 (2×2×4) | fixed | security | Public site: sanitiser produced mismatched </span> closing tags after an unsafe link in a post body | web-public/lib/sanitize | unit-test |
 | BUG-2026-022 | P2 | 16 (2×4×2) | verified | ui | Tabs variant=pill draws a stray status-pill dot before the tab list (class 'tabs pill' also matches .pill::before) | web-admin/components/navigation.tsx Tabs + base.css .pill | e2e-test |
+| BUG-2026-035 | P2 | 16 (2×4×2) | verified | test-infra | API integration tests flake on macOS: supertest's wildcard listener can share a port with a local 127.0.0.1 app, which answers 404 | apps/api/test/helpers/env.ts | integration-test |
 | BUG-2026-001 | P2 | 15 (3×5×1) | verified | reliability | SiteConfig/Profile tenantId index defined twice, model init fails | api/plugins/tenantScoped | unit-test |
 | BUG-2026-015 | P3 | 10 (2×5×1) | verified | ui | Form inputs without a type attribute were unstyled (about 21 px high, no padding): the CSS only matched typed inputs | web-admin/extra.css | e2e-test |
+| BUG-2026-034 | P3 | 8 (2×2×2) | verified | ui | Public complaint form showed developer text to citizens (http://localhost:3000, raw exception names) | web-public/components/ComplaintBox | review |
 | BUG-2026-012 | P3 | 6 (1×3×2) | verified | ui | Time of day: 3:30 pm was shown as দুপুর instead of বিকেল | web-admin/format | unit-test |
 
 ## Details
@@ -67,6 +77,15 @@ Source of truth: `bugs/register.json`. Formula, lifecycle and rules: `bugs/READM
 - **Root cause:** audit() copied request IP/UA for every action including public submissions, and the tenant audit route returned raw rows
 - **Fix:** lib/audit.ts no longer stores IP/user agent for unauthenticated (citizen) actions; tenant GET /audit selects out ip/userAgent and drops reasons on complaint.* rows; regression test in complaints.test.ts (mutation-checked) (2026-09-30)
 - **Regression tests:** apps/api/test/integration/complaints.test.ts
+
+### BUG-2026-026: Team invite with a password overwrote an existing platform user's password and status (account takeover)
+- **Priority P0**, RPN 75 (severity 5, occurrence 3, detectability 5), status **verified**, category security, found in review on 2026-10-01
+- Module: api/services/team
+- **What:** TeamService.invite(): when the phone already belonged to a User (a member of any tenant, e.g. another MP's officer), an invite that carried a password ran User.updateOne({passwordHash, status: 'active'}) on that platform-wide account, and did so before the ALREADY_MEMBER check. Any tenant owner could set the password of any account whose phone number they knew, then log in as that person (cross-tenant).
+- **How to reproduce:** Owner of tenant B: POST /team/invites {phone: <tenant A editor's phone>, role: editor, password: 'X...'} -> the A editor's password is now X; even a 409 ALREADY_MEMBER attempt on tenant A changed the password first.
+- **Root cause:** invite() hashed and wrote the password onto whatever User owned the phone, and checked membership only afterwards
+- **Fix:** services/team.ts invite(): membership conflict (409 ALREADY_MEMBER) and existing-account-with-password (409 ACCOUNT_EXISTS, Bangla: invite without a password) are decided before any write; an existing User's password/status is never touched; the password is hashed and set only when the User is created; audit after-diff carries passwordSetAtCreation: true (no hash). (2026-10-01)
+- **Regression tests:** apps/api/test/integration/content.test.ts, apps/api/test/integration/qa-bugs-026-035.test.ts
 
 ### BUG-2026-003: Soft-delete aggregate filter appended after $group, deleted rows still counted
 - **Priority P0**, RPN 60 (severity 4, occurrence 3, detectability 5), status **verified**, category data-integrity, found in unit-test on 2026-09-30 by dev (Claude)
@@ -95,6 +114,15 @@ Source of truth: `bugs/register.json`. Formula, lifecycle and rules: `bugs/READM
 - **Fix:** PUT /profile now merges the partial body onto the current draft; the Site page no longer has a profile card (profile has its own full editor at site-pages/profile). Regression: apps/api/test/integration/pages.test.ts + web-admin content.test.tsx (BUG-2026-021). (2026-09-30)
 - **Regression tests:** apps/api/test/integration/pages.test.ts, apps/web-admin/src/pages/tenant/content/content.test.tsx
 
+### BUG-2026-027: Stored XSS: complaint attachments and voice notes were stored as arbitrary strings and rendered raw into iframe/a/img src in the admin
+- **Priority P0**, RPN 50 (severity 5, occurrence 2, detectability 5), status **verified**, category security, found in review on 2026-10-01
+- Module: api/services/complaints, web-admin/pages/tenant/Complaints
+- **What:** complaintSubmitSchema only length-checked files[].data and voiceNote.audioData. An anonymous citizen could submit data like 'javascript:...' or 'data:text/html,<script>' which the admin inbox put into <iframe src>, <a href download> and <img src>, running script in the admin origin (token theft) when an officer or owner opened the complaint.
+- **How to reproduce:** POST /api/v1/public/complaints with files: [{name: 'a.pdf', mimeType: 'application/pdf', size: 10, data: 'data:text/html;base64,PHNjcmlwdD4uLi48L3NjcmlwdD4='}] -> 201; owner opens the complaint and clicks the file -> the HTML runs inside the admin.
+- **Root cause:** attachment data URLs were only length-checked and stored/rendered verbatim
+- **Fix:** API lib/attachments.ts (called in ComplaintService.submit after spam/rate checks): data:<mime>;base64 required, mime must equal mimeType, decoded bytes checked (PDF %PDF-, audio webm/ogg/mp4/mpeg/wav magic bytes, images decoded by sharp via processImage(maxEdge 1600) -> WebP, EXIF dropped), stored data URL rebuilt from the bytes; shared schema checks the data URL shape. Admin (defence in depth) safeMedia.ts: only image/webp|jpeg|png, application/pdf, audio/* prefixes are decoded, always shown via Blob object URLs with a fixed type (img, iframe, audio, download). (2026-10-01)
+- **Regression tests:** apps/api/test/integration/complaints.test.ts, apps/api/test/integration/qa-bugs-026-035.test.ts, apps/web-admin/src/pages/pages.test.tsx, apps/web-admin/src/safeMedia.test.ts
+
 ### BUG-2026-005: Tenant SMS cap overrode the platform cap, so the SMS cost limit did nothing
 - **Priority P1**, RPN 48 (severity 4, occurrence 3, detectability 4), status **verified**, category security, found in integration-test on 2026-09-30 by dev (Claude)
 - Module: api/lib/sms · Requirement: MIS-03
@@ -112,6 +140,15 @@ Source of truth: `bugs/register.json`. Formula, lifecycle and rules: `bugs/READM
 - **Fix:** API: X-Site-Token + X-Client-IP trusted only with the shared secret, separate media tier (lead). Site: server reads and the complaint/OTP/tracking proxy send x-site-token + x-client-ip (server-only env SITE_SERVER_TOKEN, X-Forwarded-For fallback without a token, incoming values never forwarded), 5 s read cache with stale-on-429/5xx; tests in apps/web-public/test/helpers.test.ts + apps/api/test/integration/site-server.test.ts (2026-09-30)
 - **Regression tests:** apps/api/test/integration/site-server.test.ts, apps/web-public/test/helpers.test.ts
 
+### BUG-2026-030: Voice-only complaint: empty description crashed the model (500), so the form stored a canned sentence as the citizen's own words
+- **Priority P1**, RPN 48 (severity 3, occurrence 4, detectability 4), status **verified**, category data-integrity, found in review on 2026-10-01
+- Module: api/models/complaints, web-public/components/ComplaintBox
+- **What:** The schema allows description '' when a voice note is attached, but the Mongoose model had description required: true, so Complaint.create threw a ValidationError (mapped to 500). The public form hid this by replacing an empty description with 'ভয়েস রেকর্ডের মাধ্যমে অভিযোগের বিবরণ প্রদান করা হয়েছে।', which was then stored and shown to staff as text the citizen wrote. Mongoose ValidationErrors in general surfaced as 500 instead of 400.
+- **How to reproduce:** POST /api/v1/public/complaints with description '' and a voiceNote -> 500.
+- **Root cause:** model description required: true contradicted the schema; the form papered over it with canned text
+- **Fix:** models/complaints.ts description default '' (not required); canned sentence removed from ComplaintBox; admin detail shows 'শুধু ভয়েস অভিযোগ (লিখিত বিবরণ নেই)' for an empty description; app.ts error handler maps mongoose ValidationError to 400 VALIDATION_FAILED (field names only). (2026-10-01)
+- **Regression tests:** apps/api/test/integration/complaints.test.ts, apps/api/test/integration/qa-bugs-026-035.test.ts, apps/web-admin/src/pages/pages.test.tsx, apps/web-public/test/helpers.test.ts
+
 ### BUG-2026-010: Opening a second complaint navigated to a nested broken URL and bounced to the home page
 - **Priority P1**, RPN 40 (severity 4, occurrence 5, detectability 2), status **verified**, category functional, found in e2e-test on 2026-09-30 by dev (Claude)
 - Module: web-admin/pages/Complaints
@@ -128,6 +165,15 @@ Source of truth: `bugs/register.json`. Formula, lifecycle and rules: `bugs/READM
 - **How to reproduce:** fetch('http://127.0.0.1:4000/...', {headers:{host:'ndp3.jonoprotinidhi.com'}}) -> API sees host 127.0.0.1:4000
 - **Root cause:** undici fetch treats Host as a forbidden/overridden header
 - **Fix:** server-to-API calls use node:http(s) (src/lib/http.ts) which keeps the Host header; regression test in apps/web-public/test/helpers.test.ts (2026-09-30)
+
+### BUG-2026-032: Retention job left voice notes and attachments in place after removing the complainant's identity
+- **Priority P1**, RPN 40 (severity 4, occurrence 2, detectability 5), status **verified**, category privacy, found in review on 2026-10-01
+- Module: api/services/complaints
+- **What:** purgeExpiredPii() unset pii and phoneHmac only. A citizen's recorded voice (identifying) and photos/documents stayed in the record forever, and anonymous complaints were never touched at all.
+- **How to reproduce:** Close a complaint with a voice note, advance past retention, run purgeExpiredPii() -> voiceNote.audioData and files[] are still stored.
+- **Root cause:** retention only unset pii/phoneHmac and skipped anonymous complaints
+- **Fix:** purgeExpiredPii() also unsets voiceNote and files with the identity, and a second scoped updateMany removes voice/files from any other expired complaint (anonymous or already purged); audited with counts. (2026-10-01)
+- **Regression tests:** apps/api/test/integration/complaints.test.ts, apps/api/test/integration/qa-bugs-026-035.test.ts
 
 ### BUG-2026-002: Tenant context lost when a lazy Mongoose Query is returned from the tenant runner
 - **Priority P1**, RPN 36 (severity 3, occurrence 4, detectability 3), status **verified**, category tenant-isolation, found in unit-test on 2026-09-30 by dev (Claude)
@@ -147,6 +193,15 @@ Source of truth: `bugs/register.json`. Formula, lifecycle and rules: `bugs/READM
 - **Fix:** IP tier raised to 60/15min; new per-account tier (10/15min) on login and on the MFA endpoints keyed by the verified mfa-token subject (2026-09-30)
 - **Regression tests:** apps/api/test/integration/auth.test.ts
 
+### BUG-2026-029: Complaint inbox list and CSV export loaded every voice note and attachment (megabytes per row)
+- **Priority P1**, RPN 36 (severity 4, occurrence 3, detectability 3), status **verified**, category performance, found in review on 2026-10-01
+- Module: api/services/complaints
+- **What:** list() returned view(c) with the full voiceNote.audioData and files[].data for every row of the page, and exportCsv() loaded up to 20,000 full documents into memory although it writes no attachment column. One page of 15 complaints with attachments could be hundreds of MB; the export could exhaust the API's memory.
+- **How to reproduce:** Submit 15 complaints with a voice note and photos, open the admin inbox -> the list response contains every base64 payload.
+- **Root cause:** list/export used find() without projection and view() returned the payloads
+- **Fix:** list() projects out voiceNote.audioData and files.data; view() returns only hasVoice, voiceSec, fileCount, fileMeta (patch responses too); get() alone adds voiceNote/files payloads; exportCsv selects only its eight columns. Admin list shows ভয়েস / Nটি ফাইল from the flags. (2026-10-01)
+- **Regression tests:** apps/api/test/integration/complaints.test.ts, apps/api/test/integration/qa-bugs-026-035.test.ts
+
 ### BUG-2026-006: Unverified custom domain served the MP's site
 - **Priority P1**, RPN 32 (severity 4, occurrence 2, detectability 4), status **verified**, category security, found in integration-test on 2026-09-30 by dev (Claude)
 - Module: api/services/tenants · Requirement: FR-SA-04
@@ -155,6 +210,15 @@ Source of truth: `bugs/register.json`. Formula, lifecycle and rules: `bugs/READM
 - **Root cause:** resolveHost looked up the Domain row only; dnsStatus was never checked, so a custom domain was served as soon as it was added.
 - **Fix:** resolveHost returns 404 for a custom domain until dnsStatus is active (verified TXT) (2026-09-30)
 - **Regression tests:** apps/api/test/integration/super.test.ts
+
+### BUG-2026-031: 25 MB JSON body parser ran before auth and rate limits for any POST path ending in /complaints
+- **Priority P1**, RPN 32 (severity 4, occurrence 2, detectability 4), status **fixed**, category security, found in review on 2026-10-01
+- Module: api/app, web-public/app/api/public
+- **What:** app.ts used express.json({limit: '25mb'}) for every POST whose path ends with /complaints, globally and before authentication or any rate limiter (admin and unknown paths included), so anyone could make the API buffer and parse 25 MB bodies at will. The public-site proxy read the whole body (any size) into memory before checking a 25 MB cap that applied to every allowed POST, OTP calls included.
+- **How to reproduce:** POST /api/v1/admin/tenants/<any>/complaints with a 24 MB JSON body and no token -> the body is fully parsed before the 401.
+- **Root cause:** the 25 MB parser was chosen by path suffix globally, before routing, auth and rate limits; the proxy read bodies fully before checking a shared 25 MB cap
+- **Fix:** app.ts keeps the 1 MB parser for everything except exactly POST /api/v1/public/complaints; that route parses with a 13 MB limit inside the public router, after host resolution, the public tier and a new pre-parse complaintBody tier (10/min per IP), then strips operators. Next proxy (lib/bodyLimit.ts): 13 MB for complaints, 16 KB for OTP, Content-Length checked before reading, size counted while reading; response cap back to 256 KB. Staff complaint route keeps 1 MB. (2026-10-01)
+- **Regression tests:** apps/api/test/integration/complaints.test.ts
 
 ### BUG-2026-004: PATCH /posts/:id demanded a title on every partial update
 - **Priority P1**, RPN 30 (severity 3, occurrence 5, detectability 2), status **verified**, category functional, found in integration-test on 2026-09-30 by dev (Claude)
@@ -192,6 +256,15 @@ Source of truth: `bugs/register.json`. Formula, lifecycle and rules: `bugs/READM
 - **Fix:** dashboard response is built per permission (content vs complaint sections); UI hides cards the role cannot use (2026-09-30)
 - **Regression tests:** apps/api/test/integration/content.test.ts, apps/web-admin/src/pages/pages.test.tsx
 
+### BUG-2026-028: Complaint with large attachments could exceed MongoDB's 16 MB document limit and fail with a 500
+- **Priority P2**, RPN 24 (severity 4, occurrence 2, detectability 3), status **verified**, category reliability, found in review on 2026-10-01
+- Module: packages/shared/schemas, web-public/components/ComplaintBox
+- **What:** Up to 5 files of 5 MB (about 6.7 MB each as base64) plus a 4 MB voice note were accepted by the schema; the stored document could pass 16 MB, Complaint.create threw and the citizen got 'server problem' with the complaint lost. The public form did not downscale photos (phone photos are often 3-8 MB) or enforce any total, and its 3-minute voice limit disagreed with the server's 300 s.
+- **How to reproduce:** Submit 5 x 5 MB images + a voice note -> 500 INTERNAL.
+- **Root cause:** no total size limit; 5 x 5 MB files + 4 MB voice could pass 16 MB; the form sent full-size photos
+- **Fix:** shared complaintLimits.ts + schema superRefine: files + voice <= 12 MB of base64 (Bangla field error on files), voice <= 180 s (= the form); API re-checks the total after re-encoding (422); ComplaintBox shrinks photos to 1600 px JPEG 0.8 before base64, enforces per-file, total and 4 MB voice caps with Bangla messages, records at 32 kbps, timer uses the shared 180 s. (2026-10-01)
+- **Regression tests:** packages/shared/test/shared.test.ts, apps/api/test/integration/complaints.test.ts, apps/api/test/integration/qa-bugs-026-035.test.ts, apps/web-public/test/helpers.test.ts
+
 ### BUG-2026-016: Public site API showed the seat number with an English digit (নদীপুর-3)
 - **Priority P2**, RPN 20 (severity 2, occurrence 5, detectability 2), status **verified**, category ui, found in integration-test on 2026-09-30
 - Module: api/services/site
@@ -219,6 +292,15 @@ Source of truth: `bugs/register.json`. Formula, lifecycle and rules: `bugs/READM
 - **Fix:** Site.tsx updates the form only through functional state updates (up(fn)); regression test in content.test.tsx. (2026-09-30)
 - **Regression tests:** apps/web-admin/src/pages/tenant/content/content.test.tsx
 
+### BUG-2026-033: Complaint status/note form: a note from an unassigned in-scope officer failed with 403
+- **Priority P2**, RPN 18 (severity 3, occurrence 3, detectability 2), status **verified**, category functional, found in review on 2026-10-01
+- Module: web-admin/pages/tenant/Complaints
+- **What:** The new status form sent note-only submissions through PATCH /complaints/:id, which requires complaints.manage or being the assigned officer; an in-scope but unassigned officer (who may add notes) got 'এই অভিযোগ আপনাকে দেওয়া হয়নি'. The status selector was also shown to officers who are not allowed to change the status.
+- **How to reproduce:** Officer opens an unassigned complaint of their upazila, types a note in the status form, presses 'আপডেট করুন' -> 403.
+- **Root cause:** the form sent note-only edits through PATCH, which needs manage or assignment; the UI did not know who may change status
+- **Fix:** API get() returns canUpdate (manage or assigned officer). Admin: status form (selector, assignment) and SMS buttons shown only when canUpdate; a note-only submit from the status form goes to POST /complaints/:id/notes; status change sends PATCH with the note. (2026-10-01)
+- **Regression tests:** apps/web-admin/src/pages/pages.test.tsx, apps/api/test/integration/complaints.test.ts, apps/api/test/integration/qa-bugs-026-035.test.ts
+
 ### BUG-2026-017: Public site: sanitiser produced mismatched </span> closing tags after an unsafe link in a post body
 - **Priority P2**, RPN 16 (severity 2, occurrence 2, detectability 4), status **fixed**, category security, found in unit-test on 2026-09-30
 - Module: web-public/lib/sanitize
@@ -235,6 +317,15 @@ Source of truth: `bugs/register.json`. Formula, lifecycle and rules: `bugs/READM
 - **Root cause:** Variant class name 'pill' collides with the status-pill class.
 - **Fix:** content.css: .tabs.pill::before{content:none}; regression in src/styles.test.ts. The design-system owner may move the rule into ds.css or rename the variant class. (2026-09-30)
 - **Regression tests:** apps/web-admin/src/styles.test.ts
+
+### BUG-2026-035: API integration tests flake on macOS: supertest's wildcard listener can share a port with a local 127.0.0.1 app, which answers 404
+- **Priority P2**, RPN 16 (severity 2, occurrence 4, detectability 2), status **verified**, category test-infra, found in integration-test on 2026-10-01
+- Module: apps/api/test/helpers/env.ts
+- **What:** supertest calls app.listen(0) on the wildcard address. On macOS a wildcard bind succeeds even when another local process (seen: a desktop app listening on 127.0.0.1:<ephemeral>) holds the same port on 127.0.0.1, and requests to 127.0.0.1 then reach that other process (text/plain 'Not found', no X-Request-Id/helmet headers). Setup steps in makeTenant/loginFlow fail with 'login/accept/mfa failed 404' in about 2 of 326 tests per full run, random files. Not related to product code.
+- **How to reproduce:** With another app listening on a 127.0.0.1 ephemeral port, run the API suite a few times: 1-2 random setup failures with a 404 whose headers are not Express's. Suggested fix: create the test server bound to 127.0.0.1 explicitly and pass the listening server to supertest.
+- **Root cause:** supertest listens on the wildcard address; macOS lets a 127.0.0.1-specific listener of another app share the port and win
+- **Fix:** test/helpers/env.ts makeEnv(): the app is served by an http.Server bound to 127.0.0.1 (unref'd) and that server is passed to supertest; 3 consecutive full API runs green afterwards. (2026-10-01)
+- **Regression tests:** apps/api/test/integration/site-server.test.ts, apps/api/test/integration/qa-bugs-026-035.test.ts
 
 ### BUG-2026-001: SiteConfig/Profile tenantId index defined twice, model init fails
 - **Priority P2**, RPN 15 (severity 3, occurrence 5, detectability 1), status **verified**, category reliability, found in unit-test on 2026-09-30 by dev (Claude)
@@ -259,6 +350,15 @@ Source of truth: `bugs/register.json`. Formula, lifecycle and rules: `bugs/READM
 - **Root cause:** CSS selectors listed input types explicitly and never the untyped default
 - **Fix:** extra.css now styles input:not([type]) together with the typed selectors (min-height 52px, 16px font, padding); e2e/smoke.py asserts every composer text field is at least 48 px high (2026-09-30)
 - **Regression tests:** apps/web-admin/src/styles.test.ts
+
+### BUG-2026-034: Public complaint form showed developer text to citizens (http://localhost:3000, raw exception names)
+- **Priority P3**, RPN 8 (severity 2, occurrence 2, detectability 2), status **verified**, category ui, found in review on 2026-10-01
+- Module: web-public/components/ComplaintBox
+- **What:** On a non-secure origin the voice recorder told citizens to open http://localhost:3000, and other microphone failures printed the raw error name and message (e.g. 'NotReadableError: Could not start audio source').
+- **How to reproduce:** Open the complaint page over plain http on a LAN address and press the record button.
+- **Root cause:** debug-time messages left in citizen-facing copy
+- **Fix:** ComplaintBox: secure-context message explains https:// and offers the written form; NotFound/no device and generic mic errors are friendly Bangla without exception names/messages. (2026-10-01)
+- **Regression tests:** apps/web-public/test/helpers.test.ts
 
 ### BUG-2026-012: Time of day: 3:30 pm was shown as দুপুর instead of বিকেল
 - **Priority P3**, RPN 6 (severity 1, occurrence 3, detectability 2), status **verified**, category ui, found in unit-test on 2026-09-30 by dev (Claude)

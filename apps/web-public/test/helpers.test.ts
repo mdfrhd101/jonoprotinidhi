@@ -9,6 +9,9 @@ import { sanitizeBody, splitAfterFirstBlock, textOf } from '../src/lib/sanitize'
 import { buildCsp, originOf } from '../src/lib/csp';
 import { activeNav } from '../src/lib/nav';
 import { defaultedPage } from '../src/lib/pages';
+import { bodyLimitFor, declaredTooLarge, readBodyCapped } from '../src/lib/bodyLimit';
+import { attachmentsSize, fitWithin, overTotal, plainDataUrl } from '../src/lib/attachments';
+import { readFileSync } from 'node:fs';
 
 describe('host resolution', () => {
   const FB = 'ndp3.jonoprotinidhi.localhost';
@@ -248,5 +251,57 @@ describe('server-to-API headers (BUG-2026-020)', () => {
     srv.close();
     expect(r.status).toBe(200);
     expect(JSON.parse(r.text)).toEqual({ host: 'ndp3.jonoprotinidhi.com', tok: 'k'.repeat(32) });
+  });
+});
+
+// BUG-2026-031: the proxy refuses an oversized body from Content-Length before reading it, and caps chunked bodies while reading
+describe('API proxy body limits (BUG-2026-031)', () => {
+  const stream = (chunks: number[]) => new ReadableStream<Uint8Array>({ start(c) { for (const n of chunks) c.enqueue(new Uint8Array(n).fill(65)); c.close(); } });
+  it('only the complaint submission gets the large limit', () => {
+    expect(bodyLimitFor('complaints')).toBe(13 * 1024 * 1024);
+    for (const p of ['otp/send', 'otp/verify', 'complaints/x']) expect(bodyLimitFor(p)).toBe(16 * 1024);
+  });
+  it('a declared Content-Length over the limit (or garbage) is refused up front; none declared is allowed', () => {
+    expect(declaredTooLarge(String(16 * 1024 + 1), 16 * 1024)).toBe(true);
+    expect(declaredTooLarge('abc', 16 * 1024)).toBe(true);
+    expect(declaredTooLarge('100', 16 * 1024)).toBe(false);
+    expect(declaredTooLarge(null, 16 * 1024)).toBe(false);
+  });
+  it('a body without Content-Length is counted while reading and dropped once it grows past the limit', async () => {
+    expect(await readBodyCapped(stream([10, 10]), 20)).toBe('A'.repeat(20));
+    expect(await readBodyCapped(stream([10, 10, 1]), 20)).toBeNull();
+    expect(await readBodyCapped(null, 20)).toBe('');
+  });
+});
+
+// BUG-2026-028: sizes are counted in the browser the way the API counts them; photos fit 1600 px
+describe('complaint attachments in the browser (BUG-2026-028)', () => {
+  it('photos are scaled to fit 1600 px on the long edge, never enlarged', () => {
+    expect(fitWithin(4000, 3000)).toEqual({ width: 1600, height: 1200 });
+    expect(fitWithin(1200, 4800)).toEqual({ width: 400, height: 1600 });
+    expect(fitWithin(800, 600)).toEqual({ width: 800, height: 600 });
+  });
+  it('the total counts files and voice as data URLs against the 12 MB cap', () => {
+    const f = (n: number) => ({ data: 'x'.repeat(n) });
+    expect(attachmentsSize([f(10), f(5)], 'y'.repeat(3))).toBe(18);
+    expect(overTotal([f(6 * 1024 * 1024), f(6 * 1024 * 1024)], null)).toBe(false);
+    expect(overTotal([f(6 * 1024 * 1024), f(6 * 1024 * 1024)], 'v')).toBe(true);
+  });
+  it('the voice data URL is sent with its bare type (Firefox adds "; codecs=opus")', () => {
+    expect(plainDataUrl('data:audio/ogg; codecs=opus;base64,T2dnUw==')).toBe('data:audio/ogg;base64,T2dnUw==');
+    expect(plainDataUrl('data:audio/webm;codecs=opus;base64,GkXfow==')).toBe('data:audio/webm;base64,GkXfow==');
+    expect(plainDataUrl('data:application/pdf;base64,JVBE')).toBe('data:application/pdf;base64,JVBE');
+  });
+});
+
+// BUG-2026-030 / BUG-2026-034: citizen-facing copy in the complaint form
+describe('complaint form copy (BUG-2026-030, BUG-2026-034)', () => {
+  const src = readFileSync(new URL('../src/components/ComplaintBox.tsx', import.meta.url), 'utf8');
+  it('never shows developer addresses or raw exception text to citizens', () => {
+    expect(src).not.toMatch(/localhost:3000/);
+    expect(src).not.toMatch(/setRecError\(`[^`]*\$\{(?:name|msg|err)/);
+  });
+  it('never invents a description for a voice-only complaint', () => {
+    expect(src).not.toContain('ভয়েস রেকর্ডের মাধ্যমে অভিযোগের বিবরণ প্রদান করা হয়েছে');
   });
 });

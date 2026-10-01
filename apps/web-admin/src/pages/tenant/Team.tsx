@@ -33,23 +33,24 @@ export function Team() {
 function Invite({ onClose }: { onClose: () => void }) {
   const { api, id } = useTenant();
   const qc = useQueryClient(); const toast = useToast();
-  const [f, setF] = useState({ name: '', phone: '', role: 'editor', upazilas: '' }); const [errs, setErrs] = useState<Record<string, string>>({}); const [busy, setBusy] = useState(false);
+  const [f, setF] = useState({ name: '', phone: '', role: 'editor', upazilas: '', password: '' }); const [errs, setErrs] = useState<Record<string, string>>({}); const [busy, setBusy] = useState(false);
   const save = async () => {
     setErrs({});
-    const body = { name: f.name, phone: f.phone, role: f.role, upazilas: f.role === 'officer' ? f.upazilas.split(',').map((s) => s.trim()).filter(Boolean) : [] };
+    const body = { name: f.name, phone: f.phone, role: f.role, upazilas: f.role === 'officer' ? f.upazilas.split(',').map((s) => s.trim()).filter(Boolean) : [], password: f.password || undefined };
     const v = inviteSchema.safeParse(body);
     if (!v.success) { const m: Record<string, string> = {}; for (const i of v.error.issues) m[String(i.path[0])] ??= i.message; setErrs(m); return; }
     setBusy(true);
-    try { await api.post('/team/invites', v.data); toast('আমন্ত্রণ SMS পাঠানো হয়েছে। প্রথম লগইনে ২-ধাপ যাচাই চালু করতে হবে।', 'ok'); await qc.invalidateQueries({ queryKey: ['tenant', id, 'team'] }); onClose(); }
+    try { await api.post('/team/invites', v.data); toast(f.password ? 'সদস্য যোগ করা হয়েছে।' : 'আমন্ত্রণ SMS পাঠানো হয়েছে। প্রথম লগইনে ২-ধাপ যাচাই চালু করতে হবে।', 'ok'); await qc.invalidateQueries({ queryKey: ['tenant', id, 'team'] }); onClose(); }
     catch (e) { setErrs(fieldMessages(e)); toast(e instanceof ApiFail ? e.message : 'কিছু ভুল হয়েছে', 'bad'); } finally { setBusy(false); }
   };
   return (
-    <Dialog title="নতুন সদস্য" open onClose={onClose} footer={<><button className="btn btn-g" onClick={onClose}>বাতিল</button><button className="btn btn-p" disabled={busy} onClick={save}>আমন্ত্রণ পাঠান</button></>}>
+    <Dialog title="নতুন সদস্য" open onClose={onClose} footer={<><button className="btn btn-g" onClick={onClose}>বাতিল</button><button className="btn btn-p" disabled={busy} onClick={save}>{f.password ? 'সদস্য যোগ করুন' : 'আমন্ত্রণ পাঠান'}</button></>}>
       <div className="form">
         <Field label="নাম" required error={errs.name}>{(p) => <input {...p} maxLength={80} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />}</Field>
         <Field label="মোবাইল নম্বর" required error={errs.phone}>{(p) => <input {...p} type="tel" inputMode="numeric" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder="০১XXXXXXXXX" />}</Field>
         <Field label="ভূমিকা">{(p) => <select {...p} value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })}><option value="editor">{ROLE_LABEL.editor}</option><option value="officer">{ROLE_LABEL.officer}</option></select>}</Field>
         {f.role === 'officer' && <Field label="দায়িত্বের উপজেলা (কমা দিয়ে)" required error={errs.upazilas}>{(p) => <input {...p} value={f.upazilas} onChange={(e) => setF({ ...f, upazilas: e.target.value })} placeholder="চরকান্দি, শালবাগান" />}</Field>}
+        <Field label="পাসওয়ার্ড (ঐচ্ছিক)" error={errs.password}>{(p) => <input {...p} type="password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} placeholder="ফাঁকা রাখলে SMS যাবে" />}</Field>
       </div>
     </Dialog>
   );

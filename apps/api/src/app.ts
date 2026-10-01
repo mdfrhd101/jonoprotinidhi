@@ -17,7 +17,7 @@ import { TenantScopeError } from './plugins/tenantScoped.js';
 import { authRoutes } from './routes/auth.js';
 import { superRoutes } from './routes/super.js';
 import { adminRoutes } from './routes/admin.js';
-import { publicRoutes, mediaFileRoute } from './routes/public.js';
+import { publicRoutes, mediaFileRoute, isPublicComplaintSubmit } from './routes/public.js';
 
 export function createApp(d: Deps, now: () => number = Date.now): { app: Express; services: Services } {
   const app = express();
@@ -26,7 +26,10 @@ export function createApp(d: Deps, now: () => number = Date.now): { app: Express
   app.set('trust proxy', 1);
   app.use(helmet());
   app.use(cors({ origin: (origin, cb) => cb(null, !origin || d.config.corsOrigins.includes(origin)), credentials: true, allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF'] }));
-  app.use(express.json({ limit: '1mb' }));
+  // The public complaint submission (attachments) is the one large body; its own parser runs inside the public router,
+  // after host resolution and a rate limit (BUG-2026-031). Everything else keeps the 1 MB limit.
+  const json = express.json({ limit: '1mb' });
+  app.use((req, res, next) => (isPublicComplaintSubmit(req) ? next() : json(req, res, next)));
   app.use(cookieParser());
   // NoSQL operator injection guard, applied before any route sees the body/query
   app.use((req, _res, next) => { if (req.body) req.body = stripOperators(req.body); for (const k of Object.keys(req.query)) if (k.startsWith('$') || k.includes('.')) delete (req.query as Record<string, unknown>)[k]; next(); });
@@ -77,6 +80,8 @@ const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   if (err?.type === 'entity.too.large') return void res.status(413).json({ error: { code: 'TOO_LARGE', message: 'অনুরোধ অনেক বড়' } });
   if (err?.code === 11000) return void res.status(409).json({ error: { code: 'DUPLICATE', message: 'এই তথ্য আগে থেকেই আছে' } });
   if (err?.name === 'CastError') return void res.status(404).json({ error: { code: 'NOT_FOUND', message: 'পাওয়া যায়নি' } });
+  // BUG-2026-030: a document the model refuses is bad input, not a server fault (no field values echoed back)
+  if (err instanceof mongoose.Error.ValidationError) return void res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: 'ইনপুট সঠিক নয়', details: { fieldErrors: Object.fromEntries(Object.keys(err.errors).map((k) => [k, ['সঠিক নয়']])), formErrors: [] } } });
   if (err instanceof TenantScopeError) logger.error({ err: err.message, path: req.path }, 'TENANT SCOPE VIOLATION');
   else logger.error({ err: err?.message, stack: err?.stack, path: req.path }, 'unhandled error');
   res.status(500).json({ error: { code: 'INTERNAL', message: 'সার্ভারে সমস্যা হয়েছে' } });

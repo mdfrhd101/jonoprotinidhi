@@ -5,6 +5,7 @@ import { Membership, User, type TenantDoc } from '../models/index.js';
 import { randomToken, sha256 } from '../lib/crypto.js';
 import { audit } from '../lib/audit.js';
 import { isObjectId } from '../lib/sanitize.js';
+import { hashPassword } from '../lib/password.js';
 
 /* Team management for one tenant. Membership is platform-level (a user can belong to several tenants),
    so every query here is explicitly scoped by the tenant id. */
@@ -21,18 +22,31 @@ export class TeamService {
     });
   }
 
-  async invite(tenant: TenantDoc, input: { name: string; phone: string; role: 'editor' | 'officer'; upazilas: string[] }, invitedBy: unknown) {
+  async invite(tenant: TenantDoc, input: { name: string; phone: string; role: 'editor' | 'officer'; upazilas: string[]; password?: string }, invitedBy: unknown) {
     const phone = toE164Bd(input.phone);
     let user = await User.findOne({ phone });
-    if (!user) user = await User.create({ name: input.name, phone, status: 'invited' });
-    const existing = await Membership.findOne({ userId: user._id, tenantId: tenant._id });
+    // Every conflict is decided before anything is written (BUG-2026-026)
+    const existing = user ? await Membership.findOne({ userId: user._id, tenantId: tenant._id }) : null;
     if (existing && existing.status !== 'removed') throw ApiError.conflict('ALREADY_MEMBER', 'এই নম্বরের সদস্য আগেই আছেন');
+    // A User is platform-wide (it may belong to other MPs' sites): a tenant owner may never set its password or status.
+    if (user && input.password) throw ApiError.conflict('ACCOUNT_EXISTS', 'এই নম্বরে আগে থেকেই একটি অ্যাকাউন্ট আছে। পাসওয়ার্ড ছাড়া আমন্ত্রণ পাঠান, উনি নিজের পাসওয়ার্ডেই ঢুকবেন');
+
+    const withPassword = !user && !!input.password;
+    if (!user) {
+      const passwordHash = withPassword ? await hashPassword(input.password!, { memory: this.d.config.PW_MEMORY_KIB, passes: this.d.config.PW_PASSES }) : undefined;
+      user = await User.create({ name: input.name, phone, status: withPassword ? 'active' : 'invited', passwordHash });
+    }
+
     const token = randomToken(24);
-    const fields = { role: input.role, scope: { upazilas: input.role === 'officer' ? input.upazilas : [] }, status: 'invited' as const, invitedBy: invitedBy as never, inviteTokenHash: sha256(token), inviteExpiresAt: new Date(this.now() + 72 * 3600_000) };
+    const mStatus: 'active' | 'invited' = withPassword ? 'active' : 'invited';
+    const fields = { role: input.role, scope: { upazilas: input.role === 'officer' ? input.upazilas : [] }, status: mStatus, invitedBy: invitedBy as never, inviteTokenHash: withPassword ? undefined : sha256(token), inviteExpiresAt: withPassword ? undefined : new Date(this.now() + 72 * 3600_000) };
     const m = existing ? await Membership.findOneAndUpdate({ _id: existing._id }, { $set: fields }, { new: true }) : await Membership.create({ userId: user._id, tenantId: tenant._id, ...fields });
-    await this.d.sms.send({ tenantId: tenant._id, to: phone, text: `জনপ্রতিনিধি: আপনাকে ${tenant.mp.name}-এর সাইটে যোগ করা হয়েছে। লিংক: https://admin.${this.d.config.PLATFORM_DOMAIN}/invite/${token}`, purpose: 'invite' });
-    await audit({ action: 'team.invite', tenantId: tenant._id, entity: { type: 'membership', id: m!._id, label: input.name }, diff: { after: { role: input.role, upazilas: input.upazilas } } });
-    return { id: String(m!._id), inviteToken: this.d.config.isProd ? undefined : token };
+
+    if (!withPassword) {
+      await this.d.sms.send({ tenantId: tenant._id, to: phone, text: `জনপ্রতিনিধি: আপনাকে ${tenant.mp.name}-এর সাইটে যোগ করা হয়েছে। লিংক: https://admin.${this.d.config.PLATFORM_DOMAIN}/invite/${token}`, purpose: 'invite' });
+    }
+    await audit({ action: 'team.invite', tenantId: tenant._id, entity: { type: 'membership', id: m!._id, label: input.name }, diff: { after: { role: input.role, upazilas: input.upazilas, status: mStatus, ...(withPassword ? { passwordSetAtCreation: true } : {}) } } });
+    return { id: String(m!._id), inviteToken: (this.d.config.isProd || withPassword) ? undefined : token };
   }
 
   async remove(tenant: TenantDoc, membershipId: string) {

@@ -4,8 +4,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { complaintTransitions, type ComplaintStatus } from '@jonoprotinidhi/shared';
 import { ApiFail } from '../../api';
 import { useTenant } from '../../tenant';
-import { Button, Chips, DataTable, EmptyState, ErrorBox, Field, Icon, Loading, PageHead, Pager, PillOf, ReasonDialog, SearchInput, Timeline, useToast, type Column } from '../../components';
+import { Button, Chips, DataTable, Dialog, EmptyState, ErrorBox, Field, Icon, Loading, PageHead, Pager, PillOf, ReasonDialog, SearchInput, Timeline, useToast, type Column } from '../../components';
 import { COMPLAINT_STATUS_LABEL, bnDate, bnDateTime, toBn } from '../../format';
+import { useSafeObjectUrl } from '../../safeMedia';
 
 const STATUS_CHIPS: Array<[string, string]> = [['open', 'খোলা'], ['new', 'নতুন'], ['mine', 'আমার'], ['late', '৭ দিনের বেশি'], ['solved', 'সমাধান'], ['', 'সব']];
 
@@ -28,7 +29,7 @@ export default function Complaints() {
     const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'complaints-report.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   };
   const cols: Array<Column<any>> = [
-    { key: 'c', header: 'অভিযোগ', primary: true, cell: (c) => <><b>{c.category}</b><small>{c.trackingId} · {bnDate(c.createdAt)}</small></> },
+    { key: 'c', header: 'অভিযোগ', primary: true, cell: (c) => <><b>{c.category}</b><small>{c.trackingId} · {bnDate(c.createdAt)}{c.hasVoice ? ' · ভয়েস' : ''}{c.fileCount ? ` · ${toBn(c.fileCount)}টি ফাইল` : ''}</small></> },
     { key: 'a', header: 'এলাকা', cell: (c) => <span>{c.union}<small>{c.upazila}</small></span> },
     { key: 's', header: 'অবস্থা', cell: (c) => <><PillOf map={COMPLAINT_STATUS_LABEL} k={c.status} />{c.overdue && <> <span className="pill bad plain">দেরি</span></>}</> },
   ];
@@ -59,15 +60,18 @@ function Detail({ cid }: { cid: string }) {
   const { api, id, can, info } = useTenant();
   const qc = useQueryClient(); const toast = useToast();
   const [note, setNote] = useState(''); const [askPii, setAskPii] = useState(false);
+  const [statusDraft, setStatusDraft] = useState<string | null>(null);
+  const [statusNote, setStatusNote] = useState('');
   const [pii, setPii] = useState<{ name: string; phone: string } | null>(null);
+  const [previewIdx, setPreviewIdx] = useState<number | null>(null);
   const c = useQuery({ queryKey: ['tenant', id, 'complaint', cid], queryFn: () => api.get(`/complaints/${cid}`) });
   const team = useQuery({ queryKey: ['tenant', id, 'team'], enabled: can('team.manage'), queryFn: () => api.get<any[]>('/team') });
   useEffect(() => () => setPii(null), [cid]); // identity is never kept when the officer moves on
 
   const refresh = () => qc.invalidateQueries({ queryKey: ['tenant', id] });
   const fail = (e: unknown) => toast(e instanceof ApiFail ? e.message : 'কিছু ভুল হয়েছে', 'bad');
-  const patch = useMutation({ mutationFn: (b: object) => api.patch(`/complaints/${cid}`, b), onSuccess: () => { toast('সংরক্ষণ হয়েছে', 'ok'); refresh(); }, onError: fail });
-  const addNote = useMutation({ mutationFn: () => api.post(`/complaints/${cid}/notes`, { text: note }), onSuccess: () => { setNote(''); toast('নোট যোগ হয়েছে', 'ok'); refresh(); }, onError: fail });
+  const patch = useMutation({ mutationFn: (b: object) => api.patch(`/complaints/${cid}`, b), onSuccess: () => { setStatusDraft(null); setStatusNote(''); toast('সংরক্ষণ হয়েছে', 'ok'); refresh(); }, onError: fail });
+  const addNote = useMutation({ mutationFn: (text: string) => api.post(`/complaints/${cid}/notes`, { text }), onSuccess: () => { toast('নোট যোগ হয়েছে', 'ok'); refresh(); }, onError: fail });
   const sms = useMutation({ mutationFn: (templateKey: string) => api.post(`/complaints/${cid}/sms`, { templateKey }), onSuccess: (r: any) => { toast(r.sent ? 'SMS পাঠানো হয়েছে' : 'SMS পাঠানো যায়নি', r.sent ? 'ok' : 'bad'); refresh(); }, onError: fail });
 
   if (c.isLoading) return <Loading />;
@@ -76,12 +80,34 @@ function Detail({ cid }: { cid: string }) {
   const next = complaintTransitions[d.status as ComplaintStatus] ?? [];
   const canManage = can('complaints.manage');
   const officers = (team.data ?? []).filter((m) => m.role === 'officer' && m.status === 'active' && m.scope.includes(d.upazila));
-  const canAct = canManage || info.role === 'officer';
+  // BUG-2026-033: status (and SMS) only for those the API lets change it: managers and the assigned officer
+  const canUpdate = canManage || !!d.canUpdate;
+  const previewFile = previewIdx !== null && d?.files ? d.files[previewIdx] : null;
+
   return (
     <div className="card">
       <div className="sec-t" style={{ marginBottom: 6 }}><span className="muted num" style={{ fontSize: 13.5 }}>{d.trackingId} · {channelLabel(d.channel)}</span><PillOf map={COMPLAINT_STATUS_LABEL} k={d.status} /></div>
       <h2 className="h2" style={{ fontSize: '1.2rem' }}>{d.category}</h2>
-      <p style={{ margin: '8px 0', lineHeight: 1.8 }}>{d.description}</p>
+      {d.description ? <p style={{ margin: '8px 0', lineHeight: 1.8 }}>{d.description}</p>
+        : <p className="muted" style={{ margin: '8px 0', fontStyle: 'italic' }}>{d.hasVoice ? 'শুধু ভয়েস অভিযোগ (লিখিত বিবরণ নেই)' : 'লিখিত বিবরণ নেই'}</p>}
+      {d.voiceNote?.audioData && (
+        <div style={{ margin: '14px 0', padding: '12px 14px', background: 'rgba(239,234,224,0.06)', borderRadius: 6, border: '1px solid rgba(199,163,90,0.3)' }}>
+          <p style={{ margin: '0 0 8px', fontWeight: 600, fontSize: 14, color: 'var(--brass-2, #c7a35a)' }}>
+            🎙️ নাগরিকের ভয়েস রেকর্ড {d.voiceNote.durationSec ? `(${toBn(d.voiceNote.durationSec)} সেকেন্ড)` : ''}
+          </p>
+          <AudioPlayer src={d.voiceNote.audioData} />
+        </div>
+      )}
+      {d.files && d.files.length > 0 && (
+        <div style={{ margin: '14px 0', padding: '12px 14px', background: 'rgba(239,234,224,0.06)', borderRadius: 6, border: '1px solid rgba(199,163,90,0.3)' }}>
+          <p style={{ margin: '0 0 10px', fontWeight: 600, fontSize: 14, color: 'var(--brass-2, #c7a35a)' }}>
+            📎 সংযুক্ত ফাইল ({toBn(d.files.length)}টি)
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '10px' }}>
+            {d.files.map((file: any, idx: number) => <FileThumb key={idx} file={file} onOpen={() => setPreviewIdx(idx)} />)}
+          </div>
+        </div>
+      )}
       <dl className="dl" style={{ margin: '12px 0' }}>
         <dt>এলাকা</dt><dd>{d.place ? `${d.place}, ` : ''}{d.union}, {d.upazila}</dd>
         <dt>গৃহীত</dt><dd>{bnDateTime(d.createdAt)}</dd>
@@ -97,18 +123,31 @@ function Detail({ cid }: { cid: string }) {
                 : <div className="pii"><span>নাম ও নম্বর শুধু দায়িত্বপ্রাপ্ত কর্মকর্তা দেখতে পারেন।{info.viaSuperAdmin ? ' Super Admin-ও দেখতে পারেন না।' : ''}</span></div>}
       </section>
 
-      {canAct && (
-        <div className="frow" style={{ marginTop: 16 }}>
-          <Field label="অবস্থা">{(p) => <select {...p} value={d.status} onChange={(e) => e.target.value !== d.status && patch.mutate({ status: e.target.value, version: d.version })}>
-            <option value={d.status}>{COMPLAINT_STATUS_LABEL[d.status]?.[0]}</option>{next.map((s) => <option key={s} value={s}>{COMPLAINT_STATUS_LABEL[s]?.[0]}</option>)}</select>}</Field>
-          {canManage && <Field label="দায়িত্ব দিন">{(p) => <select {...p} value={d.assignedTo ?? ''} onChange={(e) => patch.mutate({ assignedTo: e.target.value || null, version: d.version })}>
-            <option value="">— কেউ না —</option>{officers.map((o) => <option key={o.userId} value={o.userId}>{o.name}</option>)}</select>}</Field>}
-        </div>
+      {canUpdate && (
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          const text = statusNote.trim();
+          if (statusDraft && statusDraft !== d.status) patch.mutate({ version: d.version, status: statusDraft, ...(text ? { note: text } : {}) });
+          else if (text.length >= 2) addNote.mutate(text, { onSuccess: () => setStatusNote('') }); // a note alone needs no status rights
+        }} style={{ marginTop: 16, background: 'rgba(239,234,224,0.04)', padding: '12px 14px', borderRadius: 6, border: '1px solid var(--line-light)' }}>
+          <div className="frow">
+            <Field label="অবস্থা পরিবর্তন করুন">{(p) => <select {...p} value={statusDraft ?? d.status} onChange={(e) => setStatusDraft(e.target.value)}>
+              <option value={d.status}>{COMPLAINT_STATUS_LABEL[d.status]?.[0]}</option>{next.map((s) => <option key={s} value={s}>{COMPLAINT_STATUS_LABEL[s]?.[0]}</option>)}</select>}</Field>
+            {canManage && <Field label="দায়িত্ব দিন (সরাসরি পরিবর্তন)">{(p) => <select {...p} value={d.assignedTo ?? ''} onChange={(e) => patch.mutate({ assignedTo: e.target.value || null, version: d.version })}>
+              <option value="">— কেউ না —</option>{officers.map((o) => <option key={o.userId} value={o.userId}>{o.name}</option>)}</select>}</Field>}
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <Field label="নোট (নাগরিক দেখবেন না)">{(p) => <textarea {...p} maxLength={600} style={{ minHeight: 60 }} value={statusNote} onChange={(e) => setStatusNote(e.target.value)} placeholder="স্ট্যাটাস পরিবর্তনের কারণ বা কোনো বার্তা..." />}</Field>
+            {((statusDraft && statusDraft !== d.status) || statusNote.trim().length > 0) && (
+              <button type="submit" className="btn btn-p" style={{ marginTop: 10 }} disabled={patch.isPending || addNote.isPending}>আপডেট করুন</button>
+            )}
+          </div>
+        </form>
       )}
-      {canAct && !d.anonymous && <div className="acts" style={{ marginTop: 8 }}>{(['received', 'verify', 'progress', 'solved'] as const).map((t) => <button key={t} type="button" className="btn btn-g btn-s" disabled={sms.isPending} onClick={() => sms.mutate(t)}>SMS: {SMS_LABEL[t]}</button>)}</div>}
+      {canUpdate && !d.anonymous && <div className="acts" style={{ marginTop: 8 }}>{(['received', 'verify', 'progress', 'solved'] as const).map((t) => <button key={t} type="button" className="btn btn-g btn-s" disabled={sms.isPending} onClick={() => sms.mutate(t)}>SMS: {SMS_LABEL[t]}</button>)}</div>}
 
       {(can('complaints.note') || canManage) && (
-        <form onSubmit={(e) => { e.preventDefault(); if (note.trim().length >= 2) addNote.mutate(); }} style={{ marginTop: 16 }}>
+        <form onSubmit={(e) => { e.preventDefault(); if (note.trim().length >= 2) addNote.mutate(note.trim(), { onSuccess: () => setNote('') }); }} style={{ marginTop: 16 }}>
           <Field label="ভেতরের নোট (নাগরিক দেখবেন না)">{(p) => <textarea {...p} maxLength={600} style={{ minHeight: 70 }} value={note} onChange={(e) => setNote(e.target.value)} />}</Field>
           <button className="btn btn-p" style={{ marginTop: 8 }} disabled={note.trim().length < 2 || addNote.isPending}>নোট যোগ করুন</button>
         </form>
@@ -120,6 +159,10 @@ function Detail({ cid }: { cid: string }) {
         onConfirm={async (purpose) => { setPii(await api.post(`/complaints/${cid}/pii-view`, { purpose })); refresh(); }}>
         <p style={{ margin: 0 }}>শুধু অভিযোগের কাজে ব্যবহার করবেন। প্রচারণা বা অন্য কাজে ব্যবহার নিষেধ। আপনি যে দেখেছেন, সেটা কারণসহ অডিট লগে রেকর্ড হবে।</p>
       </ReasonDialog>
+
+      {previewFile && (
+        <FilePreview file={previewFile} onClose={() => setPreviewIdx(null)} nav={d.files.length > 1 ? { prev: previewIdx! > 0 ? () => setPreviewIdx((i) => (i ?? 0) - 1) : undefined, next: previewIdx! < d.files.length - 1 ? () => setPreviewIdx((i) => (i ?? 0) + 1) : undefined } : undefined} />
+      )}
     </div>
   );
 }
@@ -138,3 +181,58 @@ function eventLabel(e: { type: string; data?: any }): string {
   }
 }
 void toBn;
+
+function AudioPlayer({ src }: { src: string }) {
+  const url = useSafeObjectUrl(src, 'audio');
+  if (!url) return <p className="muted" style={{ margin: 0 }}>ভয়েস রেকর্ডটি চালানো যাচ্ছে না।</p>;
+  return <audio controls preload="metadata" src={url} style={{ width: '100%', height: 38 }} />;
+}
+
+type ComplaintFile = { name: string; mimeType: string; size: number; data: string };
+const isImage = (f: ComplaintFile) => f.mimeType?.startsWith('image/');
+
+function FileThumb({ file, onOpen }: { file: ComplaintFile; onOpen: () => void }) {
+  const img = isImage(file);
+  const url = useSafeObjectUrl(img ? file.data : null, 'image');
+  return (
+    <div style={{ padding: '8px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.08)' }}>
+      {img ? (
+        <button type="button" onClick={onOpen} style={{ all: 'unset', cursor: 'pointer', display: 'block', width: '100%' }}>
+          {url ? <img src={url} alt={file.name} style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '4px', marginBottom: '6px' }} />
+            : <span style={{ display: 'flex', height: '100px', alignItems: 'center', justifyContent: 'center', fontSize: '32px' }}>🖼️</span>}
+          <p style={{ margin: 0, fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{file.name}</p>
+          <small style={{ color: 'var(--brass-2)', fontSize: '11px' }}>ছবি দেখুন (ক্লিক)</small>
+        </button>
+      ) : (
+        <button type="button" onClick={onOpen} style={{ all: 'unset', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100px', padding: '6px', width: '100%', boxSizing: 'border-box' }}>
+          <span style={{ fontSize: '32px' }}>📄</span>
+          <p style={{ margin: '4px 0 2px', fontSize: '12px', textAlign: 'center', wordBreak: 'break-all', maxHeight: '36px', overflow: 'hidden' }}>{file.name}</p>
+          <small style={{ color: 'var(--brass-2)', fontSize: '11px' }}>PDF দেখুন (ক্লিক)</small>
+        </button>
+      )}
+    </div>
+  );
+}
+
+function FilePreview({ file, onClose, nav }: { file: ComplaintFile; onClose: () => void; nav?: { prev?: () => void; next?: () => void } }) {
+  const img = isImage(file);
+  const url = useSafeObjectUrl(file.data, img ? 'image' : 'pdf');
+  return (
+    <Dialog title={file.name} open onClose={onClose} size="wide" footer={<>
+      <div style={{ display: 'flex', gap: 8, marginRight: 'auto' }}>
+        {nav && <>
+          <button type="button" className="btn btn-g" disabled={!nav.prev} onClick={nav.prev}>আগেরটি</button>
+          <button type="button" className="btn btn-g" disabled={!nav.next} onClick={nav.next}>পরেরটি</button>
+        </>}
+      </div>
+      <button type="button" className="btn btn-g" onClick={onClose}>বন্ধ করুন</button>
+      {url && <a href={url} download={file.name} className="btn btn-p">ডাউনলোড করুন</a>}
+    </>}>
+      <div style={{ textAlign: 'center', background: 'rgba(0,0,0,0.3)', borderRadius: 4, overflow: 'hidden' }}>
+        {!url ? <p style={{ padding: 24, margin: 0 }}>ফাইলটি খোলা যাচ্ছে না।</p>
+          : img ? <img src={url} alt={file.name} style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain', display: 'block', margin: '0 auto' }} />
+            : <iframe src={url} style={{ width: '100%', height: '70vh', border: 'none', display: 'block' }} title={file.name} />}
+      </div>
+    </Dialog>
+  );
+}

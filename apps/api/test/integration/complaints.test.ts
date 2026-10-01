@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { startDb, stopDb, clearDb } from '../helpers/db.js';
 import { makeEnv, makeSuperAdmin, makeSupport, makeTenant, api, admin, bearer, type TestEnv, type Tenant } from '../helpers/env.js';
 import mongoose from 'mongoose';
@@ -75,7 +75,7 @@ describe('submitting a complaint (FR-CMP-01..05)', () => {
 
   it('validates description length, category, unknown keys and NoSQL operator probes', async () => {
     expect((await submit({ description: 'ছোট' })).status).toBe(400);
-    expect((await submit({ description: 'ক'.repeat(1001) })).status).toBe(400);
+    expect((await submit({ description: 'ক'.repeat(10001) })).status).toBe(400);
     expect((await submit({ category: 'নেই এমন বিষয়' })).status).toBe(422);
     expect((await submit({ status: 'solved' })).status).toBe(400);
     expect((await submit({ upazila: { $ne: '' } })).status).toBe(400);
@@ -499,5 +499,138 @@ describe('abuse controls (MIS-03)', () => {
     const used = await total();
     for (let i = 0; i < 5; i++) await inT(() => env.deps.sms.send({ tenantId: t.id, to: `017130003${String(i).padStart(2, '0')}`, text: 'পরীক্ষা', purpose: 'status', cap: used + 1 }));
     expect(await total()).toBe(used + 1);
+  });
+});
+
+/* ---------- voice notes and attachments (1 Oct 2026 work) ---------- */
+describe('complaint attachments: decoded, checked and rebuilt on the server', () => {
+  const b64url = (mime: string, bytes: Buffer) => `data:${mime};base64,${bytes.toString('base64')}`;
+  const webm = Buffer.concat([Buffer.from([0x1a, 0x45, 0xdf, 0xa3]), Buffer.from('voice-bytes')]);
+  const ogg = Buffer.concat([Buffer.from('OggS'), Buffer.alloc(20, 1)]);
+  const pdf = Buffer.from('%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n');
+  const voice = (audioData = b64url('audio/webm;codecs=opus', webm), durationSec = 12) => ({ audioData, durationSec });
+  const file = (mimeType: string, data: string, name = 'proof.bin', size = 100) => ({ name, mimeType, size, data });
+  const raw = (trackingId: string) => mongoose.connection.db!.collection('complaints').findOne({ trackingId });
+
+  // BUG-2026-027: nothing a citizen sends is stored or rendered verbatim
+  it('refuses scripts, HTML and type mismatches; stores nothing (BUG-2026-027)', async () => {
+    const html = Buffer.from('<script>alert(document.cookie)</script>');
+    const bad: Array<[Record<string, unknown>, number]> = [
+      [{ files: [file('application/pdf', 'javascript:alert(1)')] }, 400],
+      [{ files: [file('application/pdf', b64url('text/html', html))] }, 422], // declared PDF, data says HTML
+      [{ files: [file('application/pdf', b64url('application/pdf', html))] }, 422], // says PDF, bytes are not
+      [{ files: [file('image/png', b64url('image/png', Buffer.from('<svg onload=alert(1)>')))] }, 422], // not decodable as an image
+      [{ files: [file('image/png', 'data:image/png;base64,@@@@')] }, 422], // not base64
+      [{ voiceNote: voice(b64url('audio/webm', html)) }, 422], // audio type, wrong bytes
+      [{ voiceNote: voice(b64url('text/html', html)) }, 422],
+      [{ voiceNote: voice(b64url('audio/ogg', webm)) }, 422], // magic bytes must match the declared container
+    ];
+    for (const [o, code] of bad) {
+      const r = await submit(o);
+      expect(r.status, JSON.stringify(o).slice(0, 80)).toBe(code);
+      expect(r.status).not.toBe(500);
+    }
+    expect(await inT(() => Complaint.countDocuments({}))).toBe(0);
+  });
+
+  it('photos are re-encoded to WebP (max 1600 px, EXIF dropped); PDFs and voice are rebuilt from their checked bytes (BUG-2026-027)', async () => {
+    const sharp = (await import('sharp')).default;
+    const jpg = await sharp({ create: { width: 3200, height: 1800, channels: 3, background: '#557799' } }).jpeg().withMetadata({ exif: { IFD0: { Artist: 'Secret Person' } } }).toBuffer();
+    const r = await submit({ voiceNote: voice(), files: [file('image/jpeg', b64url('image/jpeg', jpg), 'road.jpeg', jpg.length), file('application/pdf', b64url('application/pdf', pdf), 'application.pdf', pdf.length)] });
+    expect(r.status).toBe(201);
+    const doc = await raw(r.body.trackingId);
+    const [img, doc2] = doc!.files;
+    expect(img).toMatchObject({ name: 'road.webp', mimeType: 'image/webp' });
+    expect(img.data).toMatch(/^data:image\/webp;base64,/);
+    const out = Buffer.from(img.data.split(',')[1], 'base64');
+    const meta = await sharp(out).metadata();
+    expect([meta.format, meta.width, meta.height, meta.exif]).toEqual(['webp', 1600, 900, undefined]);
+    expect(img.size).toBe(out.length);
+    expect(doc2).toEqual({ name: 'application.pdf', mimeType: 'application/pdf', size: pdf.length, data: b64url('application/pdf', pdf) });
+    expect(doc!.voiceNote).toEqual({ audioData: b64url('audio/webm', webm), durationSec: 12 }); // codec parameter dropped
+    // Firefox records Ogg with a space in the type parameter
+    expect((await submit({ voiceNote: voice(`data:audio/ogg; codecs=opus;base64,${ogg.toString('base64')}`) })).status).toBe(201);
+  });
+
+  // BUG-2026-028: the total is capped well below MongoDB's 16 MB document limit, with a Bangla field error (never a 500)
+  it('a submission whose attachments together exceed the cap gets 400 with a Bangla field error (BUG-2026-028)', async () => {
+    const big = Buffer.concat([pdf, Buffer.alloc(4_900_000, 0x20)]); // 2 x 6.5 MB of base64 > the 12 MB cap, still < the 13 MB body limit
+    const r = await submit({ files: [file('application/pdf', b64url('application/pdf', big), 'a.pdf', big.length), file('application/pdf', b64url('application/pdf', big), 'b.pdf', big.length)] });
+    expect(r.status).toBe(400);
+    expect(r.body.error.details.fieldErrors.files[0]).toMatch(/সব ছবি, PDF ও ভয়েস মিলিয়ে/);
+    expect((await submit({ voiceNote: { ...voice(), durationSec: 181 } })).status).toBe(400); // same 3-minute limit as the form
+  });
+
+  // BUG-2026-029: the inbox and the export never carry payloads; the detail view does
+  it('list and CSV export carry only attachment metadata; the detail view carries the payloads (BUG-2026-029)', async () => {
+    const r = await submit({ voiceNote: voice(), files: [file('application/pdf', b64url('application/pdf', pdf), 'application.pdf', pdf.length)] });
+    await submit();
+    const l = await list(t.owner);
+    expect(JSON.stringify(l.body)).not.toMatch(/base64|audioData/);
+    const item = l.body.items.find((c: { trackingId: string }) => c.trackingId === r.body.trackingId);
+    expect(item).toMatchObject({ hasVoice: true, voiceSec: 12, fileCount: 1, fileMeta: [{ name: 'application.pdf', mimeType: 'application/pdf', size: pdf.length }] });
+    expect(l.body.items.find((c: { trackingId: string }) => c.trackingId !== r.body.trackingId)).toMatchObject({ hasVoice: false, fileCount: 0 });
+    const d = await get(t.owner, item.id);
+    expect(d.body.voiceNote.audioData).toBe(b64url('audio/webm', webm));
+    expect(d.body.files[0].data).toBe(b64url('application/pdf', pdf));
+    expect(JSON.stringify((await patch(t.owner, item.id, { status: 'verify' })).body)).not.toContain('base64');
+    expect((await api(env).get(admin(t, '/complaints/export.csv')).set(bearer(t.owner))).text).not.toMatch(/base64|audio/);
+  });
+
+  // BUG-2026-030: a voice-only complaint keeps an empty description; a model validation error is a 400, not a 500
+  it('voice-only complaint stores an empty description; Mongoose validation errors map to 400 (BUG-2026-030)', async () => {
+    const r = await submit({ description: '', voiceNote: voice() });
+    expect(r.status).toBe(201);
+    expect((await raw(r.body.trackingId))!.description).toBe('');
+    expect((await get(t.owner, await idOf(r.body.trackingId))).body).toMatchObject({ description: '', hasVoice: true });
+    const spy = vi.spyOn(Complaint, 'create').mockRejectedValueOnce(new mongoose.Error.ValidationError() as never);
+    const bad = await submit();
+    spy.mockRestore();
+    expect(bad.status).toBe(400);
+    expect(bad.body.error.code).toBe('VALIDATION_FAILED');
+  });
+
+  // BUG-2026-031: only the public complaint route reads a large body, and only after host resolution and a per-IP limit
+  it('the large body limit applies to the public complaint route only, after host resolution and a rate limit (BUG-2026-031)', async () => {
+    const pad = 'x'.repeat(1_200_000); // > the 1 MB default, < the complaint limit
+    expect((await api(env).post(admin(t, '/complaints')).send({ pad })).status).toBe(413); // admin route: default limit, before auth
+    expect((await api(env).post('/api/v1/public/otp/send').set('Host', t.host).send({ pad })).status).toBe(413);
+    expect((await api(env).post('/api/v1/auth/login').send({ pad })).status).toBe(413);
+    expect((await submit({ pad }, 'unknown.example')).status).toBe(404); // unknown site: refused before the body is parsed
+    expect((await submit({ pad })).status).toBe(400); // parsed (strict schema refuses the extra key), not 413
+    await fresh('rlbody', true);
+    const codes: number[] = [];
+    for (let i = 0; i < 11; i++) codes.push((await api(env).post('/api/v1/public/complaints').set('Host', t.host).send({ junk: i })).status);
+    expect(codes.slice(0, 10).every((c) => c === 400)).toBe(true);
+    expect(codes[10]).toBe(429); // the pre-parse limit counts even requests the schema rejects
+  });
+
+  // BUG-2026-032: retention removes voice and files too, anonymous or not
+  it('retention job removes voice notes and attachments, including on anonymous complaints (BUG-2026-032)', async () => {
+    const att = { voiceNote: voice(), files: [file('application/pdf', b64url('application/pdf', pdf), 'a.pdf', pdf.length)] };
+    const named = await assigned(att);
+    const anon = (await submit({ ...att, anonymous: true, name: '', phone: '' })).body.trackingId;
+    const anonId = await idOf(anon);
+    for (const id of [named.id, anonId]) for (const s of ['verify', 'progress', 'solved', 'closed']) await patch(t.owner, id, { status: s });
+    env.clock.now += 13 * 30 * 86400_000;
+    expect(await env.services.complaints.purgeExpiredPii()).toBe(1); // identity purges (the anonymous one has none)
+    for (const tid of [named.trackingId, anon]) {
+      const doc = await raw(tid);
+      expect(doc!.voiceNote).toBeUndefined();
+      expect(doc!.files ?? []).toEqual([]);
+      expect(doc!.category).toBeTruthy(); // the record stays for statistics
+    }
+    expect(await env.services.complaints.purgeExpiredPii()).toBe(0);
+  });
+
+  // BUG-2026-033: who may change status is decided by the API and exposed to the UI; a note needs no assignment
+  it('detail tells the UI who may change status; an unassigned in-scope officer can still add a note (BUG-2026-033)', async () => {
+    const id = await idOf((await submit()).body.trackingId);
+    expect((await get(t.officer, id)).body.canUpdate).toBe(false);
+    expect((await get(t.owner, id)).body.canUpdate).toBe(true);
+    expect((await patch(t.officer, id, { note: 'নোট' + ' দিলাম' })).status).toBe(403);
+    expect((await api(env).post(admin(t, `/complaints/${id}/notes`)).set(bearer(t.officer)).send({ text: 'সরেজমিনে দেখব' })).status).toBe(201);
+    await patch(t.owner, id, { assignedTo: t.officerId });
+    expect((await get(t.officer, id)).body.canUpdate).toBe(true);
   });
 });

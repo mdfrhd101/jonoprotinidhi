@@ -204,19 +204,100 @@ describe('Complaint detail: identity is never shown unless the API says the view
 
   it('owner status control offers only legal next states', async () => {
     open('owner', {});
-    const sel = await screen.findByLabelText('অবস্থা');
+    const sel = await screen.findByLabelText('অবস্থা পরিবর্তন করুন');
     expect(within(sel).getAllByRole('option').map((o) => o.textContent)).toEqual(['নতুন', 'যাচাই চলছে', 'স্প্যাম']); // new -> verify | spam only
   });
 
   it('officer cannot assign; owner can, and only to officers covering the upazila', async () => {
-    open('officer', { assignedTo: 'u9' });
-    await screen.findByLabelText('অবস্থা');
-    expect(screen.queryByLabelText('দায়িত্ব দিন')).not.toBeInTheDocument();
+    open('officer', { assignedTo: 'u9', canUpdate: true });
+    await screen.findByLabelText('অবস্থা পরিবর্তন করুন');
+    expect(screen.queryByLabelText('দায়িত্ব দিন (সরাসরি পরিবর্তন)')).not.toBeInTheDocument();
   });
   it('owner assignment list shows only active officers of that upazila', async () => {
     open('owner', {}, { 'GET /team': [{ userId: 'u1', name: 'নতুনহাটের কর্মকর্তা', role: 'officer', status: 'active', scope: ['নতুনহাট'] }, { userId: 'u2', name: 'চরকান্দির কর্মকর্তা', role: 'officer', status: 'active', scope: ['চরকান্দি'] }, { userId: 'u3', name: 'সম্পাদক', role: 'editor', status: 'active', scope: [] }] });
-    const sel = await screen.findByLabelText('দায়িত্ব দিন');
+    const sel = await screen.findByLabelText('দায়িত্ব দিন (সরাসরি পরিবর্তন)');
     await waitFor(() => expect(within(sel).getAllByRole('option').map((o) => o.textContent)).toEqual(['— কেউ না —', 'নতুনহাটের কর্মকর্তা']));
+  });
+});
+
+// BUG-2026-033: the API only lets managers and the assigned officer change status; a note never needs that right
+describe('Complaint detail: status vs note (BUG-2026-033)', () => {
+  const base = { id: 'c1', trackingId: 'NDP3-2026-00007', category: 'পানি ও পয়ঃনিষ্কাশন', upazila: 'নতুনহাট', union: 'রসুলপুর', place: '', description: 'ড্রেন উপচে রাস্তায় ময়লা পানি জমে আছে', channel: 'web', anonymous: false, otpVerified: false, status: 'new', assignedTo: null, createdAt: '2026-09-30T08:00:00Z', slaDueAt: '2026-10-07T08:00:00Z', overdue: false, version: 3, pii: { available: true }, canViewPii: false, canUpdate: false, events: [] };
+  const open = (role: 'owner' | 'officer', detail: Record<string, unknown> = {}) => {
+    h.tenant = fakeTenant(role, { 'GET /complaints': { items: [base], totalPages: 1, total: 1 }, 'GET /complaints/c1': { ...base, ...detail }, 'GET /team': [] });
+    renderApp(<Routes><Route path="/complaints/*" element={<Complaints />} /></Routes>, '/complaints/c1');
+    return h.tenant;
+  };
+
+  it('an unassigned officer sees no status selector or SMS buttons, and can still add a note (POST /notes, never PATCH)', async () => {
+    const t = open('officer');
+    await userEvent.type(await screen.findByLabelText('ভেতরের নোট (নাগরিক দেখবেন না)'), 'সরেজমিনে দেখে আসব');
+    expect(screen.queryByLabelText('অবস্থা পরিবর্তন করুন')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^SMS:/ })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'নোট যোগ করুন' }));
+    await waitFor(() => expect(t.api.post).toHaveBeenCalledWith('/complaints/c1/notes', { text: 'সরেজমিনে দেখে আসব' }));
+    expect(t.api.patch).not.toHaveBeenCalled();
+  });
+
+  it('status form: a note alone goes to /notes; a status change goes to PATCH with the note', async () => {
+    const t = open('owner');
+    await userEvent.type(await screen.findByLabelText('নোট (নাগরিক দেখবেন না)'), 'ফোনে কথা হয়েছে');
+    await userEvent.click(screen.getByRole('button', { name: 'আপডেট করুন' }));
+    await waitFor(() => expect(t.api.post).toHaveBeenCalledWith('/complaints/c1/notes', { text: 'ফোনে কথা হয়েছে' }));
+    expect(t.api.patch).not.toHaveBeenCalled();
+    await userEvent.selectOptions(screen.getByLabelText('অবস্থা পরিবর্তন করুন'), 'verify');
+    await userEvent.type(screen.getByLabelText('নোট (নাগরিক দেখবেন না)'), 'যাচাই শুরু');
+    await userEvent.click(screen.getByRole('button', { name: 'আপডেট করুন' }));
+    await waitFor(() => expect(t.api.patch).toHaveBeenCalledWith('/complaints/c1', { version: 3, status: 'verify', note: 'যাচাই শুরু' }));
+  });
+
+  it('the assigned officer gets the status selector (canUpdate from the API)', async () => {
+    open('officer', { canUpdate: true });
+    expect(await screen.findByLabelText('অবস্থা পরিবর্তন করুন')).toBeInTheDocument();
+  });
+});
+
+// BUG-2026-027 (defence in depth) and BUG-2026-030 (no canned text for a voice-only complaint)
+describe('Complaint detail: attachments are only shown through safe object URLs', () => {
+  const base = { id: 'c1', trackingId: 'NDP3-2026-00008', category: 'বিদ্যুৎ', upazila: 'নতুনহাট', union: 'রসুলপুর', place: '', description: '', channel: 'web', anonymous: true, otpVerified: false, status: 'new', assignedTo: null, createdAt: '2026-09-30T08:00:00Z', slaDueAt: '2026-10-07T08:00:00Z', overdue: false, version: 1, pii: { available: false }, canViewPii: false, events: [] };
+  const urls: string[] = [];
+  beforeEach(() => {
+    urls.length = 0;
+    URL.createObjectURL = vi.fn((b: Blob) => { urls.push(b.type); return `blob:test/${urls.length}`; }) as never;
+    URL.revokeObjectURL = vi.fn() as never;
+  });
+  const open = (detail: Record<string, unknown>) => {
+    h.tenant = fakeTenant('owner', { 'GET /complaints': { items: [base], totalPages: 1, total: 1 }, 'GET /complaints/c1': { ...base, ...detail }, 'GET /team': [] });
+    renderApp(<Routes><Route path="/complaints/*" element={<Complaints />} /></Routes>, '/complaints/c1');
+  };
+  const PNG = 'data:image/webp;base64,UklGRg==';
+
+  it('hostile values never reach src/href; safe ones become blob: URLs with a fixed type', async () => {
+    open({ hasVoice: true, voiceNote: { audioData: 'data:text/html;base64,PHNjcmlwdD4=', durationSec: 5 }, files: [
+      { name: 'evil.pdf', mimeType: 'application/pdf', size: 10, data: 'javascript:alert(1)' },
+      { name: 'evil.png', mimeType: 'image/png', size: 10, data: 'data:image/svg+xml;base64,PHN2Zz4=' },
+      { name: 'ok.webp', mimeType: 'image/webp', size: 6, data: PNG },
+    ] });
+    expect(await screen.findByText('ভয়েস রেকর্ডটি চালানো যাচ্ছে না।')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByAltText('ok.webp')).toHaveAttribute('src', expect.stringMatching(/^blob:/)));
+    expect(screen.queryByAltText('evil.png')).not.toBeInTheDocument();
+    const html = document.body.innerHTML;
+    expect(html).not.toMatch(/javascript:|data:text\/html|data:image\/svg/);
+    expect(urls).toEqual(['image/webp']);
+    await userEvent.click(screen.getByText('evil.pdf'));
+    expect(await screen.findByText('ফাইলটি খোলা যাচ্ছে না।')).toBeInTheDocument();
+    expect(document.querySelector('iframe')).toBeNull();
+    expect(screen.queryByRole('link', { name: 'ডাউনলোড করুন' })).not.toBeInTheDocument();
+  });
+
+  it('a safe PDF opens in an iframe and downloads from a blob: URL; a voice-only complaint gets a neutral label', async () => {
+    open({ hasVoice: true, voiceNote: { audioData: 'data:audio/webm;base64,GkXfow==', durationSec: 5 }, files: [{ name: 'doc.pdf', mimeType: 'application/pdf', size: 8, data: 'data:application/pdf;base64,JVBERi0xLjQ=' }] });
+    expect(await screen.findByText('শুধু ভয়েস অভিযোগ (লিখিত বিবরণ নেই)')).toBeInTheDocument();
+    await waitFor(() => expect(document.querySelector('audio')).toHaveAttribute('src', expect.stringMatching(/^blob:/)));
+    await userEvent.click(screen.getByText('doc.pdf'));
+    await waitFor(() => expect(document.querySelector('iframe')).toHaveAttribute('src', expect.stringMatching(/^blob:/)));
+    expect(screen.getByRole('link', { name: 'ডাউনলোড করুন' })).toHaveAttribute('href', expect.stringMatching(/^blob:/));
+    expect(urls).toEqual(['audio/webm', 'application/pdf']);
   });
 });
 

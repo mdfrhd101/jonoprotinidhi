@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import FilterForm from '@/components/FilterForm';
-import { NewsCard, PageHero, heroImage } from '@/components/blocks';
-import { getPage, getPosts, getSite, soft } from '@/lib/api';
+import { NewsCard, PageHero } from '@/components/blocks';
+import { getPage, getPosts, getSite, soft, pageImage } from '@/lib/api';
 import { PAGE_NAME } from '@/lib/nav';
 import { POST_CATEGORY_LABEL, toBn } from '@/lib/format';
 import { pageList } from '@/lib/slider';
@@ -30,7 +30,7 @@ export default async function Activities({ searchParams }: { searchParams: SP })
     soft(getPage('heroes'), null), soft(getPage('area'), null),
     getPosts({ category: category || undefined, upazila: upazila || undefined, page, limit: PER_PAGE }),
   ]);
-  const img = heroImage(site, 'activities');
+  const img = (await pageImage(site, 'activities'));
   const upzOptions = [...new Set((area?.upazilas ?? []).map((u) => u.short || u.name).filter(Boolean))];
   if (upazila && !upzOptions.includes(upazila)) upzOptions.push(upazila);
   const cats: Array<[string, string]> = [['', 'সব'], ...Object.entries(POST_CATEGORY_LABEL)];

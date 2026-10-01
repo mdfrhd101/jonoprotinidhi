@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import AreaWidget from '@/components/AreaWidget';
-import { PageHero, SecHead, heroImage } from '@/components/blocks';
-import { getPage, getSite, soft } from '@/lib/api';
+import { PageHero, SecHead } from '@/components/blocks';
+import { getPage, getSite, soft, pageImage } from '@/lib/api';
 import { PAGE_NAME } from '@/lib/nav';
 import { bnText, parseNumber, toBn } from '@/lib/format';
 
@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: PAGE_NAME.area };
 export default async function Area({ searchParams }: { searchParams: { upz?: string } }) {
   const site = await getSite();
   const [heroes, a] = await Promise.all([soft(getPage('heroes'), null), getPage('area')]);
-  const img = heroImage(site, 'area');
+  const img = (await pageImage(site, 'area'));
   const vs = a.voters.map((v) => parseNumber(v.value) ?? 0);
   const vmax = Math.max(1, ...vs);
   const uv = a.upazilas.map((u) => parseNumber(u.voters) ?? 0);

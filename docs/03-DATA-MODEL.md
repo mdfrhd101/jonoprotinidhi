@@ -139,8 +139,9 @@ Index: `{ tenantId: 1, createdAt: -1 }`.
 | `trackingId` | string | [Internal] | `NDP3-2026-01241`, unique |
 | `category` | string | [Internal] | from tenant settings at submit time |
 | `upazila`, `union`, `place` | string | [Confidential] | place is free text, may identify a household |
-| `description` | string | [Confidential] | 20–1000 chars |
-| `attachments` | `[mediaId]` | [Confidential] | stored in **private** bucket only, EXIF stripped, never public |
+| `description` | string | [Confidential] | 20–10000 chars; may be `''` when a voiceNote is present (default `''`, BUG-2026-030) |
+| `voiceNote` | `{ audioData, durationSec }?` | [Confidential] | in-browser recording as a data URL rebuilt by the server (audio webm, ogg, mp4, mpeg or wav; magic bytes checked), max 180 s / 4 MB; removed by the retention job |
+| `files` | `[{ name, mimeType, size, data }]` | [Confidential] | up to 5 attachments as data URLs; photos re-encoded to WebP ≤ 1600 px (EXIF dropped), PDFs checked for `%PDF-`; files + voice ≤ 12 MB of base64 so the document stays far below 16 MB; never in list/export responses; removed by the retention job |
 | `channel` | `'web'\|'hearing'\|'phone'` | | |
 | `anonymous` | boolean | | |
 | `pii` | `{ nameEnc?, phoneEnc?, keyVersion }` | **[Restricted]** | AES-256-GCM with tenant DEK; absent when anonymous |

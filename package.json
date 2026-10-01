@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "Jonoprotinidhi: multi-tenant MP portfolio + CMS + citizen complaint platform",
   "workspaces": ["apps/*", "packages/*"],
-  "engines": { "node": ">=20" },
+  "engines": { "node": ">=24.7" },
   "scripts": {
     "dev:api": "npm run dev -w @jonoprotinidhi/api",
     "dev:admin": "npm run dev -w @jonoprotinidhi/web-admin",

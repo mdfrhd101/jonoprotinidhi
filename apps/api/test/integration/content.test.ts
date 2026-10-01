@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { startDb, stopDb, clearDb } from '../helpers/db.js';
 import { makeEnv, makeSuperAdmin, makeTenant, loginFlow, api, admin, bearer, PASSWORD, type TestEnv, type Tenant } from '../helpers/env.js';
-import { AuditLog, Membership, Tenant as TenantModel } from '../../src/models/index.js';
+import { AuditLog, Membership, User, Tenant as TenantModel } from '../../src/models/index.js';
 
 let env: TestEnv, sa: string, t: Tenant;
 beforeAll(startDb);
@@ -128,6 +128,38 @@ describe('team management (FR-CMS-11, FR-AUTH-06)', () => {
     expect(me.body.memberships.map((m: { role: string }) => m.role).sort()).toEqual(['editor', 'officer']);
     expect((await api(env).get(admin(t, '/posts')).set(bearer(tok))).status).toBe(200); // editor in t
     expect((await api(env).get(admin(t2, '/posts')).set(bearer(tok))).status).toBe(403); // officer in t2: no posts
+  });
+
+  // BUG-2026-026: an invite with a password must never touch an existing (platform-wide) account
+  it('invite with a password never changes an existing account; it only applies to a brand-new user (BUG-2026-026)', async () => {
+    const hashOf = async (phone: string) => (await User.findOne({ phone: `+88${phone}` }).select('+passwordHash').lean())?.passwordHash;
+    const before = await hashOf(t.phones.editor);
+    // another MP's owner targets this tenant's editor: refused, nothing written
+    const t2 = await makeTenant(env, sa, 'sbp1');
+    const other = await api(env).post(admin(t2, '/team/invites')).set(bearer(t2.owner)).send({ name: 'হাইজ্যাক', phone: t.phones.editor, role: 'editor', password: 'Hijack-pass-123' });
+    expect(other.status).toBe(409);
+    expect(other.body.error.code).toBe('ACCOUNT_EXISTS');
+    expect(other.body.error.message).toMatch(/পাসওয়ার্ড ছাড়া আমন্ত্রণ/);
+    expect(await Membership.countDocuments({ tenantId: t2.id })).toBe(3); // owner, editor, officer of t2 only
+    // own tenant, already a member: 409 before any write
+    const dup = await invite({ name: 'সম্পাদক', phone: t.phones.editor, role: 'editor', password: 'Hijack-pass-123' });
+    expect(dup.status).toBe(409);
+    expect(dup.body.error.code).toBe('ALREADY_MEMBER');
+    expect(await hashOf(t.phones.editor)).toBe(before);
+    expect((await User.findOne({ phone: `+88${t.phones.editor}` }).lean())?.status).toBe('active');
+    await expect(loginFlow(env, `+88${t.phones.editor}`, 'Hijack-pass-123')).rejects.toThrow(/login failed 401/);
+    expect((await loginFlow(env, `+88${t.phones.editor}`)).token).toBeTruthy();
+    // a brand-new phone: the password is set at creation, active at once, no SMS, audited without any hash
+    const sent = env.sms.outbox.length;
+    const fresh = await invite({ name: 'নতুন কর্মকর্তা', phone: '01711110009', role: 'officer', upazilas: ['চরকান্দি'], password: 'Fresh-member-pass-7' });
+    expect(fresh.status).toBe(201);
+    expect(fresh.body.inviteToken).toBeUndefined();
+    expect(env.sms.outbox.length).toBe(sent);
+    expect((await Membership.findById(fresh.body.id).lean())?.status).toBe('active');
+    expect((await loginFlow(env, '+8801711110009', 'Fresh-member-pass-7')).token).toBeTruthy();
+    const a = await AuditLog.findOne({ action: 'team.invite', tenantId: t.id, 'entity.id': fresh.body.id }).lean();
+    expect((a?.diff as { after?: Record<string, unknown> })?.after?.passwordSetAtCreation).toBe(true);
+    expect(JSON.stringify(a)).not.toMatch(/argon|passwordHash|Fresh-member-pass-7/i);
   });
 
   it('invites and removals are audited', async () => {

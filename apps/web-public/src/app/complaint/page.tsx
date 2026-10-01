@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import ComplaintBox from '@/components/ComplaintBox';
-import { EventsList, PageHero, heroImage } from '@/components/blocks';
-import { getComplaintForm, getComplaintStats, getEvents, getPage, getSite, soft } from '@/lib/api';
+import { EventsList, PageHero } from '@/components/blocks';
+import { getComplaintForm, getComplaintStats, getEvents, getPage, getSite, soft, pageImage } from '@/lib/api';
 import { env } from '@/lib/env';
 import { PAGE_NAME } from '@/lib/nav';
 import { bnMonthLabel, bnNumber, toBn, toEn } from '@/lib/format';
@@ -14,7 +14,7 @@ export default async function Complaint() {
     soft(getPage('heroes'), null), getPage('complaint'), soft(getPage('area'), null), soft(getPage('contact'), null),
     soft(getComplaintForm(), { categories: [], otpRequired: false, enabled: site.complaintBoxEnabled }), soft(getComplaintStats(), null), soft(getEvents(3), []),
   ]);
-  const img = heroImage(site, 'complaint');
+  const img = (await pageImage(site, 'complaint'));
   const maxC = Math.max(1, ...(stats?.byCategory ?? []).map((c) => c.count));
   const hotline = contact?.hotline;
   const tel = hotline?.number ? toEn(hotline.number).replace(/[^\d+]/g, '') : '';

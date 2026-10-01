@@ -16,8 +16,21 @@ const complaintSchema = new Schema(
     upazila: { type: String, required: true, index: true },
     union: { type: String, required: true },
     place: { type: String, default: '' },
-    description: { type: String, required: true },
+    description: { type: String, default: '' }, // may be empty when the citizen sent a voice note instead (BUG-2026-030)
     channel: { type: String, enum: ['web', 'hearing', 'phone'], default: 'web' },
+    voiceNote: {
+      audioData: { type: String },
+      durationSec: { type: Number },
+    },
+    files: [
+      {
+        name: { type: String, required: true },
+        mimeType: { type: String, required: true },
+        size: { type: Number, required: true },
+        data: { type: String, required: true },
+        _id: false,
+      },
+    ],
     anonymous: { type: Boolean, default: false },
     pii: {
       nameEnc: { type: String, select: false },

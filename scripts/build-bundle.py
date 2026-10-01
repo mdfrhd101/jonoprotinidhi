@@ -38,6 +38,7 @@ for f in ordered:
     parts.append(f"\n\n{'=' * 78}\n<!-- FILE: {f} -->\n{'=' * 78}\n\n{text}\n")
 parts.append(f"\n\n{'=' * 78}\n<!-- FILE MAP: client-demo -->\n{'=' * 78}\n\n" + "\n".join(f"- {f}" for f in demo_files) + "\n")
 
-OUT.write_text("".join(parts), encoding="utf-8", newline="\n")
+with OUT.open("w", encoding="utf-8", newline="\n") as fh:  # Path.write_text(newline=) needs Python 3.10; macOS ships 3.9
+    fh.write("".join(parts))
 size = OUT.stat().st_size
 print(f"wrote {OUT.name}: {len(ordered)} files, {size / 1024:.0f} KB (~{size // 4:,} tokens)")

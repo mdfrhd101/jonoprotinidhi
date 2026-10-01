@@ -87,7 +87,7 @@ main:focus{outline:none}
 
 /* gallery slider */
 .gs{position:relative}
-.gs-stage{position:relative;aspect-ratio:16/9;max-height:min(78vh,760px);width:100%;overflow:hidden;background:#07090C;border:1px solid var(--line-light);touch-action:pan-y;-webkit-user-select:none;user-select:none}
+.gs-stage{position:relative;aspect-ratio:16/7;max-height:min(60vh,540px);width:100%;overflow:hidden;background:#07090C;border:1px solid var(--line-light);touch-action:pan-y;-webkit-user-select:none;user-select:none}
 .gs-stage:focus-visible{outline:2px solid var(--brass-2);outline-offset:3px}
 .gs-track{display:flex;height:100%;transition:transform .75s cubic-bezier(.22,.72,.18,1);will-change:transform}
 .gs-track.drag{transition:none}
@@ -96,16 +96,18 @@ main:focus{outline:none}
 .gs-slide .ph{position:relative;display:block;width:100%;height:100%;object-fit:contain;cursor:zoom-in;transition:transform 6s ease-out}
 .gs-slide.on .ph{transform:scale(1.015)}
 .gs-slide .noimg{position:absolute;inset:0}
-.gs-cap{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:90px 120px 26px 32px;background:linear-gradient(transparent,rgba(8,11,15,.55) 35%,rgba(8,11,15,.94));pointer-events:none}
+.gs-bottom{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center;margin-top:16px;padding:0 4px}
+.gs-cap{margin:0;color:var(--ink)}
+.gs-cap h3{font-family:var(--f-display);font-weight:800;font-size:clamp(1.1rem,2vw,1.6rem);line-height:1.4;margin:0;text-wrap:balance}
 .gs-cap .al{display:inline-block;font-stretch:75%;font-weight:700;letter-spacing:.07em;font-size:13px;color:var(--ink);background:var(--brass);padding:2px 10px;border-radius:2px;margin-bottom:10px}
 .gs-cap h3{font-family:var(--f-display);font-weight:800;font-size:clamp(1.2rem,2.4vw,1.9rem);line-height:1.4;margin:0;max-width:40ch;text-wrap:balance}
-.gs-cap p{margin:6px 0 0;font-size:13.5px;color:var(--muted-light)}
+.gs-cap p{margin:6px 0 0;font-size:13.5px;color:var(--muted)}
 .gs-cap .key{animation:rise .7s cubic-bezier(.2,.7,.2,1) both}
 .gs-count{position:absolute;top:18px;left:20px;z-index:3;display:flex;align-items:baseline;gap:2px;font-stretch:75%;font-weight:700;letter-spacing:.06em;background:rgba(8,11,15,.62);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);padding:5px 14px;border:1px solid var(--line-light);border-radius:2px;font-variant-numeric:tabular-nums}
 .gs-count b{color:var(--brass-2);font-size:1.25rem}
 .gs-count span{color:var(--muted-light);font-size:.95rem}
-.gs-nav{position:absolute;top:50%;z-index:3;margin-top:-26px}
-.gs-nav.prev{left:18px}.gs-nav.next{right:18px}
+.gs-nav{background:var(--ink-2);border-radius:50%}
+
 .gs-tools{position:absolute;top:14px;right:16px;z-index:3;display:flex;gap:8px}
 .gs-bar{position:absolute;left:0;right:0;top:0;z-index:3;height:3px;background:rgba(239,234,224,.1)}
 .gs-bar i{display:block;height:100%;background:var(--brass);transform-origin:left;animation:gsbar var(--dur,6s) linear forwards}
@@ -124,9 +126,9 @@ main:focus{outline:none}
 .light .gs-empty,.light-2 .gs-empty{border-color:var(--line-dark);color:var(--muted-dark)}
 @media (max-width:760px){
   .gs-stage{aspect-ratio:4/3}
-  .gs-cap{padding:70px 18px 16px}
-  .gs-nav{margin-top:-22px}
-  .gs-nav.prev{left:10px}.gs-nav.next{right:10px}
+  
+  
+  
   .gs .rbtn{width:44px;height:44px}
   .gs-count{top:12px;left:12px;padding:3px 10px}
   .gs-tools{top:8px;right:10px}
@@ -290,3 +292,6 @@ footer ul.site-links{grid-template-columns:repeat(2,max-content);column-gap:clam
 .foot-grid.v4{grid-template-columns:minmax(0,1.25fr) minmax(0,1.05fr) minmax(0,1.05fr) minmax(0,.8fr)}
 @media (max-width:980px){.foot-grid.v4{grid-template-columns:1fr 1fr}}
 @media (max-width:480px){.foot-grid.v4{grid-template-columns:1fr}}
+
+/* the hero keeps one height whatever the slide (owner: 2nd slide made the hero taller) */
+@media (min-width:1101px){.hero{height:max(680px,100svh);min-height:0}.hero h1{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.hero .roles{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}}

@@ -64,3 +64,11 @@ describe('BUG-2026-020: rate limits stay per visitor behind our own site server'
     expect((await api(env).get('/api/v1/public/site').set('Host', t.host)).status).toBe(200);
   });
 });
+
+// BUG-2026-035: the test server listens on 127.0.0.1 itself, so no other local app can share its port and answer instead
+describe('test infrastructure (BUG-2026-035)', () => {
+  it('the integration-test server is bound to the loopback address, and the responses are really ours', async () => {
+    expect((env.app.address() as { address: string }).address).toBe('127.0.0.1');
+    expect((await api(env).get('/api/health')).headers['x-request-id']).toBeTruthy();
+  });
+});

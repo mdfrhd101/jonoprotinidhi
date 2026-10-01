@@ -34,8 +34,7 @@
 | GET | `/public/complaint-form` | categories, upazilas → unions, `otpRequired`, Turnstile site key | FR-CMP-01 |
 | POST | `/public/otp/send` | `{ phone, turnstileToken }` → 202 always (no enumeration) | FR-CMP-04 |
 | POST | `/public/otp/verify` | `{ phone, code }` → `{ otpTicket }` (10 min, single use) | FR-CMP-04 |
-| POST | `/public/complaints` | `{ category, upazila, union, place?, description, attachmentUploadIds[], anonymous, name?, phone?, otpTicket?, turnstileToken }` → `{ trackingId }` | FR-CMP-01..05 |
-| POST | `/public/complaints/attachments/upload-url` | presigned PUT to private bucket, 5 MB, images only; requires Turnstile | FR-CMP-01 |
+| POST | `/public/complaints` | `{ category, upazila, union, place?, description, voiceNote?, files?, anonymous, name?, phone?, otpTicket?, turnstileToken }` → `{ trackingId }`. The only route with a large body (13 MB, parsed after host resolution and the pre-parse `complaintBody` tier, 10/min per IP; every other route 1 MB). Attachments are base64 data URLs: files + voice ≤ 12 MB together, voice ≤ 180 s; the server checks magic bytes, re-encodes photos to WebP ≤ 1600 px (EXIF dropped) and rebuilds the data URLs; bad data → 422 `BAD_FILE` / `BAD_IMAGE` / `BAD_VOICE` (BUG-2026-027/028/031) | FR-CMP-01..05 |
 | GET | `/public/complaints/:trackingId` | `{ category, area, status, publicSteps }` — no PII/notes | FR-CMP-06 |
 | POST | `/public/feedback/:token` | `{ rating, text }` single-use token from SMS | FR-CMP-12 |
 | POST | `/public/analytics/hit` | `{ path }` beacon; no cookies | FR-PUB-13 |
@@ -74,9 +73,9 @@ Middleware chain: `authenticate → loadMembership(tenantId) | actAs → require
 | GET/POST/PATCH | `/promises`, `/promises/:id` · POST `/promises/:id/updates` | `promises.edit` | FR-PRM-* |
 | GET/PUT | `/site-config` | `site.edit` | FR-CMS-08 |
 | GET/PUT | `/area`, `/events`, `/offices`, `/videos` | `site.edit` | FR-CMS-09 |
-| GET | `/complaints` | `complaints.view_all` or `complaints.view_scoped` (officer: upazila filter forced server-side) | FR-CMP-07 |
-| GET | `/complaints/:id` | same; returns `pii: { available: bool }` only | |
-| PATCH | `/complaints/:id` | `complaints.manage` (owner) or assigned officer: `{ status?, assignedTo?, version }` | FR-CMP-08 |
+| GET | `/complaints` | `complaints.view_all` or `complaints.view_scoped` (officer: upazila filter forced server-side). Items carry `hasVoice`, `voiceSec`, `fileCount`, `fileMeta[]`, never the payloads (BUG-2026-029) | FR-CMP-07 |
+| GET | `/complaints/:id` | same; returns `pii: { available: bool }` only, `canUpdate` (manage or assigned officer), and the `voiceNote` / `files` payloads | |
+| PATCH | `/complaints/:id` | `complaints.manage` (owner) or assigned officer: `{ status?, assignedTo?, version, note? }` (a note alone goes to `/notes`) | FR-CMP-08 |
 | POST | `/complaints/:id/notes` | `complaints.note` | FR-CMP-08 |
 | POST | `/complaints/:id/sms` | assigned officer or owner · `{ templateKey, vars }` (free text limited to 300 chars) | FR-CMP-08 |
 | POST | `/complaints/:id/pii-view` | **assigned officer only**, not via act-as, `pii` rate tier · body `{ purpose }` → `{ name, phone }` + audit `complaint.pii_view` | FR-CMP-09 |

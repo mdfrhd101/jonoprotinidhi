@@ -14,12 +14,12 @@ export const ALLOWED_INPUT = ['image/jpeg', 'image/png', 'image/webp'] as const;
 
 export type Processed = { data: Buffer; width: number; height: number; contentType: 'image/webp' };
 
-export async function processImage(input: Buffer): Promise<Processed> {
+export async function processImage(input: Buffer, maxEdge: number = MAX_EDGE): Promise<Processed> {
   try {
     const img = sharp(input, { limitInputPixels: 40_000_000, failOn: 'error' });
     const meta = await img.metadata();
     if (!meta.format || !['jpeg', 'png', 'webp'].includes(meta.format)) throw new Error('format');
-    const out = await img.rotate().resize({ width: MAX_EDGE, height: MAX_EDGE, fit: 'inside', withoutEnlargement: true }).webp({ quality: 82 }).toBuffer({ resolveWithObject: true });
+    const out = await img.rotate().resize({ width: maxEdge, height: maxEdge, fit: 'inside', withoutEnlargement: true }).webp({ quality: 82 }).toBuffer({ resolveWithObject: true });
     return { data: out.data, width: out.info.width, height: out.info.height, contentType: 'image/webp' };
   } catch {
     throw ApiError.unprocessable('BAD_IMAGE', 'ছবিটি পড়া যায়নি। JPG, PNG বা WebP ছবি দিন (সর্বোচ্চ ৪০ মেগাপিক্সেল)');

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { PROMISE_STATUSES } from './workflows.js';
 import { isValidBdMobile } from './bangla.js';
 import { BODY_MAX_HTML, BODY_MAX_TEXT, plainTextLength } from './richtext.js';
+import { COMPLAINT_MAX_FILES, COMPLAINT_MAX_FILE_B64, COMPLAINT_MAX_FILE_BYTES, COMPLAINT_MAX_TOTAL_B64, COMPLAINT_MAX_VOICE_B64, COMPLAINT_MAX_VOICE_SEC } from './complaintLimits.js';
 
 /* Input schemas shared by the API and the admin forms. `.strict()` is used on write bodies so unknown keys are
    rejected instead of silently mass-assigned. */
@@ -85,29 +86,58 @@ export const promiseInputSchema = z
 export type PromiseInput = z.infer<typeof promiseInputSchema>;
 export const promiseUpdateSchema = z.object({ text: text(3, 200) }).strict();
 
+/* Attachments travel as base64 data URLs. The schema checks only the shape; the API decodes every payload, checks its
+   real type by its bytes and re-encodes photos before anything is stored (BUG-2026-027, lib/attachments.ts). */
+const base64DataUrl = (max: number) => z.string().max(max).regex(/^data:[a-z]+\/[a-z0-9.+-]+(; ?[a-z0-9.+-]+=[a-z0-9.+-]+)*;base64,/i, 'ফাইলটি পড়া যায়নি');
+export const complaintFileSchema = z
+  .object({
+    name: text(1, 120),
+    mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']),
+    size: z.number().int().min(1).max(COMPLAINT_MAX_FILE_BYTES),
+    data: base64DataUrl(COMPLAINT_MAX_FILE_B64),
+  })
+  .strict();
+export type ComplaintFile = z.infer<typeof complaintFileSchema>;
+
 export const complaintSubmitSchema = z
   .object({
     category: text(2, 60),
     upazila: text(2, 60),
     union: text(2, 60),
     place: text(0, 100).optional().default(''),
-    description: text(20, 1000),
+    description: text(0, 10000).optional().default(''),
     anonymous: z.boolean().optional().default(false),
     name: text(0, 80).optional().default(''),
     phone: z.string().max(20).optional().default(''),
     otpTicket: z.string().max(200).optional(),
     turnstileToken: z.string().max(2000).optional().default(''),
+    voiceNote: z
+      .object({
+        audioData: base64DataUrl(COMPLAINT_MAX_VOICE_B64),
+        durationSec: z.number().int().min(1).max(COMPLAINT_MAX_VOICE_SEC).optional(),
+      })
+      .strict()
+      .optional(),
+    files: z.array(complaintFileSchema).max(COMPLAINT_MAX_FILES).optional().default([]),
   })
   .strict()
   .superRefine((v, ctx) => {
     if (!v.anonymous && !isValidBdMobile(v.phone)) ctx.addIssue({ code: 'custom', path: ['phone'], message: 'সঠিক মোবাইল নম্বর দিন' });
+    const hasVoice = Boolean(v.voiceNote?.audioData);
+    const descLen = (v.description ?? '').trim().length;
+    if (!hasVoice && descLen < 20) {
+      ctx.addIssue({ code: 'custom', path: ['description'], message: 'সমস্যার বিবরণ অন্তত ২০ অক্ষরে লিখুন অথবা ভয়েস রেকর্ড করুন' });
+    }
+    // BUG-2026-028: keep the stored document far below MongoDB's 16 MB limit
+    const total = (v.voiceNote?.audioData.length ?? 0) + (v.files ?? []).reduce((n, f) => n + f.data.length, 0);
+    if (total > COMPLAINT_MAX_TOTAL_B64) ctx.addIssue({ code: 'custom', path: ['files'], message: 'সংযুক্তি অনেক বড়: সব ছবি, PDF ও ভয়েস মিলিয়ে সীমার বেশি হয়ে গেছে। কিছু ফাইল বাদ দিয়ে আবার পাঠান।' });
   });
 export type ComplaintSubmit = z.infer<typeof complaintSubmitSchema>;
 
 export const staffComplaintSchema = complaintSubmitSchema;
 
 export const complaintPatchSchema = z
-  .object({ status: z.enum(['new', 'verify', 'progress', 'solved', 'closed', 'spam']).optional(), assignedTo: objectId.nullable().optional(), version: z.number().int().min(1).optional() })
+  .object({ status: z.enum(['new', 'verify', 'progress', 'solved', 'closed', 'spam']).optional(), assignedTo: objectId.nullable().optional(), version: z.number().int().min(1).optional(), note: text(2, 600).optional() })
   .strict();
 export const noteSchema = z.object({ text: text(2, 600) }).strict();
 export const piiViewSchema = z.object({ purpose: text(5, 200) }).strict();
@@ -136,6 +166,7 @@ export const inviteSchema = z
     phone: bdMobile,
     role: z.enum(['editor', 'officer']),
     upazilas: z.array(text(2, 60)).max(10).optional().default([]),
+    password: passwordSchema.optional(),
   })
   .strict()
   .superRefine((v, ctx) => {

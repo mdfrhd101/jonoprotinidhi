@@ -1,5 +1,5 @@
 import request from 'supertest';
-import type { Express } from 'express';
+import http from 'node:http';
 import { loadConfig, type Config } from '../../src/config.js';
 import type { Deps, DomainProvider } from '../../src/deps.js';
 import { createApp } from '../../src/app.js';
@@ -16,7 +16,7 @@ import type { Services } from '../../src/services/index.js';
    (clock, SMS gateway, Turnstile, DNS). Rate limiting is off unless a test switches it on. */
 
 export type TestEnv = {
-  app: Express; services: Services; deps: Deps; config: Config;
+  app: http.Server; services: Services; deps: Deps; config: Config;
   clock: { now: number };
   sms: ConsoleSmsProvider;
   domains: { verified: Set<string> };
@@ -55,7 +55,10 @@ export function makeEnv(overrides: Record<string, string> = {}, opts: { rateLimi
     media: new MemoryMediaStorage(),
   };
   const { app, services } = createApp(deps, now);
-  return { app, services, deps, config, clock, sms, domains, turnstile, secrets: new Map() };
+  // BUG-2026-035: supertest would listen on the wildcard address, and on macOS a local app holding the same port on
+  // 127.0.0.1 then receives the test's requests. A server bound to 127.0.0.1 itself cannot share a port that way.
+  const server = http.createServer(app).listen(0, '127.0.0.1').unref();
+  return { app: server, services, deps, config, clock, sms, domains, turnstile, secrets: new Map() };
 }
 
 export const PASSWORD = 'Sup3r-secret-pass';

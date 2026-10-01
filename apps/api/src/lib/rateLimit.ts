@@ -30,6 +30,8 @@ export const TIERS = {
   public: { limit: 120, windowMs: 60_000 },
   publicWrite: { limit: 5, windowMs: 60_000 },
   publicWriteDaily: { limit: 20, windowMs: 86_400_000 },
+  // checked BEFORE a complaint body (up to 13 MB) is read; looser than publicWrite, which the service checks after parsing
+  complaintBody: { limit: 10, windowMs: 60_000 },
   tracking: { limit: 10, windowMs: 60_000 },
   // IP tier is generous on purpose: mobile carriers put thousands of users behind one address (CGNAT) and an
   // office shares one. Brute force is stopped per ACCOUNT below (BUG-2026-009).

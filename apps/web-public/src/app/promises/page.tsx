@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import PromiseBoard from '@/components/PromiseBoard';
-import { PageHero, PromiseSummary, heroImage } from '@/components/blocks';
-import { getPage, getPromises, getSite, soft } from '@/lib/api';
+import { PageHero, PromiseSummary } from '@/components/blocks';
+import { getPage, getPromises, getSite, soft, pageImage } from '@/lib/api';
 import { PAGE_NAME } from '@/lib/nav';
 import { SECTOR_LABEL, bnDateSafe, sectorsOf, toBn } from '@/lib/format';
 
@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: PAGE_NAME.promises };
 export default async function Promises() {
   const site = await getSite();
   const [heroes, data] = await Promise.all([soft(getPage('heroes'), null), getPromises()]);
-  const img = heroImage(site, 'promises');
+  const img = (await pageImage(site, 'promises'));
   const items = data.items;
   const sectors = sectorsOf(items);
   const last = items.map((p) => p.lastChangedAt).filter(Boolean).sort().at(-1);

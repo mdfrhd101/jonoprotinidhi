@@ -262,6 +262,13 @@ form.cmp{display:flex;flex-direction:column;gap:20px}
 .dark textarea{min-height:130px;resize:vertical}
 .dark input:focus,.dark select:focus,.dark textarea:focus{outline:none;border-color:var(--brass-2);background:rgba(239,234,224,.08)}
 [aria-invalid="true"]{border-color:var(--err)!important}
+.voice-box{margin:6px 0 10px;padding:14px 16px;background:rgba(239,234,224,.04);border:1px dashed rgba(199,163,90,.38);border-radius:4px}
+.voice-bar{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.voice-pulse{display:inline-block;width:10px;height:10px;background:#e53e3e;border-radius:50%;box-shadow:0 0 0 0 rgba(229,62,62,.7);animation:voicePulse 1.4s infinite}
+@keyframes voicePulse{0%{transform:scale(.95);box-shadow:0 0 0 0 rgba(229,62,62,.7)}70%{transform:scale(1.1);box-shadow:0 0 0 8px rgba(229,62,62,0)}100%{transform:scale(.95);box-shadow:0 0 0 0 rgba(229,62,62,0)}}
+.voice-timer{font-family:monospace;font-size:14.5px;font-weight:700;color:var(--text-light);letter-spacing:.05em}
+.voice-player{display:flex;flex-direction:column;gap:10px;width:100%}
+.voice-player audio{width:100%;height:38px;border-radius:4px}
 input[type=file]{font:inherit;font-size:14.5px;color:var(--muted-light);max-width:100%}
 .hint{margin:0;font-size:13.5px;color:var(--muted-light)}
 .err{margin:0;font-size:13.5px;color:var(--err)}

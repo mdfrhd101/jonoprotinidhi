@@ -1,5 +1,5 @@
 # Jonoprotinidhi (জনপ্রতিনিধি) — Portfolio and public-engagement platform for MPs and ministers
-### Handoff document · last updated: 30 September 2026 (new admin design, full CMS, public website, GitHub)
+### Handoff document · last updated: 1 October 2026, evening (pre-demo hardening of voice notes, attachments and invite-with-password: BUG-2026-026..035 fixed)
 
 > To continue this work on another PC or with another Claude, read this whole file first.
 > Tell Claude: **"Read HANDOFF.md and continue from the 'Next steps' section. Talk to me in Bangla."**
@@ -74,8 +74,13 @@ Citizen fills in the form → (optional OTP) → tracking ID (e.g. NDP3-2026-012
   → after resolution the citizen can give feedback / a rating
 ```
 - **Form fields:** topic (editable in the CMS), upazila → union/municipality (cascading; wards for urban seats),
-  village/area, description (at least 20 characters), name (optional), mobile (`01[3-9]` + 8 digits, Bangla digits allowed).
-  Photo attachments are specified but not built yet.
+  village/area, description (at least 20 characters and up to 10,000 characters if no voice record; optional if voice note provided), name (optional),
+  mobile (`01[3-9]` + 8 digits, Bangla digits allowed).
+- **Direct Voice Recording & In-Browser Audio Playback:** WhatsApp-style microphone voice recorder (`MediaRecorder` + Web Audio API) with a green action button, a live pulsing red indicator, and a live timer (`🔴 ০০:১৫ / ৩:০০`), alongside re-record and delete controls. Plays back recorded audio immediately via native in-browser HTML5 `<audio>` player using object URLs (`blob:`) so citizens can clearly listen and verify before submitting. Spoken audio is recorded purely as audio; speech-to-text auto-transcription was removed to keep voice and text separate.
+- **Flexible Submission (Voice, Text, or Both):** Citizen can submit: (1) Voice recording only (written description optional), (2) Written description only (>= 20 characters, voice optional), or (3) Both voice recording and written description together.
+- **File Uploads (Photos & Documents):** Citizen can upload up to 5 files (JPG, PNG, WEBP, or PDF). Photos are shrunk in the browser to 1600 px JPEG before upload; PDFs up to 5 MB. Files and voice together are capped at 12 MB of base64 (MongoDB's 16 MB document limit), voice at 3 minutes / 4 MB, with Bangla messages in the form. Shows interactive thumbnails, PDF document icons, file sizes, and remove buttons.
+- **Attachments are never trusted:** the API decodes every data URL, checks the real type by its first bytes, re-encodes photos to WebP (EXIF/GPS dropped) and rebuilds what it stores; the admin shows attachments only through Blob object URLs of allowed types (BUG-2026-027).
+- **Admin View:** Staff who can see the complaint can play back citizen voice notes and inspect/download attached images and PDFs in the complaint detail card (the inbox list only carries flags: voice yes/no, number of files). A voice-only complaint shows "শুধু ভয়েস অভিযোগ" instead of an invented description. Only managers and the assigned officer see the status selector; anyone with note rights can add a note.
 - **Anonymous option:** can be submitted without name and number; then no SMS is sent.
 - **Privacy:**
   - Name and number are seen only by the assigned officer, who must state a purpose; every view is logged. They are
@@ -165,7 +170,7 @@ The user chose MERN because their team knows it. Reasons and alternatives: `adr/
 | **Demo v4, multi-page, fictional MP** | `client-demo/demo-mp/` | **Done** (29 Sep 2026), see below |
 | **Admin panel demo (Super Admin + MP admin)** | `client-demo/admin/` | **Done** (30 Sep 2026), see below |
 | **Real product: API + admin panel (CMS) + public website** | `apps/api`, `apps/web-admin`, `apps/web-public`, `packages/shared` | **Working** (30 Sep 2026), see "State of the real product" |
-| **Bug register (FMEA/RPN)** | `bugs/` + `scripts/bugs.mjs` | 25 bugs; 24 fixed/verified, 1 triaged (P2, e2e flake); release gate passes |
+| **Bug register (FMEA/RPN)** | `bugs/` + `scripts/bugs.mjs` | 35 bugs; 34 fixed/verified (BUG-2026-026..035 are `fixed`, awaiting independent verification), 1 triaged (P2, e2e flake); release gate passes |
 | MP information form | `client-demo/MP_INFO.md` | Template for collecting a real client MP's information |
 | Photos | `client-demo/photos/`, `apps/api/seed-assets/` | The fictional MP's three AI-generated photos (waving at parliament, community food-centre inauguration, food-aid distribution) + two demo video clips |
 
@@ -241,7 +246,7 @@ each visitor separately behind the site server; BUG-2026-020).
 The code is there, only switched off; the API refuses to start with `false` in production. Set it to `true` before any real
 client; `e2e/run.sh` also needs `true`.
 
-**Tests:** `npm test` (API 317, web-admin 133, web-public 26, shared 20), `npm run typecheck`, `bash e2e/run.sh` (real
+**Tests:** `npm test` (API 327, web-admin 138, web-public 34, shared 21; Node 24 required, see `engines`), `npm run typecheck`, `bash e2e/run.sh` (real
 browser), `python e2e/cms_smoke.py` (CMS, 40 steps), `python apps/web-public/e2e/public_smoke.py` (public site, 124
 checks), `npm run bugs:check -- --gate`.
 
@@ -260,11 +265,15 @@ checks), `npm run bugs:check -- --gate`.
   banners, gallery, videos, events, media library, settings, team, audit; Super Admin (dashboard, tenants, 5-step onboarding
   wizard, tenant detail, domains, audit with diff viewer, act-as).
 - Public website (Next.js): every text and image from the CMS; hero, gallery and video sliders; complaint form through a
-  same-origin proxy; strict CSP with nonce.
+  same-origin proxy; strict CSP with nonce; direct voice recording via Web Audio and photo/PDF attachments (max 5; photos shrunk in the
+  browser; the proxy and the API accept a large body (13 MB) only for the complaint submission, everything else 1 MB / 16 KB).
+- Complaints inbox: playback of citizen voice recordings; inspection and downloading of attached photos and PDFs (safe Blob URLs only);
+  list and CSV never load attachment payloads; the retention job removes voice and files together with the identity.
+- Team: an invite may carry a password only for a brand-new account; an existing account is never changed (409, BUG-2026-026).
 - Isolation crawler test: every admin route × 3 roles → 404 on another tenant's ids; coverage guard fails when a new route is missing.
 
 **Not built yet:** WebAuthn, Redis/BullMQ (in-memory for now), backup/restore, staff management, visitor statistics, real
-SMS gateway, photo attachments on complaints, focal-point field for banner/hero images, a map on the constituency page,
+SMS gateway, focal-point field for banner/hero images, a map on the constituency page,
 CI, production hosting. `docs/07-TASKS.md` starts with a status summary; `docs/09-BUILD-BRIEF.md` describes the content
 model and API for the CMS.
 
@@ -290,11 +299,21 @@ Then open `http://localhost:8765/demo-mp/` (public demo) and `http://localhost:8
    `docs/09-BUILD-BRIEF.md`, `adr/0001..0008`, and `HANDOFF_BUNDLE.md` (everything in one file for a claude.ai Project;
    rebuild after doc changes with `python scripts/build-bundle.py`).
 5. ~~Real product: API + admin panel~~ ✅ (30 Sep 2026).
-6. ~~Media, public site, CMS for every page, gallery/videos/events, GitHub~~ ✅ (30 Sep 2026). User feedback pending.
-7. **Next:** (a) CI (GitHub Actions: typecheck + test + `bugs:check --gate`), (b) focal-point field for banners/photos,
+6. ~~Media, public site, CMS for every page, gallery/videos/events, GitHub~~ ✅ (30 Sep 2026).
+7. ~~Citizen voice recording + photo/PDF upload (max 5) on complaint box~~ ✅ (1 Oct 2026).
+7b. ~~Pre-demo review fixes~~ ✅ (1 Oct 2026, evening): account takeover via invite-with-password (BUG-2026-026), stored XSS through
+   attachments (027), 16 MB document limit (028), inbox/export payloads (029), empty description 500 + canned text (030), 25 MB body
+   parser before auth (031), retention left voice/files (032), note-only 403 (033), developer text in citizen errors (034), test-port
+   flake on macOS (035). All `fixed` with regression tests; still to do: independent verification (`bugs.mjs status <id> verified`),
+   a real-device check of the voice recorder (Chrome/Android, Safari/iOS, Firefox) and the photo shrinking, and commit (nothing is
+   committed yet).
+8. **Next:** (a) CI (GitHub Actions: typecheck + test + `bugs:check --gate`), (b) focal-point field for banners/photos,
    (c) Redis/BullMQ, (d) backup/restore and staff management, (e) real SMS gateway and hosting (ask the user),
    (f) regenerate the AI photos without the wrong text ("ঢাকা লোকনাথ", the plaque seal), (g) BUG-2026-014 (e2e flake),
-   (h) remove the two test tenants left in the dev database (`sa-e2e-*`) with a fresh `SEED_RESET=1 npm run seed`.
+   (h) remove the two test tenants left in the dev database (`sa-e2e-*`) with a fresh `SEED_RESET=1 npm run seed`,
+   (i) staff complaints (`POST /admin/.../complaints`) keep the 1 MB body limit: if the admin ever gets an attachment form for
+   hearing/phone complaints, give that route its own limit after auth, (j) attachments live inside the complaint document for now;
+   moving them to private object storage (as `docs/03` originally planned) would remove the size ceiling.
 
 ## 11. Decisions
 **Made** (30 Sep 2026, see `adr/`):

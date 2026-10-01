@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import VideoSlider from '@/components/VideoSlider';
-import { PageHero, heroImage } from '@/components/blocks';
-import { getPage, getSite, getVideos, soft } from '@/lib/api';
+import { PageHero } from '@/components/blocks';
+import { getPage, getSite, getVideos, soft, pageImage } from '@/lib/api';
 import { PAGE_NAME } from '@/lib/nav';
 import { featuredFirst } from '@/lib/slider';
 import { videoYouTubeId, ytThumb } from '@/lib/youtube';
@@ -15,7 +15,7 @@ export default async function Videos({ searchParams }: { searchParams: { v?: str
   const items = featuredFirst(videos.items);
   const first = items[0];
   const firstYt = first ? videoYouTubeId(first) : null;
-  const banner = heroImage(site, 'videos');
+  const banner = (await pageImage(site, 'videos'));
   const heroUrl = first?.posterUrl || (firstYt ? ytThumb(firstYt, 'hqdefault') : '') || banner?.url;
   const credit = first && heroUrl !== banner?.url ? first.title : banner?.caption;
   return (
