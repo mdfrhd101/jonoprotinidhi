@@ -38,7 +38,9 @@ services:
         value: 24.21.0
       - key: NODE_ENV
         value: production
-      - key: MFA_REQUIRED             # the API refuses to start with false in production; written out so nobody wonders
+      - key: MFA_REQUIRED             # 2-step login switched OFF at the owner's request (2 Oct 2026); "true" turns it back on
+        value: "false"
+      - key: ALLOW_NO_MFA_IN_PRODUCTION   # required for MFA_REQUIRED=false with NODE_ENV=production
         value: "true"
       - key: MONGODB_URI              # Atlas connection string, must name the database: ...mongodb.net/jonoprotinidhi?...
         sync: false

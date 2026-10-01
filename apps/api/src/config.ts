@@ -30,8 +30,10 @@ const schema = z.object({
   PW_MEMORY_KIB: z.coerce.number().int().min(1024).default(65536),
   PW_PASSES: z.coerce.number().int().min(1).default(3),
   // NOT z.coerce.boolean(): Boolean('false') is true, which would silently turn the limiter off (BUG-2026-007)
-  // Dev convenience: false = password-only login (no 2-step code). Refused in production (see loadConfig).
+  // Dev convenience: false = password-only login (no 2-step code). Refused in production unless ALLOW_NO_MFA_IN_PRODUCTION is set.
   MFA_REQUIRED: z.enum(['true', 'false', '1', '0']).default('true').transform((v) => v === 'true' || v === '1'),
+  // Owner opt-in (demo deployment, 2 Oct 2026): permits MFA_REQUIRED=false with NODE_ENV=production.
+  ALLOW_NO_MFA_IN_PRODUCTION: z.enum(['true', 'false', '1', '0']).default('false').transform((v) => v === 'true' || v === '1'),
   // Uploaded images: where they live on disk, and the public origin used to build their URLs.
   UPLOAD_DIR: z.string().default('./uploads'),
   PUBLIC_BASE_URL: z.string().url().default('http://127.0.0.1:4000'),
@@ -52,7 +54,7 @@ export function loadConfig(source: Record<string, string | undefined> = process.
     throw new Error(`Invalid environment: ${msg}`);
   }
   const c = parsed.data;
-  if (c.NODE_ENV === 'production' && !c.MFA_REQUIRED) throw new Error('Invalid environment: MFA_REQUIRED=false is not allowed in production');
+  if (c.NODE_ENV === 'production' && !c.MFA_REQUIRED && !c.ALLOW_NO_MFA_IN_PRODUCTION) throw new Error('Invalid environment: MFA_REQUIRED=false is not allowed in production');
   return {
     ...c,
     corsOrigins: c.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean),

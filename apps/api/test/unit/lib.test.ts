@@ -21,6 +21,7 @@ describe('config guard (fail fast on bad secrets)', () => {
     expect(loadConfig(BASE).MFA_REQUIRED).toBe(true); // safe default
     expect(loadConfig({ ...BASE, MFA_REQUIRED: 'false' }).MFA_REQUIRED).toBe(false);
     expect(() => loadConfig({ ...BASE, NODE_ENV: 'production', MFA_REQUIRED: 'false' })).toThrow(/MFA_REQUIRED/);
+    expect(loadConfig({ ...BASE, NODE_ENV: 'production', MFA_REQUIRED: 'false', ALLOW_NO_MFA_IN_PRODUCTION: 'true' }).MFA_REQUIRED).toBe(false); // explicit owner opt-in
     expect(() => loadConfig({ ...BASE, MASTER_KEY: Buffer.alloc(16).toString('base64') })).toThrow(/MASTER_KEY/);
     expect(() => loadConfig({ ...BASE, PHONE_PEPPER: undefined })).toThrow(/PHONE_PEPPER/);
     expect(() => loadConfig({})).toThrow(/Invalid environment/);
