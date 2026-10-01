@@ -1,0 +1,147 @@
+# Render Blueprint: PRIVATE DEMO of the Tarique Rahman showcase tenant, all on the free plan.
+# Click-by-click setup: docs/10-DEPLOY-RENDER.md.   Repo is PUBLIC: this file must never contain a secret value.
+#
+#   jonoprotinidhi-demo   (web, Next.js)  public site, pinned to one tenant, behind HTTP Basic auth + noindex
+#   jonoprotinidhi-api    (web, Express)  API; needs MongoDB Atlas (free M0)
+#   jonoprotinidhi-admin  (static site)   admin SPA; /api/* is rewritten to the API, so the browser sees ONE origin
+#                                         (the refresh cookie is SameSite=Strict + path-scoped, it only works same-origin)
+#
+# Values marked `sync: false` are asked for ONCE, when the Blueprint is first created (Render ignores them on later syncs).
+#
+# Why the URLs below are written out instead of `fromService`:
+#   `fromService` can only hand out the PRIVATE network address, and a free web service cannot receive private-network
+#   traffic. The services therefore talk over their public https://<name>.onrender.com URLs. A static-site rewrite
+#   destination cannot reference env vars at all. If Render gives a service a different subdomain than <name>.onrender.com
+#   (it adds a suffix when the name is taken world-wide), change every occurrence of the old URL in this file.
+
+services:
+  # ---------------------------------------------------------------- API
+  - type: web
+    name: jonoprotinidhi-api
+    runtime: node
+    plan: free
+    region: singapore                 # keep next to the Atlas cluster (AWS Singapore)
+    branch: main
+    autoDeployTrigger: commit         # push to main -> deploy. No CI exists yet; `checksPass` once GitHub Actions is added
+    buildFilter:                      # a docs-only push must not rebuild and restart the demo
+      paths:
+        - apps/api/**
+        - packages/shared/**
+        - package.json
+        - package-lock.json
+    # --include=dev: tsx (the runtime) and TypeScript are devDependencies, and NODE_ENV=production would otherwise skip them
+    buildCommand: npm ci --include=dev
+    startCommand: npm run start:prod -w @jonoprotinidhi/api    # tsx src/server.ts, no --env-file: config comes from the dashboard
+    healthCheckPath: /api/health      # 200 only while MongoDB is connected
+    envVars:
+      - key: NODE_VERSION             # crypto.argon2 (password hashing) needs Node >= 24.7
+        value: 24.21.0
+      - key: NODE_ENV
+        value: production
+      - key: MFA_REQUIRED             # the API refuses to start with false in production; written out so nobody wonders
+        value: "true"
+      - key: MONGODB_URI              # Atlas connection string, must name the database: ...mongodb.net/jonoprotinidhi?...
+        sync: false
+      - key: JWT_SECRET               # only signs short-lived tokens; a fresh value per environment is correct
+        generateValue: true
+      - key: MASTER_KEY               # SAME value as local apps/api/.env: it unwraps the encrypted PII / TOTP secrets copied into Atlas
+        sync: false
+      - key: PHONE_PEPPER             # SAME value as local: phone hashes in the copied data are keyed with it
+        sync: false
+      - key: SITE_SERVER_TOKEN        # SAME value as local, and the same on jonoprotinidhi-demo below
+        sync: false
+      - key: TURNSTILE_SECRET         # required in production. Demo: Cloudflare's always-pass test secret (docs/10, step 5). Pilot: a real key
+        sync: false
+      - key: PUBLIC_BASE_URL          # origin used to build uploaded-file URLs
+        value: https://jonoprotinidhi-api.onrender.com
+      - key: CORS_ORIGINS             # the admin origin (same-origin through the rewrite, kept correct anyway)
+        value: https://jonoprotinidhi-admin.onrender.com
+      - key: MEDIA_HOSTS              # must equal the demo service's list; the Tarique content uses only these hosts
+        value: upload.wikimedia.org,thumb.wikimedia.org
+      - key: UPLOAD_DIR               # EPHEMERAL on the free plan: files vanish on every restart/spin-down/deploy
+        value: /tmp/jonoprotinidhi-uploads
+
+  # ---------------------------------------------------------------- public site (Tarique tenant)
+  - type: web
+    name: jonoprotinidhi-demo
+    runtime: node
+    plan: free
+    region: singapore
+    branch: main
+    autoDeployTrigger: commit
+    buildFilter:
+      paths:
+        - apps/web-public/**
+        - packages/shared/**
+        - package.json
+        - package-lock.json
+    buildCommand: npm ci --include=dev && npm run build -w @jonoprotinidhi/web-public
+    startCommand: npm run start:prod -w @jonoprotinidhi/web-public   # next start -H 0.0.0.0; the port comes from Render's $PORT
+    healthCheckPath: /healthz         # exempt from the Basic auth gate (a gated / would answer 401 and fail the deploy)
+    envVars:
+      - key: NODE_VERSION
+        value: 24.21.0
+      - key: NODE_ENV
+        value: production
+      - key: API_URL
+        value: https://jonoprotinidhi-api.onrender.com
+      # Tenant pinning. The API picks the tenant from the Host header, and Render only routes a request that carries the
+      # API's own host. So this service calls the API with Host = the API's host, and that host is registered as a Domain of
+      # the tenant (copy-db.mjs --bind-host does this). TENANT_PIN=1 makes the site use it for every visitor Host.
+      - key: TENANT_HOST
+        value: jonoprotinidhi-api.onrender.com
+      - key: TENANT_PIN
+        value: "1"
+      - key: SITE_SERVER_TOKEN        # SAME value as on jonoprotinidhi-api
+        sync: false
+      - key: MEDIA_HOSTS
+        value: upload.wikimedia.org,thumb.wikimedia.org
+      - key: TURNSTILE_SITE_KEY       # public by design; must be the sitekey that belongs to the API's TURNSTILE_SECRET
+        sync: false
+      # Private-demo gate (apps/web-public/src/middleware.ts). Remove both SITE_BASIC_AUTH_* values to open the site.
+      - key: SITE_BASIC_AUTH_USER
+        value: demo
+      - key: SITE_BASIC_AUTH_PASS     # read it in the dashboard: this service -> Environment
+        generateValue: true
+      - key: NOINDEX                  # X-Robots-Tag: noindex, nofollow on every response
+        value: "1"
+
+  # ---------------------------------------------------------------- admin SPA
+  - type: web
+    name: jonoprotinidhi-admin
+    runtime: static
+    branch: main
+    autoDeployTrigger: commit
+    buildFilter:
+      paths:
+        - apps/web-admin/**
+        - packages/shared/**
+        - package.json
+        - package-lock.json
+    buildCommand: npm ci --include=dev && npm run build -w @jonoprotinidhi/web-admin   # includes tsc --noEmit
+    staticPublishPath: apps/web-admin/dist
+    envVars:
+      - key: NODE_VERSION
+        value: 24.21.0
+      - key: VITE_PUBLIC_SITE_URL     # build-time: where the admin's "view site" links point (without it they would be wrong)
+        value: https://jonoprotinidhi-demo.onrender.com
+    routes:                           # first match wins; a real file always beats a rule
+      - type: rewrite
+        source: /api/*
+        destination: https://jonoprotinidhi-api.onrender.com/api/*
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: X-Robots-Tag
+        value: noindex, nofollow
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin

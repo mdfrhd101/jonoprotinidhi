@@ -17,8 +17,12 @@ export function normaliseHost(raw: string | null | undefined): string {
 
 export const isLocalHost = (host: string): boolean => LOCAL.has(host) || /^127\.\d+\.\d+\.\d+$/.test(host);
 
-/** The tenant host to send to the API: the request's own host unless it is a local/invalid one, then the fallback. */
-export function resolveTenantHost(requestHost: string | null | undefined, fallback: string): string {
+/** The tenant host to send to the API: the request's own host unless it is a local/invalid one, then the fallback.
+    With `pin` (env TENANT_PIN=1) the fallback is used for EVERY request: a single-tenant demo deployment on a host the
+    platform does not know (e.g. <service>.onrender.com) still reaches its tenant. The pinned host must be a Domain of that
+    tenant in the database, and it must be a host the API accepts on the wire (the API's own public host on Render). */
+export function resolveTenantHost(requestHost: string | null | undefined, fallback: string, pin = false): string {
+  if (pin) return normaliseHost(fallback) || fallback;
   const h = normaliseHost(requestHost);
   if (!h || isLocalHost(h)) return normaliseHost(fallback) || fallback;
   return h;

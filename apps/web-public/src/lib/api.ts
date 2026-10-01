@@ -21,7 +21,7 @@ export class ApiFetchError extends Error {
 export function tenantHost(): string {
   const h = headers();
   const raw = (env.trustProxy && h.get('x-forwarded-host')) || h.get('host');
-  return resolveTenantHost(raw, env.tenantHost);
+  return resolveTenantHost(raw, env.tenantHost, env.pinTenant);
 }
 
 /** Headers for an API call made for the current visitor (tenant host + visitor IP + site token). */
@@ -81,4 +81,17 @@ export const getComplaintForm = cache(() => get<ComplaintForm>('/complaint-form'
 /** Runs a loader; on failure returns the fallback so one missing section never takes a whole page down. */
 export async function soft<T>(p: Promise<T>, fallback: T): Promise<T> {
   try { return await p; } catch (e) { if (process.env.NODE_ENV !== 'production') console.warn('[web-public] section data unavailable:', (e as Error).message); return fallback; }
+}
+
+/** A different photo for every inner page: featured gallery photos (excluding the home hero banners), banners as fallback. */
+const PAGE_ORDER = ['about', 'biography', 'activities', 'promises', 'area', 'gallery', 'videos', 'complaint', 'contact'];
+export async function pageImage(site: { banners?: Array<{ url: string; caption: string }> } | null, key: string): Promise<{ url: string; caption: string } | null> {
+  const used = new Set((site?.banners ?? []).map((b) => b.url));
+  const g = await getGallery({ featured: true, limit: 40 }).catch(() => null);
+  const pool = (g?.items ?? []).filter((x) => x.url && !used.has(x.url)).map((x) => ({ url: x.url, caption: [x.caption, x.credit].filter(Boolean).join(' · ') }));
+  const fallback = (site?.banners ?? []).filter((b) => b.url);
+  const list = pool.length ? pool : fallback;
+  if (!list.length) return null;
+  const i = Math.max(0, PAGE_ORDER.indexOf(key));
+  return list[i % list.length] ?? null;
 }

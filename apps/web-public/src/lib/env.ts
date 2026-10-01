@@ -4,6 +4,8 @@ export const env = {
   apiUrl: (process.env.API_URL || 'http://127.0.0.1:4000').replace(/\/+$/, ''),
   /** Tenant host used when the site is opened on localhost/127.0.0.1 (developer machines). */
   tenantHost: process.env.TENANT_HOST || 'ndp3.jonoprotinidhi.localhost',
+  /** TENANT_PIN=1: always use `tenantHost`, whatever Host the visitor used (single-tenant demo on *.onrender.com). */
+  pinTenant: process.env.TENANT_PIN === '1',
   /** Public origin(s) that serve uploaded media (comma separated); defaults to the API origin. */
   mediaOrigins: (process.env.MEDIA_ORIGINS || process.env.API_URL || 'http://127.0.0.1:4000').split(',').map((s) => s.trim()).filter(Boolean),
   /** Allow-listed external image hosts; keep in sync with the API's MEDIA_HOSTS. */
